@@ -1,7 +1,7 @@
-package com.chen1335.arcanumlib.modules.loot.lootInjector.condition;
+package com.chen1335.arcanumlib.modules.loot.lootInjector.selector;
 
 import com.chen1335.arcanumlib.modules.loot.lootInjector.LootInjectorOps;
-import com.chen1335.arcanumlib.modules.loot.lootInjector.event.CustomEntryConditionEvent;
+import com.chen1335.arcanumlib.modules.loot.lootInjector.event.CustomEntrySelectorEvent;
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.MapCodec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
@@ -24,19 +24,19 @@ import java.util.List;
  * 条目选择器：把条目和它在池内的下标传进来就地判断。读条目内容全靠 AT（物品/标签/权重在单例基类，条件在容器基类）。
  * 复合条目（alternatives/sequence/group）只看得到 children，不递归。
  */
-public interface EntryCondition {
+public interface EntrySelector {
 
-    Codec<EntryCondition> CODEC = LootInjectorOps.ENTRY_CONDITIONS.byNameCodec()
-            .dispatch("type", EntryCondition::getType, EntryConditionType::codec);
+    Codec<EntrySelector> CODEC = LootInjectorOps.ENTRY_SELECTORS.byNameCodec()
+            .dispatch("type", EntrySelector::getType, EntrySelectorType::codec);
 
-    EntryConditionType getType();
+    EntrySelectorType getType();
 
     boolean test(int index, LootPoolEntryContainer entry, LootPool pool);
 
     /** 匹配所有条目。 */
-    record Any() implements EntryCondition {
+    record Any() implements EntrySelector {
         @Override
-        public EntryConditionType getType() {
+        public EntrySelectorType getType() {
             return LootInjectorOps.ENTRY_ANY.get();
         }
         public static final MapCodec<Any> CODEC = MapCodec.unit(Any::new);
@@ -47,9 +47,9 @@ public interface EntryCondition {
     }
 
     /** 按池内下标匹配。 */
-    record ByIndex(int index) implements EntryCondition {
+    record ByIndex(int index) implements EntrySelector {
         @Override
-        public EntryConditionType getType() {
+        public EntrySelectorType getType() {
             return LootInjectorOps.ENTRY_BY_INDEX.get();
         }
         public static final MapCodec<ByIndex> CODEC = RecordCodecBuilder.mapCodec(instance -> instance.group(
@@ -61,9 +61,9 @@ public interface EntryCondition {
     }
 
     /** 匹配某个物品条目。 */
-    record IsItem(ResourceLocation item) implements EntryCondition {
+    record IsItem(ResourceLocation item) implements EntrySelector {
         @Override
-        public EntryConditionType getType() {
+        public EntrySelectorType getType() {
             return LootInjectorOps.ENTRY_IS_ITEM.get();
         }
         public static final MapCodec<IsItem> CODEC = RecordCodecBuilder.mapCodec(instance -> instance.group(
@@ -79,9 +79,9 @@ public interface EntryCondition {
     }
 
     /** 匹配某个物品标签条目。 */
-    record IsTag(TagKey<Item> tag) implements EntryCondition {
+    record IsTag(TagKey<Item> tag) implements EntrySelector {
         @Override
-        public EntryConditionType getType() {
+        public EntrySelectorType getType() {
             return LootInjectorOps.ENTRY_IS_TAG.get();
         }
         public static final MapCodec<IsTag> CODEC = RecordCodecBuilder.mapCodec(instance -> instance.group(
@@ -98,9 +98,9 @@ public interface EntryCondition {
      * <p>和 {@link IsTag} 的区别：那个匹配的是 {@code minecraft:tag} 条目、比的是标签本身；
      * 这个匹配写死具体物品的 {@code minecraft:item} 条目，按标签判断它的物品是否被收录。
      */
-    record IsItemWithTag(TagKey<Item> tag) implements EntryCondition {
+    record IsItemWithTag(TagKey<Item> tag) implements EntrySelector {
         @Override
-        public EntryConditionType getType() {
+        public EntrySelectorType getType() {
             return LootInjectorOps.ENTRY_IS_ITEM_WITH_TAG.get();
         }
         public static final MapCodec<IsItemWithTag> CODEC = RecordCodecBuilder.mapCodec(instance -> instance.group(
@@ -113,9 +113,9 @@ public interface EntryCondition {
     }
 
     /** 按条目类型匹配，例如 {@code minecraft:item}、{@code minecraft:alternatives}。 */
-    record IsType(ResourceLocation entryType) implements EntryCondition {
+    record IsType(ResourceLocation entryType) implements EntrySelector {
         @Override
-        public EntryConditionType getType() {
+        public EntrySelectorType getType() {
             return LootInjectorOps.ENTRY_IS_TYPE.get();
         }
         public static final MapCodec<IsType> CODEC = RecordCodecBuilder.mapCodec(instance -> instance.group(
@@ -131,9 +131,9 @@ public interface EntryCondition {
      *
      * <p>权重口径与 {@link PoolWeights} 一致：单例条目取它的 weight（按 0 夹下限），复合条目按子树累加。
      */
-    record WeightInRange(int min, int max) implements EntryCondition {
+    record WeightInRange(int min, int max) implements EntrySelector {
         @Override
-        public EntryConditionType getType() {
+        public EntrySelectorType getType() {
             return LootInjectorOps.ENTRY_WEIGHT_IN_RANGE.get();
         }
         public static final MapCodec<WeightInRange> CODEC = RecordCodecBuilder.mapCodec(instance -> instance.group(
@@ -152,11 +152,11 @@ public interface EntryCondition {
      * 该条目在【所属池总权重】里占的比例是否落在闭区间 [min, max] 内（比例口径 0~1）。
      *
      * <p>分子取条目的静态权重（复合条目按子树累加），分母取池的静态总权重，口径与
-     * {@link PoolCondition.TotalWeightInRange} 完全一致——都不含 quality × 幸运、也不按条件过滤分支。
+     * {@link PoolSelector.TotalWeightInRange} 完全一致——都不含 quality × 幸运、也不按条件过滤分支。
      */
-    record WeightShareInRange(float min, float max) implements EntryCondition {
+    record WeightShareInRange(float min, float max) implements EntrySelector {
         @Override
-        public EntryConditionType getType() {
+        public EntrySelectorType getType() {
             return LootInjectorOps.ENTRY_WEIGHT_SHARE.get();
         }
         public static final MapCodec<WeightShareInRange> CODEC = RecordCodecBuilder.mapCodec(instance -> instance.group(
@@ -175,9 +175,9 @@ public interface EntryCondition {
         }
     }
     /** 条目身上是否已经挂着某种条件，按条件类型 id 比较。 */
-    record HasCondition(ResourceLocation conditionType) implements EntryCondition {
+    record HasCondition(ResourceLocation conditionType) implements EntrySelector {
         @Override
-        public EntryConditionType getType() {
+        public EntrySelectorType getType() {
             return LootInjectorOps.ENTRY_HAS_CONDITION.get();
         }
         public static final MapCodec<HasCondition> CODEC = RecordCodecBuilder.mapCodec(instance -> instance.group(
@@ -192,9 +192,9 @@ public interface EntryCondition {
     }
 
     /** 条目身上是否已经挂着某种函数，按函数类型 id 比较。 */
-    record HasFunction(ResourceLocation functionType) implements EntryCondition {
+    record HasFunction(ResourceLocation functionType) implements EntrySelector {
         @Override
-        public EntryConditionType getType() {
+        public EntrySelectorType getType() {
             return LootInjectorOps.ENTRY_HAS_FUNCTION.get();
         }
         public static final MapCodec<HasFunction> CODEC = RecordCodecBuilder.mapCodec(instance -> instance.group(
@@ -213,13 +213,13 @@ public interface EntryCondition {
     }
 
     /** 复合条目里任意子条目满足条件。 */
-    record HasChild(EntryCondition child) implements EntryCondition {
+    record HasChild(EntrySelector child) implements EntrySelector {
         @Override
-        public EntryConditionType getType() {
+        public EntrySelectorType getType() {
             return LootInjectorOps.ENTRY_HAS_CHILD.get();
         }
         public static final MapCodec<HasChild> CODEC = RecordCodecBuilder.mapCodec(instance -> instance.group(
-                EntryCondition.CODEC.fieldOf("entryCondition").forGetter(HasChild::child)).apply(instance, HasChild::new));
+                EntrySelector.CODEC.fieldOf("entrySelector").forGetter(HasChild::child)).apply(instance, HasChild::new));
         @Override
         public boolean test(int index, LootPoolEntryContainer entry, LootPool pool) {
             if (!(entry instanceof CompositeEntryBase composite)) {
@@ -237,13 +237,13 @@ public interface EntryCondition {
     }
 
     /** 取反。 */
-    record Not(EntryCondition child) implements EntryCondition {
+    record Not(EntrySelector child) implements EntrySelector {
         @Override
-        public EntryConditionType getType() {
+        public EntrySelectorType getType() {
             return LootInjectorOps.ENTRY_NOT.get();
         }
         public static final MapCodec<Not> CODEC = RecordCodecBuilder.mapCodec(instance -> instance.group(
-                EntryCondition.CODEC.fieldOf("condition").forGetter(Not::child)).apply(instance, Not::new));
+                EntrySelector.CODEC.fieldOf("condition").forGetter(Not::child)).apply(instance, Not::new));
         @Override
         public boolean test(int index, LootPoolEntryContainer entry, LootPool pool) {
             return !this.child.test(index, entry, pool);
@@ -251,13 +251,13 @@ public interface EntryCondition {
     }
 
     /** 任一满足。 */
-    record AnyOf(List<EntryCondition> children) implements EntryCondition {
+    record AnyOf(List<EntrySelector> children) implements EntrySelector {
         @Override
-        public EntryConditionType getType() {
+        public EntrySelectorType getType() {
             return LootInjectorOps.ENTRY_ANY_OF.get();
         }
         public static final MapCodec<AnyOf> CODEC = RecordCodecBuilder.mapCodec(instance -> instance.group(
-                EntryCondition.CODEC.listOf().fieldOf("conditions").forGetter(AnyOf::children))
+                EntrySelector.CODEC.listOf().fieldOf("conditions").forGetter(AnyOf::children))
                 .apply(instance, AnyOf::new));
         @Override
         public boolean test(int index, LootPoolEntryContainer entry, LootPool pool) {
@@ -266,13 +266,13 @@ public interface EntryCondition {
     }
 
     /** 全部满足。 */
-    record AllOf(List<EntryCondition> children) implements EntryCondition {
+    record AllOf(List<EntrySelector> children) implements EntrySelector {
         @Override
-        public EntryConditionType getType() {
+        public EntrySelectorType getType() {
             return LootInjectorOps.ENTRY_ALL_OF.get();
         }
         public static final MapCodec<AllOf> CODEC = RecordCodecBuilder.mapCodec(instance -> instance.group(
-                EntryCondition.CODEC.listOf().fieldOf("conditions").forGetter(AllOf::children))
+                EntrySelector.CODEC.listOf().fieldOf("conditions").forGetter(AllOf::children))
                 .apply(instance, AllOf::new));
         @Override
         public boolean test(int index, LootPoolEntryContainer entry, LootPool pool) {
@@ -280,21 +280,21 @@ public interface EntryCondition {
         }
     }
     /**
-     * 自定义选择器：json 里只给一个 id，判断交给监听 CustomEntryConditionEvent 的代码。
+     * 自定义选择器：json 里只给一个 id，判断交给监听 CustomEntrySelectorEvent 的代码。
      * 每次判定都会发事件（注入器 × 表规模），监听者要自己控制开销。
      */
-    record Custom(String id) implements EntryCondition {
+    record Custom(String id) implements EntrySelector {
         public static final MapCodec<Custom> CODEC = RecordCodecBuilder.mapCodec(instance -> instance.group(
                 Codec.STRING.fieldOf("custom_id").forGetter(Custom::id)).apply(instance, Custom::new));
 
         @Override
-        public EntryConditionType getType() {
+        public EntrySelectorType getType() {
             return LootInjectorOps.CUSTOM_ENTRY.get();
         }
 
         @Override
         public boolean test(int index, LootPoolEntryContainer entry, LootPool pool) {
-            return CustomEntryConditionEvent.post(this.id, index, entry, pool);
+            return CustomEntrySelectorEvent.post(this.id, index, entry, pool);
         }
     }
 }

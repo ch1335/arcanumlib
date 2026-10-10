@@ -78,7 +78,7 @@
       }
     }
   ],
-  "tableCondition": {
+  "tableSelector": {
     "type": "arcanumlib:id",
     "id": "minecraft:entities/zombie"
   }

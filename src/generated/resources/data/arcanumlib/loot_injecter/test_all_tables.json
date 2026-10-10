@@ -5,7 +5,7 @@
       "ops": [
         {
           "type": "arcanumlib:modify_entry",
-          "entryCondition": {
+          "entrySelector": {
             "type": "arcanumlib:item",
             "item": "minecraft:dragon_egg"
           },

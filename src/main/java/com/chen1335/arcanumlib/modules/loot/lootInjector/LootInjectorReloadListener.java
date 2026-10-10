@@ -1,6 +1,6 @@
 package com.chen1335.arcanumlib.modules.loot.lootInjector;
 
-import com.chen1335.arcanumlib.modules.loot.lootInjector.condition.TableCondition;
+import com.chen1335.arcanumlib.modules.loot.lootInjector.selector.TableSelector;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.gson.JsonElement;
@@ -39,7 +39,7 @@ public class LootInjectorReloadListener extends SimpleJsonResourceReloadListener
         rawJson = Map.copyOf(objects);
 
         // 标签与表实例都会在 reload 后变化，缓存和"已应用"记录必须一起清掉
-        TableCondition.clearCaches();
+        TableSelector.clearCaches();
         LootInjectorApplier.clearApplied();
     }
 }

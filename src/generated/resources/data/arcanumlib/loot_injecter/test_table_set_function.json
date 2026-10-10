@@ -11,7 +11,7 @@
       ]
     }
   ],
-  "tableCondition": {
+  "tableSelector": {
     "type": "arcanumlib:id",
     "id": "minecraft:chests/woodland_mansion"
   }

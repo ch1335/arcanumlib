@@ -27,7 +27,7 @@
       ]
     }
   ],
-  "tableCondition": {
+  "tableSelector": {
     "type": "arcanumlib:id",
     "id": "minecraft:chests/end_city_treasure"
   }

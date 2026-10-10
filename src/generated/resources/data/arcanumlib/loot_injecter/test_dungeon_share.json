@@ -5,7 +5,7 @@
       "ops": [
         {
           "type": "arcanumlib:modify_entry",
-          "entryCondition": {
+          "entrySelector": {
             "type": "arcanumlib:weight_share",
             "max": 0.8,
             "min": 0.7
@@ -24,14 +24,14 @@
           ]
         }
       ],
-      "poolCondition": {
+      "poolSelector": {
         "type": "arcanumlib:name",
         "name": "arcanumlib_test_share"
       }
     }
   ],
   "priority": 1070,
-  "tableCondition": {
+  "tableSelector": {
     "type": "arcanumlib:id",
     "id": "minecraft:chests/simple_dungeon"
   }

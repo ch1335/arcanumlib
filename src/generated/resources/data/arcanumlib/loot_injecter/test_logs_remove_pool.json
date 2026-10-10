@@ -10,7 +10,7 @@
     }
   ],
   "priority": 1200,
-  "tableCondition": {
+  "tableSelector": {
     "type": "arcanumlib:block_tag",
     "tag": "minecraft:logs"
   }

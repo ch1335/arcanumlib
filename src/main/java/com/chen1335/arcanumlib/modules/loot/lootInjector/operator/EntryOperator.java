@@ -2,6 +2,8 @@ package com.chen1335.arcanumlib.modules.loot.lootInjector.operator;
 
 import com.chen1335.arcanumlib.modules.loot.lootInjector.LootInjectorOps;
 import com.chen1335.arcanumlib.modules.loot.lootInjector.event.EntryCustomOpEvent;
+import com.chen1335.arcanumlib.modules.loot.lootInjector.selector.ConditionSelector;
+import com.chen1335.arcanumlib.modules.loot.lootInjector.selector.FunctionSelector;
 import com.google.gson.JsonElement;
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.JsonOps;
@@ -25,7 +27,7 @@ import java.util.List;
 
 /**
  * 条目级操作：作用于"当前条目"，只能出现在 {@link PoolOperator.ModifyEntry} 的子 {@code ops} 里。
- * 条件只在作用域上写，叶子 op 不再自带 poolCondition / entryCondition。
+ * 条件只在作用域上写，叶子 op 不再自带 poolSelector / entrySelector。
  */
 public interface EntryOperator {
 
@@ -251,6 +253,89 @@ public interface EntryOperator {
         }
     }
 
+    /** 作用域：对"当前条目"函数列表里命中的每个函数跑子 ops；复合条目没有函数，跳过。 */
+    record ModifyFunction(FunctionSelector functionSelector,
+                          List<FunctionOperator> ops) implements EntryOperator {
+        @Override
+        public EntryOperatorType getType() {
+            return LootInjectorOps.ENTRY_MODIFY_FUNCTION.get();
+        }
+        public static final MapCodec<ModifyFunction> CODEC = RecordCodecBuilder.mapCodec(instance -> instance.group(
+                FunctionSelector.CODEC.optionalFieldOf("functionSelector", new FunctionSelector.Any())
+                        .forGetter(ModifyFunction::functionSelector),
+                FunctionOperator.CODEC.listOf().optionalFieldOf("ops", List.of()).forGetter(ModifyFunction::ops))
+                .apply(instance, ModifyFunction::new));
+        @Override
+        public void apply(LootPool pool, List<LootPoolEntryContainer> entries, int index,
+                          HolderLookup.Provider registries) {
+            if (!(entries.get(index) instanceof LootPoolSingletonContainer singleton)) {
+                return;
+            }
+
+            if (!(singleton.functions instanceof ArrayList)) {
+                singleton.functions = new ArrayList<>(singleton.functions);
+            }
+            List<LootItemFunction> functions = singleton.functions;
+
+            for (LootItemFunction function : List.copyOf(functions)) {
+                int at = functions.indexOf(function);
+                if (at < 0 || !this.functionSelector.test(at, function, registries)) {
+                    continue;
+                }
+
+                for (FunctionOperator op : this.ops) {
+                    int current = functions.indexOf(function);
+                    if (current < 0) {
+                        break;
+                    }
+                    op.apply(functions, current, registries);
+                }
+            }
+
+            singleton.compositeFunction = LootItemFunctions.compose(functions);
+        }
+    }
+
+    /** 作用域：对"当前条目"条件里命中的每个条件跑子 ops。 */
+    record ModifyCondition(ConditionSelector conditionSelector,
+                           List<ConditionOperator> ops) implements EntryOperator {
+        @Override
+        public EntryOperatorType getType() {
+            return LootInjectorOps.ENTRY_MODIFY_CONDITION.get();
+        }
+        public static final MapCodec<ModifyCondition> CODEC = RecordCodecBuilder.mapCodec(instance -> instance.group(
+                ConditionSelector.CODEC.optionalFieldOf("conditionSelector", new ConditionSelector.Any())
+                        .forGetter(ModifyCondition::conditionSelector),
+                ConditionOperator.CODEC.listOf().optionalFieldOf("ops", List.of()).forGetter(ModifyCondition::ops))
+                .apply(instance, ModifyCondition::new));
+        @Override
+        public void apply(LootPool pool, List<LootPoolEntryContainer> entries, int index,
+                          HolderLookup.Provider registries) {
+            LootPoolEntryContainer entry = entries.get(index);
+
+            if (!(entry.conditions instanceof ArrayList)) {
+                entry.conditions = new ArrayList<>(entry.conditions);
+            }
+            List<LootItemCondition> conditions = entry.conditions;
+
+            for (LootItemCondition condition : List.copyOf(conditions)) {
+                int at = conditions.indexOf(condition);
+                if (at < 0 || !this.conditionSelector.test(at, condition, registries)) {
+                    continue;
+                }
+
+                for (ConditionOperator op : this.ops) {
+                    int current = conditions.indexOf(condition);
+                    if (current < 0) {
+                        break;
+                    }
+                    op.apply(conditions, current, registries);
+                }
+            }
+
+            entry.compositeCondition = Util.allOf(conditions);
+        }
+    }
     /** 自定义：json 里只给一个 id，改动交给 EntryCustomOpEvent 的监听者。 */
     record EntryCustom(String id) implements EntryOperator {
         @Override

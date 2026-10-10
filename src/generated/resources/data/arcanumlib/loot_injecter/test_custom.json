@@ -13,7 +13,7 @@
         },
         {
           "type": "arcanumlib:modify_entry",
-          "entryCondition": {
+          "entrySelector": {
             "type": "arcanumlib:custom",
             "custom_id": "test_entry"
           },
@@ -25,13 +25,13 @@
           ]
         }
       ],
-      "poolCondition": {
+      "poolSelector": {
         "type": "arcanumlib:custom",
         "custom_id": "test_pool"
       }
     }
   ],
-  "tableCondition": {
+  "tableSelector": {
     "type": "arcanumlib:custom",
     "custom_id": "test_table"
   }

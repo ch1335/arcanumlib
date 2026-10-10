@@ -1,4 +1,4 @@
-package com.chen1335.arcanumlib.modules.loot.lootInjector.condition;
+package com.chen1335.arcanumlib.modules.loot.lootInjector.selector;
 
 import net.minecraft.world.level.storage.loot.LootPool;
 import net.minecraft.world.level.storage.loot.entries.CompositeEntryBase;

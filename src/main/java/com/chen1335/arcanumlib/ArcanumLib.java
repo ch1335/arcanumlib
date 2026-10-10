@@ -26,16 +26,24 @@ public class ArcanumLib {
         LootInjectorOps.TABLE_OPERATOR_TYPES.register(modEventBus);
         LootInjectorOps.POOL_OPERATOR_TYPES.register(modEventBus);
         LootInjectorOps.ENTRY_OPERATOR_TYPES.register(modEventBus);
-        LootInjectorOps.TABLE_CONDITION_TYPES.register(modEventBus);
-        LootInjectorOps.POOL_CONDITION_TYPES.register(modEventBus);
-        LootInjectorOps.ENTRY_CONDITION_TYPES.register(modEventBus);
+        LootInjectorOps.FUNCTION_OPERATOR_TYPES.register(modEventBus);
+        LootInjectorOps.CONDITION_OPERATOR_TYPES.register(modEventBus);
+        LootInjectorOps.TABLE_SELECTOR_TYPES.register(modEventBus);
+        LootInjectorOps.POOL_SELECTOR_TYPES.register(modEventBus);
+        LootInjectorOps.ENTRY_SELECTOR_TYPES.register(modEventBus);
+        LootInjectorOps.FUNCTION_SELECTOR_TYPES.register(modEventBus);
+        LootInjectorOps.CONDITION_SELECTOR_TYPES.register(modEventBus);
         modEventBus.addListener(NewRegistryEvent.class, event -> {
             event.register(LootInjectorOps.TABLE_OPERATORS);
             event.register(LootInjectorOps.POOL_OPERATORS);
             event.register(LootInjectorOps.ENTRY_OPERATORS);
-            event.register(LootInjectorOps.TABLE_CONDITIONS);
-            event.register(LootInjectorOps.POOL_CONDITIONS);
-            event.register(LootInjectorOps.ENTRY_CONDITIONS);
+            event.register(LootInjectorOps.FUNCTION_OPERATORS);
+            event.register(LootInjectorOps.CONDITION_OPERATORS);
+            event.register(LootInjectorOps.TABLE_SELECTORS);
+            event.register(LootInjectorOps.POOL_SELECTORS);
+            event.register(LootInjectorOps.ENTRY_SELECTORS);
+            event.register(LootInjectorOps.FUNCTION_SELECTORS);
+            event.register(LootInjectorOps.CONDITION_SELECTORS);
             event.register(ChanceModifierTypes.REGISTRY);
         });
         // 战利品条目类型（原版 LootPoolEntries.register 是私有的）

@@ -6,14 +6,14 @@ import net.neoforged.bus.api.Event;
 import net.neoforged.neoforge.common.NeoForge;
 
 /** 自定义条目选择器求值时触发，用 setResult 决定是否命中。在 NeoForge.EVENT_BUS 上监听。 */
-public class CustomEntryConditionEvent extends Event {
+public class CustomEntrySelectorEvent extends Event {
     private final String id;
     private final int index;
     private final LootPoolEntryContainer entry;
     private final LootPool pool;
     private boolean result;
 
-    public CustomEntryConditionEvent(String id, int index, LootPoolEntryContainer entry, LootPool pool) {
+    public CustomEntrySelectorEvent(String id, int index, LootPoolEntryContainer entry, LootPool pool) {
         this.id = id;
         this.index = index;
         this.entry = entry;
@@ -47,7 +47,7 @@ public class CustomEntryConditionEvent extends Event {
     }
 
     public static boolean post(String id, int index, LootPoolEntryContainer entry, LootPool pool) {
-        CustomEntryConditionEvent event = new CustomEntryConditionEvent(id, index, entry, pool);
+        CustomEntrySelectorEvent event = new CustomEntrySelectorEvent(id, index, entry, pool);
         NeoForge.EVENT_BUS.post(event);
         return event.getResult();
     }

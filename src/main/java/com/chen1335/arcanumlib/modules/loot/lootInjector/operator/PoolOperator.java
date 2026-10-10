@@ -1,8 +1,10 @@
 package com.chen1335.arcanumlib.modules.loot.lootInjector.operator;
 
 import com.chen1335.arcanumlib.modules.loot.lootInjector.LootInjectorOps;
-import com.chen1335.arcanumlib.modules.loot.lootInjector.condition.EntryCondition;
+import com.chen1335.arcanumlib.modules.loot.lootInjector.selector.EntrySelector;
 import com.chen1335.arcanumlib.modules.loot.lootInjector.event.PoolCustomOpEvent;
+import com.chen1335.arcanumlib.modules.loot.lootInjector.selector.ConditionSelector;
+import com.chen1335.arcanumlib.modules.loot.lootInjector.selector.FunctionSelector;
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.MapCodec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
@@ -74,14 +76,14 @@ public interface PoolOperator {
     }
 
     /** 作用域：命中的每个条目依次跑一遍子 ops。 */
-    record ModifyEntry(EntryCondition entryCondition, List<EntryOperator> ops) implements PoolOperator {
+    record ModifyEntry(EntrySelector entrySelector, List<EntryOperator> ops) implements PoolOperator {
         @Override
         public PoolOperatorType getType() {
             return LootInjectorOps.POOL_MODIFY_ENTRY.get();
         }
         public static final MapCodec<ModifyEntry> CODEC = RecordCodecBuilder.mapCodec(instance -> instance.group(
-                EntryCondition.CODEC.optionalFieldOf("entryCondition", new EntryCondition.Any())
-                        .forGetter(ModifyEntry::entryCondition),
+                EntrySelector.CODEC.optionalFieldOf("entrySelector", new EntrySelector.Any())
+                        .forGetter(ModifyEntry::entrySelector),
                 EntryOperator.CODEC.listOf().optionalFieldOf("ops", List.of()).forGetter(ModifyEntry::ops))
                 .apply(instance, ModifyEntry::new));
         @Override
@@ -91,7 +93,7 @@ public interface PoolOperator {
             // 快照遍历：子 op 可能删条目，直接按下标走会跳项
             for (LootPoolEntryContainer entry : List.copyOf(entries)) {
                 int index = entries.indexOf(entry);
-                if (index < 0 || !this.entryCondition.test(index, entry, pool)) {
+                if (index < 0 || !this.entrySelector.test(index, entry, pool)) {
                     continue;
                 }
 
@@ -232,6 +234,80 @@ public interface PoolOperator {
         }
     }
 
+    /** 作用域：对池函数列表里命中的每个函数跑子 ops，可以再往里钻到函数自带的条件。 */
+    record ModifyFunction(FunctionSelector functionSelector, List<FunctionOperator> ops) implements PoolOperator {
+        @Override
+        public PoolOperatorType getType() {
+            return LootInjectorOps.POOL_MODIFY_FUNCTION.get();
+        }
+        public static final MapCodec<ModifyFunction> CODEC = RecordCodecBuilder.mapCodec(instance -> instance.group(
+                FunctionSelector.CODEC.optionalFieldOf("functionSelector", new FunctionSelector.Any())
+                        .forGetter(ModifyFunction::functionSelector),
+                FunctionOperator.CODEC.listOf().optionalFieldOf("ops", List.of()).forGetter(ModifyFunction::ops))
+                .apply(instance, ModifyFunction::new));
+        @Override
+        public void apply(LootTable table, int poolIndex, LootPool pool, HolderLookup.Provider registries) {
+            if (!(pool.functions instanceof ArrayList)) {
+                pool.functions = new ArrayList<>(pool.functions);
+            }
+            List<LootItemFunction> functions = pool.functions;
+
+            for (LootItemFunction function : List.copyOf(functions)) {
+                int index = functions.indexOf(function);
+                if (index < 0 || !this.functionSelector.test(index, function, registries)) {
+                    continue;
+                }
+
+                for (FunctionOperator op : this.ops) {
+                    int current = functions.indexOf(function);
+                    if (current < 0) {
+                        break;
+                    }
+                    op.apply(functions, current, registries);
+                }
+            }
+
+            pool.compositeFunction = LootItemFunctions.compose(functions);
+        }
+    }
+
+    /** 作用域：对池条件里命中的每个条件跑子 ops。 */
+    record ModifyCondition(ConditionSelector conditionSelector,
+                           List<ConditionOperator> ops) implements PoolOperator {
+        @Override
+        public PoolOperatorType getType() {
+            return LootInjectorOps.POOL_MODIFY_CONDITION.get();
+        }
+        public static final MapCodec<ModifyCondition> CODEC = RecordCodecBuilder.mapCodec(instance -> instance.group(
+                ConditionSelector.CODEC.optionalFieldOf("conditionSelector", new ConditionSelector.Any())
+                        .forGetter(ModifyCondition::conditionSelector),
+                ConditionOperator.CODEC.listOf().optionalFieldOf("ops", List.of()).forGetter(ModifyCondition::ops))
+                .apply(instance, ModifyCondition::new));
+        @Override
+        public void apply(LootTable table, int poolIndex, LootPool pool, HolderLookup.Provider registries) {
+            if (!(pool.conditions instanceof ArrayList)) {
+                pool.conditions = new ArrayList<>(pool.conditions);
+            }
+            List<LootItemCondition> conditions = pool.conditions;
+
+            for (LootItemCondition condition : List.copyOf(conditions)) {
+                int index = conditions.indexOf(condition);
+                if (index < 0 || !this.conditionSelector.test(index, condition, registries)) {
+                    continue;
+                }
+
+                for (ConditionOperator op : this.ops) {
+                    int current = conditions.indexOf(condition);
+                    if (current < 0) {
+                        break;
+                    }
+                    op.apply(conditions, current, registries);
+                }
+            }
+
+            pool.compositeCondition = Util.allOf(conditions);   // 判定真正走的是它
+        }
+    }
     /** 自定义：json 里只给一个 id，改动交给 PoolCustomOpEvent 的监听者。 */
     record PoolCustom(String id) implements PoolOperator {
         @Override

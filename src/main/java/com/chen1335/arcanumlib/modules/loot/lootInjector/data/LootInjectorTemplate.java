@@ -4,7 +4,7 @@ import com.chen1335.arcanumlib.modules.loot.lootEntry.AllOfEntry;
 import com.chen1335.arcanumlib.modules.loot.lootInjector.LootInjector;
 import com.chen1335.arcanumlib.modules.loot.lootInjector.operator.TableOperator;
 import com.chen1335.arcanumlib.modules.loot.lootInjector.LootInjectorReloadListener;
-import com.chen1335.arcanumlib.modules.loot.lootInjector.condition.TableCondition;
+import com.chen1335.arcanumlib.modules.loot.lootInjector.selector.TableSelector;
 import net.minecraft.core.HolderLookup;
 import net.minecraft.data.PackOutput;
 import net.minecraft.resources.ResourceKey;
@@ -74,17 +74,17 @@ public abstract class LootInjectorTemplate extends LootInjectorProvider {
 
     /** 一张普通战利品表一个注入器：按表 id 精确匹配。 */
     protected LootInjector merged(String path, ResourceKey<LootTable> table, Drop... drops) {
-        return injector(path, new TableCondition.ById(table.location()), drops);
+        return injector(path, new TableSelector.ById(table.location()), drops);
     }
 
     /** 一个生物一个注入器：按它的默认战利品表匹配。 */
     protected LootInjector boss(String path, EntityType<?> type, Drop... drops) {
-        return injector(path, new TableCondition.ById(type.getDefaultLootTable().location()), drops);
+        return injector(path, new TableSelector.ById(type.getDefaultLootTable().location()), drops);
     }
 
     /** 需要别的表选择器（命名空间、路径前缀、标签…）时直接用这个。 */
-    protected LootInjector injector(String path, TableCondition tableCondition, Drop... drops) {
-        return new LootInjector(id(path), tableCondition, DEFAULT_PRIORITY, pools(drops));
+    protected LootInjector injector(String path, TableSelector tableSelector, Drop... drops) {
+        return new LootInjector(id(path), tableSelector, DEFAULT_PRIORITY, pools(drops));
     }
 
     /**

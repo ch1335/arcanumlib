@@ -1,8 +1,9 @@
 package com.chen1335.arcanumlib.modules.loot.lootInjector.operator;
 
 import com.chen1335.arcanumlib.modules.loot.lootInjector.LootInjectorOps;
-import com.chen1335.arcanumlib.modules.loot.lootInjector.condition.PoolCondition;
+import com.chen1335.arcanumlib.modules.loot.lootInjector.selector.PoolSelector;
 import com.chen1335.arcanumlib.modules.loot.lootInjector.event.TableCustomOpEvent;
+import com.chen1335.arcanumlib.modules.loot.lootInjector.selector.FunctionSelector;
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.MapCodec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
@@ -47,14 +48,14 @@ public interface TableOperator {
     }
 
     /** 作用域：命中的每个池依次跑一遍子 ops。 */
-    record ModifyPool(PoolCondition poolCondition, List<PoolOperator> ops) implements TableOperator {
+    record ModifyPool(PoolSelector poolSelector, List<PoolOperator> ops) implements TableOperator {
         @Override
         public TableOperatorType getType() {
             return LootInjectorOps.TABLE_MODIFY_POOL.get();
         }
         public static final MapCodec<ModifyPool> CODEC = RecordCodecBuilder.mapCodec(instance -> instance.group(
-                PoolCondition.CODEC.optionalFieldOf("poolCondition", new PoolCondition.Any())
-                        .forGetter(ModifyPool::poolCondition),
+                PoolSelector.CODEC.optionalFieldOf("poolSelector", new PoolSelector.Any())
+                        .forGetter(ModifyPool::poolSelector),
                 PoolOperator.CODEC.listOf().optionalFieldOf("ops", List.of()).forGetter(ModifyPool::ops))
                 .apply(instance, ModifyPool::new));
         @Override
@@ -62,7 +63,7 @@ public interface TableOperator {
             // 快照遍历：子 op 可能删池，直接按下标走会跳项
             for (LootPool pool : List.copyOf(table.pools)) {
                 int index = table.pools.indexOf(pool);
-                if (index < 0 || !this.poolCondition.test(index, pool)) {
+                if (index < 0 || !this.poolSelector.test(index, pool)) {
                     continue;
                 }
 
@@ -140,6 +141,44 @@ public interface TableOperator {
         }
     }
 
+    /** 作用域：对表函数列表里命中的每个函数跑子 ops，可以再往里钻到函数自带的条件。 */
+    record ModifyFunction(FunctionSelector functionSelector, List<FunctionOperator> ops) implements TableOperator {
+        @Override
+        public TableOperatorType getType() {
+            return LootInjectorOps.TABLE_MODIFY_FUNCTION.get();
+        }
+        public static final MapCodec<ModifyFunction> CODEC = RecordCodecBuilder.mapCodec(instance -> instance.group(
+                FunctionSelector.CODEC.optionalFieldOf("functionSelector", new FunctionSelector.Any())
+                        .forGetter(ModifyFunction::functionSelector),
+                FunctionOperator.CODEC.listOf().optionalFieldOf("ops", List.of()).forGetter(ModifyFunction::ops))
+                .apply(instance, ModifyFunction::new));
+        @Override
+        public void apply(LootTable table, HolderLookup.Provider registries) {
+            // 函数列表可能来自不可变列表，增删前先换一份可变的
+            if (!(table.functions instanceof ArrayList)) {
+                table.functions = new ArrayList<>(table.functions);
+            }
+            List<LootItemFunction> functions = table.functions;
+
+            // 快照遍历：子 op 可能删函数，直接按下标走会跳项
+            for (LootItemFunction function : List.copyOf(functions)) {
+                int index = functions.indexOf(function);
+                if (index < 0 || !this.functionSelector.test(index, function, registries)) {
+                    continue;
+                }
+
+                for (FunctionOperator op : this.ops) {
+                    int current = functions.indexOf(function);
+                    if (current < 0) {
+                        break;                                  // 当前函数已被前面的子 op 删掉
+                    }
+                    op.apply(functions, current, registries);
+                }
+            }
+
+            table.compositeFunction = LootItemFunctions.compose(functions);   // 掷骰真正走的是它
+        }
+    }
     /** 自定义：json 里只给一个 id，改动交给 TableCustomOpEvent 的监听者。 */
     record TableCustom(String id) implements TableOperator {
         @Override

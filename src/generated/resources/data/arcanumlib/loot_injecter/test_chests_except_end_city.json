@@ -25,7 +25,7 @@
       }
     }
   ],
-  "tableCondition": {
+  "tableSelector": {
     "type": "arcanumlib:all_of",
     "conditions": [
       {

@@ -13,7 +13,7 @@
       "ops": [
         {
           "type": "arcanumlib:modify_entry",
-          "entryCondition": {
+          "entrySelector": {
             "type": "arcanumlib:index",
             "index": 0
           }
@@ -25,7 +25,7 @@
       "ops": [
         {
           "type": "arcanumlib:modify_entry",
-          "entryCondition": {
+          "entrySelector": {
             "type": "arcanumlib:item",
             "item": "minecraft:golden_apple"
           }
@@ -37,7 +37,7 @@
       "ops": [
         {
           "type": "arcanumlib:modify_entry",
-          "entryCondition": {
+          "entrySelector": {
             "type": "arcanumlib:tag",
             "tag": "minecraft:coals"
           }
@@ -49,7 +49,7 @@
       "ops": [
         {
           "type": "arcanumlib:modify_entry",
-          "entryCondition": {
+          "entrySelector": {
             "type": "arcanumlib:item_with_tag",
             "tag": "minecraft:coals"
           }
@@ -61,7 +61,7 @@
       "ops": [
         {
           "type": "arcanumlib:modify_entry",
-          "entryCondition": {
+          "entrySelector": {
             "type": "arcanumlib:entry_type",
             "entryType": "minecraft:item"
           }
@@ -73,7 +73,7 @@
       "ops": [
         {
           "type": "arcanumlib:modify_entry",
-          "entryCondition": {
+          "entrySelector": {
             "type": "arcanumlib:entry_type",
             "entryType": "minecraft:alternatives"
           }
@@ -85,7 +85,7 @@
       "ops": [
         {
           "type": "arcanumlib:modify_entry",
-          "entryCondition": {
+          "entrySelector": {
             "type": "arcanumlib:weight_in_range",
             "min": 10
           }
@@ -97,7 +97,7 @@
       "ops": [
         {
           "type": "arcanumlib:modify_entry",
-          "entryCondition": {
+          "entrySelector": {
             "type": "arcanumlib:has_condition",
             "conditionType": "minecraft:random_chance"
           }
@@ -109,7 +109,7 @@
       "ops": [
         {
           "type": "arcanumlib:modify_entry",
-          "entryCondition": {
+          "entrySelector": {
             "type": "arcanumlib:has_function",
             "functionType": "minecraft:set_count"
           }
@@ -121,9 +121,9 @@
       "ops": [
         {
           "type": "arcanumlib:modify_entry",
-          "entryCondition": {
+          "entrySelector": {
             "type": "arcanumlib:has_child",
-            "entryCondition": {
+            "entrySelector": {
               "type": "arcanumlib:item",
               "item": "minecraft:iron_ingot"
             }
@@ -136,7 +136,7 @@
       "ops": [
         {
           "type": "arcanumlib:modify_entry",
-          "entryCondition": {
+          "entrySelector": {
             "type": "arcanumlib:not",
             "condition": {
               "type": "arcanumlib:item",
@@ -151,7 +151,7 @@
       "ops": [
         {
           "type": "arcanumlib:modify_entry",
-          "entryCondition": {
+          "entrySelector": {
             "type": "arcanumlib:any_of",
             "conditions": [
               {
@@ -172,7 +172,7 @@
       "ops": [
         {
           "type": "arcanumlib:modify_entry",
-          "entryCondition": {
+          "entrySelector": {
             "type": "arcanumlib:all_of",
             "conditions": [
               {
@@ -194,16 +194,16 @@
     },
     {
       "type": "arcanumlib:modify_pool",
-      "poolCondition": {
+      "poolSelector": {
         "type": "arcanumlib:name",
         "name": "main"
       }
     },
     {
       "type": "arcanumlib:modify_pool",
-      "poolCondition": {
+      "poolSelector": {
         "type": "arcanumlib:has_entry",
-        "entryCondition": {
+        "entrySelector": {
           "type": "arcanumlib:item",
           "item": "minecraft:gunpowder"
         }
@@ -211,7 +211,7 @@
     },
     {
       "type": "arcanumlib:modify_pool",
-      "poolCondition": {
+      "poolSelector": {
         "type": "arcanumlib:not",
         "condition": {
           "type": "arcanumlib:index",
@@ -221,7 +221,7 @@
     },
     {
       "type": "arcanumlib:modify_pool",
-      "poolCondition": {
+      "poolSelector": {
         "type": "arcanumlib:any_of",
         "conditions": [
           {
@@ -237,7 +237,7 @@
     },
     {
       "type": "arcanumlib:modify_pool",
-      "poolCondition": {
+      "poolSelector": {
         "type": "arcanumlib:all_of",
         "conditions": [
           {
@@ -258,7 +258,160 @@
       "ops": [
         {
           "type": "arcanumlib:modify_entry",
-          "entryCondition": {
+          "ops": [
+            {
+              "type": "arcanumlib:modify_function"
+            },
+            {
+              "type": "arcanumlib:modify_function",
+              "functionSelector": {
+                "type": "arcanumlib:index",
+                "index": 0
+              }
+            },
+            {
+              "type": "arcanumlib:modify_function",
+              "functionSelector": {
+                "type": "arcanumlib:function_type",
+                "functionType": "minecraft:set_count"
+              }
+            },
+            {
+              "type": "arcanumlib:modify_function",
+              "functionSelector": {
+                "type": "arcanumlib:has_condition",
+                "conditionType": "minecraft:random_chance"
+              }
+            },
+            {
+              "type": "arcanumlib:modify_function",
+              "functionSelector": {
+                "type": "arcanumlib:not",
+                "selector": {
+                  "type": "arcanumlib:index",
+                  "index": 99
+                }
+              }
+            },
+            {
+              "type": "arcanumlib:modify_function",
+              "functionSelector": {
+                "type": "arcanumlib:any_of",
+                "selectors": [
+                  {
+                    "type": "arcanumlib:index",
+                    "index": 0
+                  },
+                  {
+                    "type": "arcanumlib:function_type",
+                    "functionType": "minecraft:set_count"
+                  }
+                ]
+              }
+            },
+            {
+              "type": "arcanumlib:modify_function",
+              "functionSelector": {
+                "type": "arcanumlib:all_of",
+                "selectors": [
+                  {
+                    "type": "arcanumlib:any"
+                  },
+                  {
+                    "type": "arcanumlib:not",
+                    "selector": {
+                      "type": "arcanumlib:index",
+                      "index": 99
+                    }
+                  }
+                ]
+              }
+            },
+            {
+              "type": "arcanumlib:modify_function",
+              "functionSelector": {
+                "type": "arcanumlib:custom",
+                "custom_id": "test_function"
+              }
+            },
+            {
+              "type": "arcanumlib:modify_condition"
+            },
+            {
+              "type": "arcanumlib:modify_condition",
+              "conditionSelector": {
+                "type": "arcanumlib:index",
+                "index": 0
+              }
+            },
+            {
+              "type": "arcanumlib:modify_condition",
+              "conditionSelector": {
+                "type": "arcanumlib:condition_type",
+                "conditionType": "minecraft:random_chance"
+              }
+            },
+            {
+              "type": "arcanumlib:modify_condition",
+              "conditionSelector": {
+                "type": "arcanumlib:not",
+                "selector": {
+                  "type": "arcanumlib:index",
+                  "index": 99
+                }
+              }
+            },
+            {
+              "type": "arcanumlib:modify_condition",
+              "conditionSelector": {
+                "type": "arcanumlib:any_of",
+                "selectors": [
+                  {
+                    "type": "arcanumlib:index",
+                    "index": 0
+                  },
+                  {
+                    "type": "arcanumlib:condition_type",
+                    "conditionType": "minecraft:random_chance"
+                  }
+                ]
+              }
+            },
+            {
+              "type": "arcanumlib:modify_condition",
+              "conditionSelector": {
+                "type": "arcanumlib:all_of",
+                "selectors": [
+                  {
+                    "type": "arcanumlib:any"
+                  },
+                  {
+                    "type": "arcanumlib:not",
+                    "selector": {
+                      "type": "arcanumlib:index",
+                      "index": 99
+                    }
+                  }
+                ]
+              }
+            },
+            {
+              "type": "arcanumlib:modify_condition",
+              "conditionSelector": {
+                "type": "arcanumlib:custom",
+                "custom_id": "test_condition"
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "type": "arcanumlib:modify_pool",
+      "ops": [
+        {
+          "type": "arcanumlib:modify_entry",
+          "entrySelector": {
             "type": "arcanumlib:item",
             "item": "minecraft:gunpowder"
           },
@@ -278,7 +431,7 @@
       ]
     }
   ],
-  "tableCondition": {
+  "tableSelector": {
     "type": "arcanumlib:id",
     "id": "minecraft:chests/simple_dungeon"
   }

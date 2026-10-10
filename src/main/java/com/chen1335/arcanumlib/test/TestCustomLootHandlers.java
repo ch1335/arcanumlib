@@ -2,9 +2,11 @@ package com.chen1335.arcanumlib.test;
 
 import com.chen1335.arcanumlib.ArcanumLib;
 import com.chen1335.arcanumlib.modules.loot.lootInjector.LootInjector;
-import com.chen1335.arcanumlib.modules.loot.lootInjector.event.CustomEntryConditionEvent;
-import com.chen1335.arcanumlib.modules.loot.lootInjector.event.CustomPoolConditionEvent;
-import com.chen1335.arcanumlib.modules.loot.lootInjector.event.CustomTableConditionEvent;
+import com.chen1335.arcanumlib.modules.loot.lootInjector.event.CustomConditionSelectorEvent;
+import com.chen1335.arcanumlib.modules.loot.lootInjector.event.CustomEntrySelectorEvent;
+import com.chen1335.arcanumlib.modules.loot.lootInjector.event.CustomFunctionSelectorEvent;
+import com.chen1335.arcanumlib.modules.loot.lootInjector.event.CustomPoolSelectorEvent;
+import com.chen1335.arcanumlib.modules.loot.lootInjector.event.CustomTableSelectorEvent;
 import com.chen1335.arcanumlib.modules.loot.lootInjector.event.EntryCustomOpEvent;
 import com.chen1335.arcanumlib.modules.loot.lootInjector.event.LootInjectorApplyEvent;
 import com.chen1335.arcanumlib.modules.loot.lootInjector.event.PoolCustomOpEvent;
@@ -67,9 +69,29 @@ public class TestCustomLootHandlers {
         ArcanumLib.LOGGER.info("[test] entry_custom applied at {}", event.getIndex());
     }
 
+
+    /** test_function：命中所有函数。 */
+    @SubscribeEvent
+    public static void onCustomFunction(CustomFunctionSelectorEvent event) {
+        if (!"test_function".equals(event.getId())) {
+            return;
+        }
+
+        event.setResult(true);
+    }
+
+    /** test_condition：命中所有条件。 */
+    @SubscribeEvent
+    public static void onCustomCondition(CustomConditionSelectorEvent event) {
+        if (!"test_condition".equals(event.getId())) {
+            return;
+        }
+
+        event.setResult(true);
+    }
     /** test_table：只命中僵尸系的表。 */
     @SubscribeEvent
-    public static void onCustomTable(CustomTableConditionEvent event) {
+    public static void onCustomTable(CustomTableSelectorEvent event) {
         if (!"test_table".equals(event.getId())) {
             return;
         }
@@ -83,7 +105,7 @@ public class TestCustomLootHandlers {
 
     /** test_pool：只命中第 0 个池。会按 注入器 × 表 × 池 调用，所以只在命中时打日志。 */
     @SubscribeEvent
-    public static void onCustomPool(CustomPoolConditionEvent event) {
+    public static void onCustomPool(CustomPoolSelectorEvent event) {
         if (!"test_pool".equals(event.getId())) {
             return;
         }
@@ -93,7 +115,7 @@ public class TestCustomLootHandlers {
 
     /** test_entry：命中所有单例条目。调用量最大，不打日志。 */
     @SubscribeEvent
-    public static void onCustomEntry(CustomEntryConditionEvent event) {
+    public static void onCustomEntry(CustomEntrySelectorEvent event) {
         if (!"test_entry".equals(event.getId())) {
             return;
         }
@@ -109,7 +131,7 @@ public class TestCustomLootHandlers {
             return;
         }
 
-        event.setInjector(new LootInjector(injector.id(), injector.tableCondition(), injector.priority(),
+        event.setInjector(new LootInjector(injector.id(), injector.tableSelector(), injector.priority(),
                 List.of(new TableOperator.AddPool(LootPool.lootPool()
                         .setRolls(ConstantValue.exactly(1.0F))
                         .add(LootItem.lootTableItem(Items.DIAMOND_BLOCK))

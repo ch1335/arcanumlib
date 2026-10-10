@@ -1,7 +1,7 @@
-package com.chen1335.arcanumlib.modules.loot.lootInjector.condition;
+package com.chen1335.arcanumlib.modules.loot.lootInjector.selector;
 
 import com.chen1335.arcanumlib.modules.loot.lootInjector.LootInjectorOps;
-import com.chen1335.arcanumlib.modules.loot.lootInjector.event.CustomPoolConditionEvent;
+import com.chen1335.arcanumlib.modules.loot.lootInjector.event.CustomPoolSelectorEvent;
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.MapCodec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
@@ -13,19 +13,19 @@ import java.util.List;
  * 池选择器：把池和它的下标传进来就地判断。带 index 是因为"按位置选"和"按内容选"都要用，两者可叠加。
  * 读取池内内容依赖 AT 打开的 {@code LootPool.entries}。
  */
-public interface PoolCondition {
+public interface PoolSelector {
 
-    Codec<PoolCondition> CODEC = LootInjectorOps.POOL_CONDITIONS.byNameCodec()
-            .dispatch("type", PoolCondition::getType, PoolConditionType::codec);
+    Codec<PoolSelector> CODEC = LootInjectorOps.POOL_SELECTORS.byNameCodec()
+            .dispatch("type", PoolSelector::getType, PoolSelectorType::codec);
 
-    PoolConditionType getType();
+    PoolSelectorType getType();
 
     boolean test(int index, LootPool pool);
 
     /** 匹配所有池。 */
-    record Any() implements PoolCondition {
+    record Any() implements PoolSelector {
         @Override
-        public PoolConditionType getType() {
+        public PoolSelectorType getType() {
             return LootInjectorOps.POOL_ANY.get();
         }
         public static final MapCodec<Any> CODEC = MapCodec.unit(Any::new);
@@ -36,9 +36,9 @@ public interface PoolCondition {
     }
 
     /** 按下标匹配，JSON 里从 0 开始。 */
-    record ByIndex(int index) implements PoolCondition {
+    record ByIndex(int index) implements PoolSelector {
         @Override
-        public PoolConditionType getType() {
+        public PoolSelectorType getType() {
             return LootInjectorOps.POOL_BY_INDEX.get();
         }
         public static final MapCodec<ByIndex> CODEC = RecordCodecBuilder.mapCodec(instance -> instance.group(
@@ -50,9 +50,9 @@ public interface PoolCondition {
     }
 
     /** 按池名匹配；无名池永远不匹配。 */
-    record ByName(String name) implements PoolCondition {
+    record ByName(String name) implements PoolSelector {
         @Override
-        public PoolConditionType getType() {
+        public PoolSelectorType getType() {
             return LootInjectorOps.POOL_BY_NAME.get();
         }
         public static final MapCodec<ByName> CODEC = RecordCodecBuilder.mapCodec(instance -> instance.group(
@@ -64,18 +64,18 @@ public interface PoolCondition {
     }
 
     /** 池里任意一个条目满足条件即算命中。 */
-    record HasEntry(EntryCondition entryCondition) implements PoolCondition {
+    record HasEntry(EntrySelector entrySelector) implements PoolSelector {
         @Override
-        public PoolConditionType getType() {
+        public PoolSelectorType getType() {
             return LootInjectorOps.POOL_HAS_ENTRY.get();
         }
         public static final MapCodec<HasEntry> CODEC = RecordCodecBuilder.mapCodec(instance -> instance.group(
-                EntryCondition.CODEC.fieldOf("entryCondition").forGetter(HasEntry::entryCondition))
+                EntrySelector.CODEC.fieldOf("entrySelector").forGetter(HasEntry::entrySelector))
                 .apply(instance, HasEntry::new));
         @Override
         public boolean test(int index, LootPool pool) {
             for (int i = 0; i < pool.entries.size(); i++) {
-                if (this.entryCondition.test(i, pool.entries.get(i), pool)) {
+                if (this.entrySelector.test(i, pool.entries.get(i), pool)) {
                     return true;
                 }
             }
@@ -92,9 +92,9 @@ public interface PoolCondition {
      * ② 原版经 expand(context) 展开、会按条目条件过滤分支，这里不过滤；
      * ③ alternatives 掷骰时只走第一个条件通过的分支，这里把所有分支都累加（静态上界）。
      */
-    record TotalWeightInRange(int min, int max) implements PoolCondition {
+    record TotalWeightInRange(int min, int max) implements PoolSelector {
         @Override
-        public PoolConditionType getType() {
+        public PoolSelectorType getType() {
             return LootInjectorOps.POOL_TOTAL_WEIGHT.get();
         }
         public static final MapCodec<TotalWeightInRange> CODEC = RecordCodecBuilder.mapCodec(instance -> instance.group(
@@ -110,13 +110,13 @@ public interface PoolCondition {
 
     }
     /** 取反。 */
-    record Not(PoolCondition child) implements PoolCondition {
+    record Not(PoolSelector child) implements PoolSelector {
         @Override
-        public PoolConditionType getType() {
+        public PoolSelectorType getType() {
             return LootInjectorOps.POOL_NOT.get();
         }
         public static final MapCodec<Not> CODEC = RecordCodecBuilder.mapCodec(instance -> instance.group(
-                PoolCondition.CODEC.fieldOf("condition").forGetter(Not::child)).apply(instance, Not::new));
+                PoolSelector.CODEC.fieldOf("condition").forGetter(Not::child)).apply(instance, Not::new));
         @Override
         public boolean test(int index, LootPool pool) {
             return !this.child.test(index, pool);
@@ -124,13 +124,13 @@ public interface PoolCondition {
     }
 
     /** 任一满足。 */
-    record AnyOf(List<PoolCondition> children) implements PoolCondition {
+    record AnyOf(List<PoolSelector> children) implements PoolSelector {
         @Override
-        public PoolConditionType getType() {
+        public PoolSelectorType getType() {
             return LootInjectorOps.POOL_ANY_OF.get();
         }
         public static final MapCodec<AnyOf> CODEC = RecordCodecBuilder.mapCodec(instance -> instance.group(
-                PoolCondition.CODEC.listOf().fieldOf("conditions").forGetter(AnyOf::children))
+                PoolSelector.CODEC.listOf().fieldOf("conditions").forGetter(AnyOf::children))
                 .apply(instance, AnyOf::new));
         @Override
         public boolean test(int index, LootPool pool) {
@@ -139,13 +139,13 @@ public interface PoolCondition {
     }
 
     /** 全部满足。 */
-    record AllOf(List<PoolCondition> children) implements PoolCondition {
+    record AllOf(List<PoolSelector> children) implements PoolSelector {
         @Override
-        public PoolConditionType getType() {
+        public PoolSelectorType getType() {
             return LootInjectorOps.POOL_ALL_OF.get();
         }
         public static final MapCodec<AllOf> CODEC = RecordCodecBuilder.mapCodec(instance -> instance.group(
-                PoolCondition.CODEC.listOf().fieldOf("conditions").forGetter(AllOf::children))
+                PoolSelector.CODEC.listOf().fieldOf("conditions").forGetter(AllOf::children))
                 .apply(instance, AllOf::new));
         @Override
         public boolean test(int index, LootPool pool) {
@@ -153,21 +153,21 @@ public interface PoolCondition {
         }
     }
     /**
-     * 自定义选择器：json 里只给一个 id，判断交给监听 CustomPoolConditionEvent 的代码。
+     * 自定义选择器：json 里只给一个 id，判断交给监听 CustomPoolSelectorEvent 的代码。
      * 每次判定都会发事件（注入器 × 表规模），监听者要自己控制开销。
      */
-    record Custom(String id) implements PoolCondition {
+    record Custom(String id) implements PoolSelector {
         public static final MapCodec<Custom> CODEC = RecordCodecBuilder.mapCodec(instance -> instance.group(
                 Codec.STRING.fieldOf("custom_id").forGetter(Custom::id)).apply(instance, Custom::new));
 
         @Override
-        public PoolConditionType getType() {
+        public PoolSelectorType getType() {
             return LootInjectorOps.CUSTOM_POOL.get();
         }
 
         @Override
         public boolean test(int index, LootPool pool) {
-            return CustomPoolConditionEvent.post(this.id, index, pool);
+            return CustomPoolSelectorEvent.post(this.id, index, pool);
         }
     }
 }

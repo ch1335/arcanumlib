@@ -51,7 +51,7 @@
       }
     }
   ],
-  "tableCondition": {
+  "tableSelector": {
     "type": "arcanumlib:id",
     "id": "minecraft:chests/village/village_temple"
   }

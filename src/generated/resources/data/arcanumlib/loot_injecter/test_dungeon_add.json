@@ -25,14 +25,14 @@
           }
         }
       ],
-      "poolCondition": {
+      "poolSelector": {
         "type": "arcanumlib:index",
         "index": 0
       }
     }
   ],
   "priority": 900,
-  "tableCondition": {
+  "tableSelector": {
     "type": "arcanumlib:id",
     "id": "minecraft:chests/simple_dungeon"
   }

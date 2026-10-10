@@ -14,14 +14,14 @@
           ]
         }
       ],
-      "poolCondition": {
+      "poolSelector": {
         "type": "arcanumlib:name",
         "name": "arcanumlib_test_setfunc"
       }
     }
   ],
   "priority": 1090,
-  "tableCondition": {
+  "tableSelector": {
     "type": "arcanumlib:id",
     "id": "minecraft:chests/simple_dungeon"
   }

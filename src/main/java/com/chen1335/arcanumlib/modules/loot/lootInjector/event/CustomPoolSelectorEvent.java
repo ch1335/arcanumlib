@@ -5,13 +5,13 @@ import net.neoforged.bus.api.Event;
 import net.neoforged.neoforge.common.NeoForge;
 
 /** 自定义池选择器求值时触发，用 setResult 决定是否命中。在 NeoForge.EVENT_BUS 上监听。 */
-public class CustomPoolConditionEvent extends Event {
+public class CustomPoolSelectorEvent extends Event {
     private final String id;
     private final int index;
     private final LootPool pool;
     private boolean result;
 
-    public CustomPoolConditionEvent(String id, int index, LootPool pool) {
+    public CustomPoolSelectorEvent(String id, int index, LootPool pool) {
         this.id = id;
         this.index = index;
         this.pool = pool;
@@ -39,7 +39,7 @@ public class CustomPoolConditionEvent extends Event {
     }
 
     public static boolean post(String id, int index, LootPool pool) {
-        CustomPoolConditionEvent event = new CustomPoolConditionEvent(id, index, pool);
+        CustomPoolSelectorEvent event = new CustomPoolSelectorEvent(id, index, pool);
         NeoForge.EVENT_BUS.post(event);
         return event.getResult();
     }

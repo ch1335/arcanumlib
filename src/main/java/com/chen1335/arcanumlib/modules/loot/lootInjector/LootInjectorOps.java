@@ -1,14 +1,22 @@
 package com.chen1335.arcanumlib.modules.loot.lootInjector;
 
 import com.chen1335.arcanumlib.ArcanumLib;
-import com.chen1335.arcanumlib.modules.loot.lootInjector.condition.EntryCondition;
-import com.chen1335.arcanumlib.modules.loot.lootInjector.condition.EntryConditionType;
-import com.chen1335.arcanumlib.modules.loot.lootInjector.condition.PoolCondition;
-import com.chen1335.arcanumlib.modules.loot.lootInjector.condition.PoolConditionType;
-import com.chen1335.arcanumlib.modules.loot.lootInjector.condition.TableCondition;
-import com.chen1335.arcanumlib.modules.loot.lootInjector.condition.TableConditionType;
+import com.chen1335.arcanumlib.modules.loot.lootInjector.selector.EntrySelector;
+import com.chen1335.arcanumlib.modules.loot.lootInjector.selector.EntrySelectorType;
+import com.chen1335.arcanumlib.modules.loot.lootInjector.selector.PoolSelector;
+import com.chen1335.arcanumlib.modules.loot.lootInjector.selector.PoolSelectorType;
+import com.chen1335.arcanumlib.modules.loot.lootInjector.selector.TableSelector;
+import com.chen1335.arcanumlib.modules.loot.lootInjector.selector.ConditionSelector;
+import com.chen1335.arcanumlib.modules.loot.lootInjector.selector.ConditionSelectorType;
+import com.chen1335.arcanumlib.modules.loot.lootInjector.selector.FunctionSelector;
+import com.chen1335.arcanumlib.modules.loot.lootInjector.selector.FunctionSelectorType;
+import com.chen1335.arcanumlib.modules.loot.lootInjector.selector.TableSelectorType;
 import com.chen1335.arcanumlib.modules.loot.lootInjector.operator.EntryOperator;
+import com.chen1335.arcanumlib.modules.loot.lootInjector.operator.ConditionOperator;
+import com.chen1335.arcanumlib.modules.loot.lootInjector.operator.ConditionOperatorType;
 import com.chen1335.arcanumlib.modules.loot.lootInjector.operator.EntryOperatorType;
+import com.chen1335.arcanumlib.modules.loot.lootInjector.operator.FunctionOperator;
+import com.chen1335.arcanumlib.modules.loot.lootInjector.operator.FunctionOperatorType;
 import com.chen1335.arcanumlib.modules.loot.lootInjector.operator.PoolOperator;
 import com.chen1335.arcanumlib.modules.loot.lootInjector.operator.PoolOperatorType;
 import com.chen1335.arcanumlib.modules.loot.lootInjector.operator.TableOperator;
@@ -54,6 +62,9 @@ public final class LootInjectorOps {
                     () -> new TableOperatorType(TableOperator.RemoveFunction.CODEC));
     public static final DeferredHolder<TableOperatorType, TableOperatorType> TABLE_CUSTOM =
             TABLE_OPERATOR_TYPES.register("table_custom", () -> new TableOperatorType(TableOperator.TableCustom.CODEC));
+    public static final DeferredHolder<TableOperatorType, TableOperatorType> TABLE_MODIFY_FUNCTION =
+            TABLE_OPERATOR_TYPES.register("modify_function",
+                    () -> new TableOperatorType(TableOperator.ModifyFunction.CODEC));
 
     // ---- 池级操作 ----
 
@@ -89,6 +100,12 @@ public final class LootInjectorOps {
                     () -> new PoolOperatorType(PoolOperator.RemoveFunction.CODEC));
     public static final DeferredHolder<PoolOperatorType, PoolOperatorType> POOL_CUSTOM =
             POOL_OPERATOR_TYPES.register("pool_custom", () -> new PoolOperatorType(PoolOperator.PoolCustom.CODEC));
+    public static final DeferredHolder<PoolOperatorType, PoolOperatorType> POOL_MODIFY_FUNCTION =
+            POOL_OPERATOR_TYPES.register("modify_function",
+                    () -> new PoolOperatorType(PoolOperator.ModifyFunction.CODEC));
+    public static final DeferredHolder<PoolOperatorType, PoolOperatorType> POOL_MODIFY_CONDITION =
+            POOL_OPERATOR_TYPES.register("modify_condition",
+                    () -> new PoolOperatorType(PoolOperator.ModifyCondition.CODEC));
 
     // ---- 条目级操作 ----
 
@@ -126,122 +143,234 @@ public final class LootInjectorOps {
                     () -> new EntryOperatorType(EntryOperator.RemoveFunction.CODEC));
     public static final DeferredHolder<EntryOperatorType, EntryOperatorType> ENTRY_CUSTOM =
             ENTRY_OPERATOR_TYPES.register("entry_custom", () -> new EntryOperatorType(EntryOperator.EntryCustom.CODEC));
+    public static final DeferredHolder<EntryOperatorType, EntryOperatorType> ENTRY_MODIFY_FUNCTION =
+            ENTRY_OPERATOR_TYPES.register("modify_function",
+                    () -> new EntryOperatorType(EntryOperator.ModifyFunction.CODEC));
+    public static final DeferredHolder<EntryOperatorType, EntryOperatorType> ENTRY_MODIFY_CONDITION =
+            ENTRY_OPERATOR_TYPES.register("modify_condition",
+                    () -> new EntryOperatorType(EntryOperator.ModifyCondition.CODEC));
+
+    // ---- 函数级操作 ----
+
+    public static final ResourceKey<Registry<FunctionOperatorType>> FUNCTION_OPERATOR_KEY =
+            ResourceKey.createRegistryKey(ArcanumLib.id("function_operator"));
+
+    public static final Registry<FunctionOperatorType> FUNCTION_OPERATORS = new RegistryBuilder<>(FUNCTION_OPERATOR_KEY)
+            .sync(false)
+            .create();
+
+    public static final DeferredRegister<FunctionOperatorType> FUNCTION_OPERATOR_TYPES =
+            DeferredRegister.create(FUNCTION_OPERATOR_KEY, ArcanumLib.MODID);
+
+    public static final DeferredHolder<FunctionOperatorType, FunctionOperatorType> FUNCTION_OPERATOR_REMOVE =
+            FUNCTION_OPERATOR_TYPES.register("remove_function",
+                    () -> new FunctionOperatorType(FunctionOperator.RemoveFunction.CODEC));
+    public static final DeferredHolder<FunctionOperatorType, FunctionOperatorType> FUNCTION_OPERATOR_REPLACE =
+            FUNCTION_OPERATOR_TYPES.register("replace_function",
+                    () -> new FunctionOperatorType(FunctionOperator.ReplaceFunction.CODEC));
+    /** 作用域：钻进"当前函数"自带的条件。 */
+    public static final DeferredHolder<FunctionOperatorType, FunctionOperatorType> FUNCTION_OPERATOR_MODIFY_CONDITION =
+            FUNCTION_OPERATOR_TYPES.register("modify_condition",
+                    () -> new FunctionOperatorType(FunctionOperator.ModifyCondition.CODEC));
+
+    // ---- 条件级操作 ----
+
+    public static final ResourceKey<Registry<ConditionOperatorType>> CONDITION_OPERATOR_KEY =
+            ResourceKey.createRegistryKey(ArcanumLib.id("condition_operator"));
+
+    public static final Registry<ConditionOperatorType> CONDITION_OPERATORS = new RegistryBuilder<>(CONDITION_OPERATOR_KEY)
+            .sync(false)
+            .create();
+
+    public static final DeferredRegister<ConditionOperatorType> CONDITION_OPERATOR_TYPES =
+            DeferredRegister.create(CONDITION_OPERATOR_KEY, ArcanumLib.MODID);
+
+    public static final DeferredHolder<ConditionOperatorType, ConditionOperatorType> CONDITION_OPERATOR_REMOVE =
+            CONDITION_OPERATOR_TYPES.register("remove_condition",
+                    () -> new ConditionOperatorType(ConditionOperator.RemoveCondition.CODEC));
+    public static final DeferredHolder<ConditionOperatorType, ConditionOperatorType> CONDITION_OPERATOR_REPLACE =
+            CONDITION_OPERATOR_TYPES.register("replace_condition",
+                    () -> new ConditionOperatorType(ConditionOperator.ReplaceCondition.CODEC));
 
     // ---- 表选择器：同一套做法，别的模组也能注册 ----
 
-    public static final ResourceKey<Registry<TableConditionType>> TABLE_CONDITION_KEY =
-            ResourceKey.createRegistryKey(ArcanumLib.id("table_condition"));
+    public static final ResourceKey<Registry<TableSelectorType>> TABLE_SELECTOR_KEY =
+            ResourceKey.createRegistryKey(ArcanumLib.id("table_selector"));
 
-    public static final Registry<TableConditionType> TABLE_CONDITIONS = new RegistryBuilder<>(TABLE_CONDITION_KEY)
+    public static final Registry<TableSelectorType> TABLE_SELECTORS = new RegistryBuilder<>(TABLE_SELECTOR_KEY)
             .sync(false)
             .create();
 
-    public static final DeferredRegister<TableConditionType> TABLE_CONDITION_TYPES =
-            DeferredRegister.create(TABLE_CONDITION_KEY, ArcanumLib.MODID);
+    public static final DeferredRegister<TableSelectorType> TABLE_SELECTOR_TYPES =
+            DeferredRegister.create(TABLE_SELECTOR_KEY, ArcanumLib.MODID);
 
-    public static final DeferredHolder<TableConditionType, TableConditionType> TABLE_ALL =
-            TABLE_CONDITION_TYPES.register("all", () -> new TableConditionType(TableCondition.All.CODEC));
-    public static final DeferredHolder<TableConditionType, TableConditionType> TABLE_BY_ID =
-            TABLE_CONDITION_TYPES.register("id", () -> new TableConditionType(TableCondition.ById.CODEC));
-    public static final DeferredHolder<TableConditionType, TableConditionType> TABLE_NAMESPACE =
-            TABLE_CONDITION_TYPES.register("namespace", () -> new TableConditionType(TableCondition.Namespace.CODEC));
-    public static final DeferredHolder<TableConditionType, TableConditionType> TABLE_PATH_PREFIX =
-            TABLE_CONDITION_TYPES.register("path_prefix", () -> new TableConditionType(TableCondition.PathPrefix.CODEC));
-    public static final DeferredHolder<TableConditionType, TableConditionType> TABLE_ENTITY_TAG =
-            TABLE_CONDITION_TYPES.register("entity_tag", () -> new TableConditionType(TableCondition.EntityTagTable.CODEC));
-    public static final DeferredHolder<TableConditionType, TableConditionType> TABLE_BLOCK_TAG =
-            TABLE_CONDITION_TYPES.register("block_tag", () -> new TableConditionType(TableCondition.BlockTagTable.CODEC));
-    public static final DeferredHolder<TableConditionType, TableConditionType> TABLE_NOT =
-            TABLE_CONDITION_TYPES.register("not", () -> new TableConditionType(TableCondition.Not.CODEC));
-    public static final DeferredHolder<TableConditionType, TableConditionType> TABLE_ANY_OF =
-            TABLE_CONDITION_TYPES.register("any_of", () -> new TableConditionType(TableCondition.AnyOf.CODEC));
-    public static final DeferredHolder<TableConditionType, TableConditionType> TABLE_ALL_OF =
-            TABLE_CONDITION_TYPES.register("all_of", () -> new TableConditionType(TableCondition.AllOf.CODEC));
-    /** 只带一个 id，判断交给 CustomTableConditionEvent 的监听者。 */
-    public static final DeferredHolder<TableConditionType, TableConditionType> CUSTOM_TABLE =
-            TABLE_CONDITION_TYPES.register("custom", () -> new TableConditionType(TableCondition.Custom.CODEC));
+    public static final DeferredHolder<TableSelectorType, TableSelectorType> TABLE_ALL =
+            TABLE_SELECTOR_TYPES.register("all", () -> new TableSelectorType(TableSelector.All.CODEC));
+    public static final DeferredHolder<TableSelectorType, TableSelectorType> TABLE_BY_ID =
+            TABLE_SELECTOR_TYPES.register("id", () -> new TableSelectorType(TableSelector.ById.CODEC));
+    public static final DeferredHolder<TableSelectorType, TableSelectorType> TABLE_NAMESPACE =
+            TABLE_SELECTOR_TYPES.register("namespace", () -> new TableSelectorType(TableSelector.Namespace.CODEC));
+    public static final DeferredHolder<TableSelectorType, TableSelectorType> TABLE_PATH_PREFIX =
+            TABLE_SELECTOR_TYPES.register("path_prefix", () -> new TableSelectorType(TableSelector.PathPrefix.CODEC));
+    public static final DeferredHolder<TableSelectorType, TableSelectorType> TABLE_ENTITY_TAG =
+            TABLE_SELECTOR_TYPES.register("entity_tag", () -> new TableSelectorType(TableSelector.EntityTagTable.CODEC));
+    public static final DeferredHolder<TableSelectorType, TableSelectorType> TABLE_BLOCK_TAG =
+            TABLE_SELECTOR_TYPES.register("block_tag", () -> new TableSelectorType(TableSelector.BlockTagTable.CODEC));
+    public static final DeferredHolder<TableSelectorType, TableSelectorType> TABLE_NOT =
+            TABLE_SELECTOR_TYPES.register("not", () -> new TableSelectorType(TableSelector.Not.CODEC));
+    public static final DeferredHolder<TableSelectorType, TableSelectorType> TABLE_ANY_OF =
+            TABLE_SELECTOR_TYPES.register("any_of", () -> new TableSelectorType(TableSelector.AnyOf.CODEC));
+    public static final DeferredHolder<TableSelectorType, TableSelectorType> TABLE_ALL_OF =
+            TABLE_SELECTOR_TYPES.register("all_of", () -> new TableSelectorType(TableSelector.AllOf.CODEC));
+    /** 只带一个 id，判断交给 CustomTableSelectorEvent 的监听者。 */
+    public static final DeferredHolder<TableSelectorType, TableSelectorType> CUSTOM_TABLE =
+            TABLE_SELECTOR_TYPES.register("custom", () -> new TableSelectorType(TableSelector.Custom.CODEC));
 
     // ---- 池选择器 ----
 
-    public static final ResourceKey<Registry<PoolConditionType>> POOL_CONDITION_KEY =
-            ResourceKey.createRegistryKey(ArcanumLib.id("pool_condition"));
+    public static final ResourceKey<Registry<PoolSelectorType>> POOL_SELECTOR_KEY =
+            ResourceKey.createRegistryKey(ArcanumLib.id("pool_selector"));
 
-    public static final Registry<PoolConditionType> POOL_CONDITIONS = new RegistryBuilder<>(POOL_CONDITION_KEY)
+    public static final Registry<PoolSelectorType> POOL_SELECTORS = new RegistryBuilder<>(POOL_SELECTOR_KEY)
             .sync(false)
             .create();
 
-    public static final DeferredRegister<PoolConditionType> POOL_CONDITION_TYPES =
-            DeferredRegister.create(POOL_CONDITION_KEY, ArcanumLib.MODID);
+    public static final DeferredRegister<PoolSelectorType> POOL_SELECTOR_TYPES =
+            DeferredRegister.create(POOL_SELECTOR_KEY, ArcanumLib.MODID);
 
-    public static final DeferredHolder<PoolConditionType, PoolConditionType> POOL_ANY =
-            POOL_CONDITION_TYPES.register("any", () -> new PoolConditionType(PoolCondition.Any.CODEC));
-    public static final DeferredHolder<PoolConditionType, PoolConditionType> POOL_BY_INDEX =
-            POOL_CONDITION_TYPES.register("index", () -> new PoolConditionType(PoolCondition.ByIndex.CODEC));
-    public static final DeferredHolder<PoolConditionType, PoolConditionType> POOL_BY_NAME =
-            POOL_CONDITION_TYPES.register("name", () -> new PoolConditionType(PoolCondition.ByName.CODEC));
-    public static final DeferredHolder<PoolConditionType, PoolConditionType> POOL_HAS_ENTRY =
-            POOL_CONDITION_TYPES.register("has_entry", () -> new PoolConditionType(PoolCondition.HasEntry.CODEC));
-    public static final DeferredHolder<PoolConditionType, PoolConditionType> POOL_TOTAL_WEIGHT =
-            POOL_CONDITION_TYPES.register("total_weight",
-                    () -> new PoolConditionType(PoolCondition.TotalWeightInRange.CODEC));
-    public static final DeferredHolder<PoolConditionType, PoolConditionType> POOL_NOT =
-            POOL_CONDITION_TYPES.register("not", () -> new PoolConditionType(PoolCondition.Not.CODEC));
-    public static final DeferredHolder<PoolConditionType, PoolConditionType> POOL_ANY_OF =
-            POOL_CONDITION_TYPES.register("any_of", () -> new PoolConditionType(PoolCondition.AnyOf.CODEC));
-    public static final DeferredHolder<PoolConditionType, PoolConditionType> POOL_ALL_OF =
-            POOL_CONDITION_TYPES.register("all_of", () -> new PoolConditionType(PoolCondition.AllOf.CODEC));
-    /** 只带一个 id，判断交给 CustomPoolConditionEvent 的监听者。 */
-    public static final DeferredHolder<PoolConditionType, PoolConditionType> CUSTOM_POOL =
-            POOL_CONDITION_TYPES.register("custom", () -> new PoolConditionType(PoolCondition.Custom.CODEC));
+    public static final DeferredHolder<PoolSelectorType, PoolSelectorType> POOL_ANY =
+            POOL_SELECTOR_TYPES.register("any", () -> new PoolSelectorType(PoolSelector.Any.CODEC));
+    public static final DeferredHolder<PoolSelectorType, PoolSelectorType> POOL_BY_INDEX =
+            POOL_SELECTOR_TYPES.register("index", () -> new PoolSelectorType(PoolSelector.ByIndex.CODEC));
+    public static final DeferredHolder<PoolSelectorType, PoolSelectorType> POOL_BY_NAME =
+            POOL_SELECTOR_TYPES.register("name", () -> new PoolSelectorType(PoolSelector.ByName.CODEC));
+    public static final DeferredHolder<PoolSelectorType, PoolSelectorType> POOL_HAS_ENTRY =
+            POOL_SELECTOR_TYPES.register("has_entry", () -> new PoolSelectorType(PoolSelector.HasEntry.CODEC));
+    public static final DeferredHolder<PoolSelectorType, PoolSelectorType> POOL_TOTAL_WEIGHT =
+            POOL_SELECTOR_TYPES.register("total_weight",
+                    () -> new PoolSelectorType(PoolSelector.TotalWeightInRange.CODEC));
+    public static final DeferredHolder<PoolSelectorType, PoolSelectorType> POOL_NOT =
+            POOL_SELECTOR_TYPES.register("not", () -> new PoolSelectorType(PoolSelector.Not.CODEC));
+    public static final DeferredHolder<PoolSelectorType, PoolSelectorType> POOL_ANY_OF =
+            POOL_SELECTOR_TYPES.register("any_of", () -> new PoolSelectorType(PoolSelector.AnyOf.CODEC));
+    public static final DeferredHolder<PoolSelectorType, PoolSelectorType> POOL_ALL_OF =
+            POOL_SELECTOR_TYPES.register("all_of", () -> new PoolSelectorType(PoolSelector.AllOf.CODEC));
+    /** 只带一个 id，判断交给 CustomPoolSelectorEvent 的监听者。 */
+    public static final DeferredHolder<PoolSelectorType, PoolSelectorType> CUSTOM_POOL =
+            POOL_SELECTOR_TYPES.register("custom", () -> new PoolSelectorType(PoolSelector.Custom.CODEC));
 
     // ---- 条目选择器 ----
 
-    public static final ResourceKey<Registry<EntryConditionType>> ENTRY_CONDITION_KEY =
-            ResourceKey.createRegistryKey(ArcanumLib.id("entry_condition"));
+    public static final ResourceKey<Registry<EntrySelectorType>> ENTRY_SELECTOR_KEY =
+            ResourceKey.createRegistryKey(ArcanumLib.id("entry_selector"));
 
-    public static final Registry<EntryConditionType> ENTRY_CONDITIONS = new RegistryBuilder<>(ENTRY_CONDITION_KEY)
+    public static final Registry<EntrySelectorType> ENTRY_SELECTORS = new RegistryBuilder<>(ENTRY_SELECTOR_KEY)
             .sync(false)
             .create();
 
-    public static final DeferredRegister<EntryConditionType> ENTRY_CONDITION_TYPES =
-            DeferredRegister.create(ENTRY_CONDITION_KEY, ArcanumLib.MODID);
+    public static final DeferredRegister<EntrySelectorType> ENTRY_SELECTOR_TYPES =
+            DeferredRegister.create(ENTRY_SELECTOR_KEY, ArcanumLib.MODID);
 
-    public static final DeferredHolder<EntryConditionType, EntryConditionType> ENTRY_ANY =
-            ENTRY_CONDITION_TYPES.register("any", () -> new EntryConditionType(EntryCondition.Any.CODEC));
-    public static final DeferredHolder<EntryConditionType, EntryConditionType> ENTRY_BY_INDEX =
-            ENTRY_CONDITION_TYPES.register("index", () -> new EntryConditionType(EntryCondition.ByIndex.CODEC));
-    public static final DeferredHolder<EntryConditionType, EntryConditionType> ENTRY_IS_ITEM =
-            ENTRY_CONDITION_TYPES.register("item", () -> new EntryConditionType(EntryCondition.IsItem.CODEC));
-    public static final DeferredHolder<EntryConditionType, EntryConditionType> ENTRY_IS_TAG =
-            ENTRY_CONDITION_TYPES.register("tag", () -> new EntryConditionType(EntryCondition.IsTag.CODEC));
-    public static final DeferredHolder<EntryConditionType, EntryConditionType> ENTRY_IS_ITEM_WITH_TAG =
-            ENTRY_CONDITION_TYPES.register("item_with_tag",
-                    () -> new EntryConditionType(EntryCondition.IsItemWithTag.CODEC));
-    public static final DeferredHolder<EntryConditionType, EntryConditionType> ENTRY_WEIGHT_SHARE =
-            ENTRY_CONDITION_TYPES.register("weight_share",
-                    () -> new EntryConditionType(EntryCondition.WeightShareInRange.CODEC));
-    public static final DeferredHolder<EntryConditionType, EntryConditionType> ENTRY_IS_TYPE =
-            ENTRY_CONDITION_TYPES.register("entry_type", () -> new EntryConditionType(EntryCondition.IsType.CODEC));
-    public static final DeferredHolder<EntryConditionType, EntryConditionType> ENTRY_WEIGHT_IN_RANGE =
-            ENTRY_CONDITION_TYPES.register("weight_in_range",
-                    () -> new EntryConditionType(EntryCondition.WeightInRange.CODEC));
-    public static final DeferredHolder<EntryConditionType, EntryConditionType> ENTRY_HAS_CONDITION =
-            ENTRY_CONDITION_TYPES.register("has_condition",
-                    () -> new EntryConditionType(EntryCondition.HasCondition.CODEC));
-    public static final DeferredHolder<EntryConditionType, EntryConditionType> ENTRY_HAS_FUNCTION =
-            ENTRY_CONDITION_TYPES.register("has_function",
-                    () -> new EntryConditionType(EntryCondition.HasFunction.CODEC));
-    public static final DeferredHolder<EntryConditionType, EntryConditionType> ENTRY_HAS_CHILD =
-            ENTRY_CONDITION_TYPES.register("has_child", () -> new EntryConditionType(EntryCondition.HasChild.CODEC));
-    public static final DeferredHolder<EntryConditionType, EntryConditionType> ENTRY_NOT =
-            ENTRY_CONDITION_TYPES.register("not", () -> new EntryConditionType(EntryCondition.Not.CODEC));
-    public static final DeferredHolder<EntryConditionType, EntryConditionType> ENTRY_ANY_OF =
-            ENTRY_CONDITION_TYPES.register("any_of", () -> new EntryConditionType(EntryCondition.AnyOf.CODEC));
-    public static final DeferredHolder<EntryConditionType, EntryConditionType> ENTRY_ALL_OF =
-            ENTRY_CONDITION_TYPES.register("all_of", () -> new EntryConditionType(EntryCondition.AllOf.CODEC));
-    /** 只带一个 id，判断交给 CustomEntryConditionEvent 的监听者。 */
-    public static final DeferredHolder<EntryConditionType, EntryConditionType> CUSTOM_ENTRY =
-            ENTRY_CONDITION_TYPES.register("custom", () -> new EntryConditionType(EntryCondition.Custom.CODEC));
+    public static final DeferredHolder<EntrySelectorType, EntrySelectorType> ENTRY_ANY =
+            ENTRY_SELECTOR_TYPES.register("any", () -> new EntrySelectorType(EntrySelector.Any.CODEC));
+    public static final DeferredHolder<EntrySelectorType, EntrySelectorType> ENTRY_BY_INDEX =
+            ENTRY_SELECTOR_TYPES.register("index", () -> new EntrySelectorType(EntrySelector.ByIndex.CODEC));
+    public static final DeferredHolder<EntrySelectorType, EntrySelectorType> ENTRY_IS_ITEM =
+            ENTRY_SELECTOR_TYPES.register("item", () -> new EntrySelectorType(EntrySelector.IsItem.CODEC));
+    public static final DeferredHolder<EntrySelectorType, EntrySelectorType> ENTRY_IS_TAG =
+            ENTRY_SELECTOR_TYPES.register("tag", () -> new EntrySelectorType(EntrySelector.IsTag.CODEC));
+    public static final DeferredHolder<EntrySelectorType, EntrySelectorType> ENTRY_IS_ITEM_WITH_TAG =
+            ENTRY_SELECTOR_TYPES.register("item_with_tag",
+                    () -> new EntrySelectorType(EntrySelector.IsItemWithTag.CODEC));
+    public static final DeferredHolder<EntrySelectorType, EntrySelectorType> ENTRY_WEIGHT_SHARE =
+            ENTRY_SELECTOR_TYPES.register("weight_share",
+                    () -> new EntrySelectorType(EntrySelector.WeightShareInRange.CODEC));
+    public static final DeferredHolder<EntrySelectorType, EntrySelectorType> ENTRY_IS_TYPE =
+            ENTRY_SELECTOR_TYPES.register("entry_type", () -> new EntrySelectorType(EntrySelector.IsType.CODEC));
+    public static final DeferredHolder<EntrySelectorType, EntrySelectorType> ENTRY_WEIGHT_IN_RANGE =
+            ENTRY_SELECTOR_TYPES.register("weight_in_range",
+                    () -> new EntrySelectorType(EntrySelector.WeightInRange.CODEC));
+    public static final DeferredHolder<EntrySelectorType, EntrySelectorType> ENTRY_HAS_CONDITION =
+            ENTRY_SELECTOR_TYPES.register("has_condition",
+                    () -> new EntrySelectorType(EntrySelector.HasCondition.CODEC));
+    public static final DeferredHolder<EntrySelectorType, EntrySelectorType> ENTRY_HAS_FUNCTION =
+            ENTRY_SELECTOR_TYPES.register("has_function",
+                    () -> new EntrySelectorType(EntrySelector.HasFunction.CODEC));
+    public static final DeferredHolder<EntrySelectorType, EntrySelectorType> ENTRY_HAS_CHILD =
+            ENTRY_SELECTOR_TYPES.register("has_child", () -> new EntrySelectorType(EntrySelector.HasChild.CODEC));
+    public static final DeferredHolder<EntrySelectorType, EntrySelectorType> ENTRY_NOT =
+            ENTRY_SELECTOR_TYPES.register("not", () -> new EntrySelectorType(EntrySelector.Not.CODEC));
+    public static final DeferredHolder<EntrySelectorType, EntrySelectorType> ENTRY_ANY_OF =
+            ENTRY_SELECTOR_TYPES.register("any_of", () -> new EntrySelectorType(EntrySelector.AnyOf.CODEC));
+    public static final DeferredHolder<EntrySelectorType, EntrySelectorType> ENTRY_ALL_OF =
+            ENTRY_SELECTOR_TYPES.register("all_of", () -> new EntrySelectorType(EntrySelector.AllOf.CODEC));
+    /** 只带一个 id，判断交给 CustomEntrySelectorEvent 的监听者。 */
+    public static final DeferredHolder<EntrySelectorType, EntrySelectorType> CUSTOM_ENTRY =
+            ENTRY_SELECTOR_TYPES.register("custom", () -> new EntrySelectorType(EntrySelector.Custom.CODEC));
+    // ---- 函数选择器 ----
+
+    public static final ResourceKey<Registry<FunctionSelectorType>> FUNCTION_SELECTOR_KEY =
+            ResourceKey.createRegistryKey(ArcanumLib.id("function_selector"));
+
+    public static final Registry<FunctionSelectorType> FUNCTION_SELECTORS = new RegistryBuilder<>(FUNCTION_SELECTOR_KEY)
+            .sync(false)
+            .create();
+
+    public static final DeferredRegister<FunctionSelectorType> FUNCTION_SELECTOR_TYPES =
+            DeferredRegister.create(FUNCTION_SELECTOR_KEY, ArcanumLib.MODID);
+
+    public static final DeferredHolder<FunctionSelectorType, FunctionSelectorType> FUNCTION_ANY =
+            FUNCTION_SELECTOR_TYPES.register("any", () -> new FunctionSelectorType(FunctionSelector.Any.CODEC));
+    public static final DeferredHolder<FunctionSelectorType, FunctionSelectorType> FUNCTION_BY_INDEX =
+            FUNCTION_SELECTOR_TYPES.register("index", () -> new FunctionSelectorType(FunctionSelector.ByIndex.CODEC));
+    public static final DeferredHolder<FunctionSelectorType, FunctionSelectorType> FUNCTION_BY_TYPE =
+            FUNCTION_SELECTOR_TYPES.register("function_type",
+                    () -> new FunctionSelectorType(FunctionSelector.ByType.CODEC));
+    public static final DeferredHolder<FunctionSelectorType, FunctionSelectorType> FUNCTION_HAS_CONDITION =
+            FUNCTION_SELECTOR_TYPES.register("has_condition",
+                    () -> new FunctionSelectorType(FunctionSelector.HasCondition.CODEC));
+    public static final DeferredHolder<FunctionSelectorType, FunctionSelectorType> FUNCTION_NOT =
+            FUNCTION_SELECTOR_TYPES.register("not", () -> new FunctionSelectorType(FunctionSelector.Not.CODEC));
+    public static final DeferredHolder<FunctionSelectorType, FunctionSelectorType> FUNCTION_ANY_OF =
+            FUNCTION_SELECTOR_TYPES.register("any_of", () -> new FunctionSelectorType(FunctionSelector.AnyOf.CODEC));
+    public static final DeferredHolder<FunctionSelectorType, FunctionSelectorType> FUNCTION_ALL_OF =
+            FUNCTION_SELECTOR_TYPES.register("all_of", () -> new FunctionSelectorType(FunctionSelector.AllOf.CODEC));
+    /** 只带一个 id，判断交给 CustomFunctionSelectorEvent 的监听者。 */
+    public static final DeferredHolder<FunctionSelectorType, FunctionSelectorType> FUNCTION_CUSTOM =
+            FUNCTION_SELECTOR_TYPES.register("custom", () -> new FunctionSelectorType(FunctionSelector.Custom.CODEC));
+    public static final DeferredHolder<FunctionSelectorType, FunctionSelectorType> FUNCTION_MATCH =
+            FUNCTION_SELECTOR_TYPES.register("match", () -> new FunctionSelectorType(FunctionSelector.Match.CODEC));
+
+    // ---- 条件选择器 ----
+
+    public static final ResourceKey<Registry<ConditionSelectorType>> CONDITION_SELECTOR_KEY =
+            ResourceKey.createRegistryKey(ArcanumLib.id("condition_selector"));
+
+    public static final Registry<ConditionSelectorType> CONDITION_SELECTORS = new RegistryBuilder<>(CONDITION_SELECTOR_KEY)
+            .sync(false)
+            .create();
+
+    public static final DeferredRegister<ConditionSelectorType> CONDITION_SELECTOR_TYPES =
+            DeferredRegister.create(CONDITION_SELECTOR_KEY, ArcanumLib.MODID);
+
+    public static final DeferredHolder<ConditionSelectorType, ConditionSelectorType> CONDITION_ANY =
+            CONDITION_SELECTOR_TYPES.register("any", () -> new ConditionSelectorType(ConditionSelector.Any.CODEC));
+    public static final DeferredHolder<ConditionSelectorType, ConditionSelectorType> CONDITION_BY_INDEX =
+            CONDITION_SELECTOR_TYPES.register("index", () -> new ConditionSelectorType(ConditionSelector.ByIndex.CODEC));
+    public static final DeferredHolder<ConditionSelectorType, ConditionSelectorType> CONDITION_BY_TYPE =
+            CONDITION_SELECTOR_TYPES.register("condition_type",
+                    () -> new ConditionSelectorType(ConditionSelector.ByType.CODEC));
+    public static final DeferredHolder<ConditionSelectorType, ConditionSelectorType> CONDITION_NOT =
+            CONDITION_SELECTOR_TYPES.register("not", () -> new ConditionSelectorType(ConditionSelector.Not.CODEC));
+    public static final DeferredHolder<ConditionSelectorType, ConditionSelectorType> CONDITION_ANY_OF =
+            CONDITION_SELECTOR_TYPES.register("any_of", () -> new ConditionSelectorType(ConditionSelector.AnyOf.CODEC));
+    public static final DeferredHolder<ConditionSelectorType, ConditionSelectorType> CONDITION_ALL_OF =
+            CONDITION_SELECTOR_TYPES.register("all_of", () -> new ConditionSelectorType(ConditionSelector.AllOf.CODEC));
+    /** 只带一个 id，判断交给 CustomConditionSelectorEvent 的监听者。 */
+    public static final DeferredHolder<ConditionSelectorType, ConditionSelectorType> CONDITION_CUSTOM =
+            CONDITION_SELECTOR_TYPES.register("custom", () -> new ConditionSelectorType(ConditionSelector.Custom.CODEC));
+    public static final DeferredHolder<ConditionSelectorType, ConditionSelectorType> CONDITION_MATCH =
+            CONDITION_SELECTOR_TYPES.register("match", () -> new ConditionSelectorType(ConditionSelector.Match.CODEC));
 
     private LootInjectorOps() {
     }
