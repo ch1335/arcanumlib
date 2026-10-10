@@ -1,0 +1,81 @@
+// 注入器格式说明（不是数据包文件，放这里只是为了避免被 datagen 当成陈旧产物删掉）。
+// 真实文件要放在 data/<ns>/loot_injecter/<id>.json；datagen 会清理它的输出目录，手写文件别放那里。
+//
+// 三层嵌套作用域：
+//   顶层 ops           → 作用于整张表（TableOperator）
+//   modify_pool 的子ops → 作用于"每个命中的池"（PoolOperator）
+//   modify_entry 的子ops→ 作用于"每个命中的条目"（EntryOperator）
+// 条件只写在作用域上，叶子 op 不再自带 poolCondition / entryCondition。
+// 作用域内子 op 依次应用；当前对象被前面的子 op 删掉，剩下的子 op 立即停止。
+{
+  "ops": [
+    // 表级：加一个池
+    {
+      "type": "arcanumlib:add_pool",
+      "pool": {
+        "rolls": 1.0,
+        "bonus_rolls": 0.0,
+        "name": "arcanumlib_test_tag",
+        "entries": [
+          {
+            "type": "minecraft:tag",
+            "name": "minecraft:coals",
+            "expand": false
+          }
+        ]
+      }
+    },
+
+    // 表级作用域：选中池，子 ops 作用于每个命中的池
+    {
+      "type": "arcanumlib:modify_pool",
+      "poolCondition": {
+        "type": "arcanumlib:name",
+        "name": "arcanumlib_test_tag"
+      },
+      "ops": [
+        // 池级叶子
+        { "type": "arcanumlib:remove_pool" },
+        { "type": "arcanumlib:add_entry", "entry": { "type": "minecraft:item", "name": "minecraft:diamond" } },
+        { "type": "arcanumlib:set_condition", "conditions": [] },
+        { "type": "arcanumlib:add_function", "functions": [] },
+        { "type": "arcanumlib:pool_custom", "custom_id": "my_pool_hook" },
+
+        // 池级作用域：选中条目，子 ops 作用于每个命中的条目
+        {
+          "type": "arcanumlib:modify_entry",
+          "entryCondition": {
+            "type": "arcanumlib:item_with_tag",
+            "tag": "minecraft:coals"
+          },
+          "ops": [
+            { "type": "arcanumlib:remove_entry" },
+            { "type": "arcanumlib:replace_entry", "entry": { "type": "minecraft:item", "name": "minecraft:leather" } },
+            { "type": "arcanumlib:set_weight", "weight": 20 },
+            { "type": "arcanumlib:set_quality", "quality": 1 },
+            { "type": "arcanumlib:set_condition", "conditions": [] },
+            { "type": "arcanumlib:add_condition", "conditions": [] },
+            { "type": "arcanumlib:remove_condition", "conditionTypes": ["minecraft:random_chance"] },
+            { "type": "arcanumlib:set_function", "functions": [] },
+            { "type": "arcanumlib:add_function", "functions": [] },
+            { "type": "arcanumlib:remove_function", "functionTypes": ["minecraft:set_count"] },
+            { "type": "arcanumlib:entry_custom", "custom_id": "my_entry_hook" }
+          ]
+        }
+      ]
+    },
+
+    // 表级：函数（LootTable 也有 functions）
+    { "type": "arcanumlib:set_function", "functions": [] },
+    { "type": "arcanumlib:add_function", "functions": [] },
+    { "type": "arcanumlib:remove_function", "functionTypes": ["minecraft:set_count"] },
+    { "type": "arcanumlib:table_custom", "custom_id": "my_table_hook" }
+  ],
+
+  // 表级没有 conditions 字段（原版 LootTable 就没有），所以没有表级 set_condition / remove_condition
+  "priority": 1000,
+  "tableCondition": {
+    "type": "arcanumlib:id",
+    "id": "minecraft:chests/simple_dungeon"
+  }
+}

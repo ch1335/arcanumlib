@@ -75,7 +75,7 @@ public interface PoolCondition {
         @Override
         public boolean test(int index, LootPool pool) {
             for (int i = 0; i < pool.entries.size(); i++) {
-                if (this.entryCondition.test(i, pool.entries.get(i))) {
+                if (this.entryCondition.test(i, pool.entries.get(i), pool)) {
                     return true;
                 }
             }
@@ -84,6 +84,31 @@ public interface PoolCondition {
         }
     }
 
+    /**
+     * 按池的【总权重】是否落在闭区间 [min, max] 内匹配。
+     *
+     * <p>只算静态基础权重，和原版掷骰时的实数有出入，因为选择器拿不到 LootContext：
+     * ① getWeight(luck) 还要加 quality × 幸运，这里按幸运 0 算；
+     * ② 原版经 expand(context) 展开、会按条目条件过滤分支，这里不过滤；
+     * ③ alternatives 掷骰时只走第一个条件通过的分支，这里把所有分支都累加（静态上界）。
+     */
+    record TotalWeightInRange(int min, int max) implements PoolCondition {
+        @Override
+        public PoolConditionType getType() {
+            return LootInjectorOps.POOL_TOTAL_WEIGHT.get();
+        }
+        public static final MapCodec<TotalWeightInRange> CODEC = RecordCodecBuilder.mapCodec(instance -> instance.group(
+                Codec.INT.optionalFieldOf("min", 0).forGetter(TotalWeightInRange::min),
+                Codec.INT.optionalFieldOf("max", Integer.MAX_VALUE).forGetter(TotalWeightInRange::max))
+                .apply(instance, TotalWeightInRange::new));
+        @Override
+        public boolean test(int index, LootPool pool) {
+            int total = PoolWeights.total(pool);
+
+            return total >= this.min && total <= this.max;
+        }
+
+    }
     /** 取反。 */
     record Not(PoolCondition child) implements PoolCondition {
         @Override

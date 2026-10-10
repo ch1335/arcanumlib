@@ -1,135 +1,206 @@
 {
   "ops": [
     {
-      "type": "arcanumlib:modify_entry"
-    },
-    {
-      "type": "arcanumlib:modify_entry",
-      "entryCondition": {
-        "type": "arcanumlib:index",
-        "index": 0
-      }
-    },
-    {
-      "type": "arcanumlib:modify_entry",
-      "entryCondition": {
-        "type": "arcanumlib:item",
-        "item": "minecraft:golden_apple"
-      }
-    },
-    {
-      "type": "arcanumlib:modify_entry",
-      "entryCondition": {
-        "type": "arcanumlib:tag",
-        "tag": "minecraft:coals"
-      }
-    },
-    {
-      "type": "arcanumlib:modify_entry",
-      "entryCondition": {
-        "type": "arcanumlib:item_with_tag",
-        "tag": "minecraft:coals"
-      }
-    },
-    {
-      "type": "arcanumlib:modify_entry",
-      "entryCondition": {
-        "type": "arcanumlib:entry_type",
-        "entryType": "minecraft:item"
-      }
-    },
-    {
-      "type": "arcanumlib:modify_entry",
-      "entryCondition": {
-        "type": "arcanumlib:entry_type",
-        "entryType": "minecraft:alternatives"
-      }
-    },
-    {
-      "type": "arcanumlib:modify_entry",
-      "entryCondition": {
-        "type": "arcanumlib:weight_at_least",
-        "weight": 10
-      }
-    },
-    {
-      "type": "arcanumlib:modify_entry",
-      "entryCondition": {
-        "type": "arcanumlib:has_condition",
-        "conditionType": "minecraft:random_chance"
-      }
-    },
-    {
-      "type": "arcanumlib:modify_entry",
-      "entryCondition": {
-        "type": "arcanumlib:has_function",
-        "functionType": "minecraft:set_count"
-      }
-    },
-    {
-      "type": "arcanumlib:modify_entry",
-      "entryCondition": {
-        "type": "arcanumlib:has_child",
-        "entryCondition": {
-          "type": "arcanumlib:item",
-          "item": "minecraft:iron_ingot"
+      "type": "arcanumlib:modify_pool",
+      "ops": [
+        {
+          "type": "arcanumlib:modify_entry"
         }
-      }
+      ]
     },
     {
-      "type": "arcanumlib:modify_entry",
-      "entryCondition": {
-        "type": "arcanumlib:not",
-        "condition": {
-          "type": "arcanumlib:item",
-          "item": "minecraft:golden_apple"
+      "type": "arcanumlib:modify_pool",
+      "ops": [
+        {
+          "type": "arcanumlib:modify_entry",
+          "entryCondition": {
+            "type": "arcanumlib:index",
+            "index": 0
+          }
         }
-      }
+      ]
     },
     {
-      "type": "arcanumlib:modify_entry",
-      "entryCondition": {
-        "type": "arcanumlib:any_of",
-        "conditions": [
-          {
+      "type": "arcanumlib:modify_pool",
+      "ops": [
+        {
+          "type": "arcanumlib:modify_entry",
+          "entryCondition": {
             "type": "arcanumlib:item",
             "item": "minecraft:golden_apple"
-          },
-          {
-            "type": "arcanumlib:item",
-            "item": "minecraft:gunpowder"
           }
-        ]
-      }
+        }
+      ]
     },
     {
-      "type": "arcanumlib:modify_entry",
-      "entryCondition": {
-        "type": "arcanumlib:all_of",
-        "conditions": [
-          {
+      "type": "arcanumlib:modify_pool",
+      "ops": [
+        {
+          "type": "arcanumlib:modify_entry",
+          "entryCondition": {
+            "type": "arcanumlib:tag",
+            "tag": "minecraft:coals"
+          }
+        }
+      ]
+    },
+    {
+      "type": "arcanumlib:modify_pool",
+      "ops": [
+        {
+          "type": "arcanumlib:modify_entry",
+          "entryCondition": {
+            "type": "arcanumlib:item_with_tag",
+            "tag": "minecraft:coals"
+          }
+        }
+      ]
+    },
+    {
+      "type": "arcanumlib:modify_pool",
+      "ops": [
+        {
+          "type": "arcanumlib:modify_entry",
+          "entryCondition": {
             "type": "arcanumlib:entry_type",
             "entryType": "minecraft:item"
-          },
-          {
-            "type": "arcanumlib:weight_at_least",
-            "weight": 1
           }
-        ]
-      }
+        }
+      ]
     },
     {
-      "type": "arcanumlib:modify_entry"
+      "type": "arcanumlib:modify_pool",
+      "ops": [
+        {
+          "type": "arcanumlib:modify_entry",
+          "entryCondition": {
+            "type": "arcanumlib:entry_type",
+            "entryType": "minecraft:alternatives"
+          }
+        }
+      ]
     },
     {
-      "type": "arcanumlib:modify_entry",
+      "type": "arcanumlib:modify_pool",
+      "ops": [
+        {
+          "type": "arcanumlib:modify_entry",
+          "entryCondition": {
+            "type": "arcanumlib:weight_in_range",
+            "min": 10
+          }
+        }
+      ]
+    },
+    {
+      "type": "arcanumlib:modify_pool",
+      "ops": [
+        {
+          "type": "arcanumlib:modify_entry",
+          "entryCondition": {
+            "type": "arcanumlib:has_condition",
+            "conditionType": "minecraft:random_chance"
+          }
+        }
+      ]
+    },
+    {
+      "type": "arcanumlib:modify_pool",
+      "ops": [
+        {
+          "type": "arcanumlib:modify_entry",
+          "entryCondition": {
+            "type": "arcanumlib:has_function",
+            "functionType": "minecraft:set_count"
+          }
+        }
+      ]
+    },
+    {
+      "type": "arcanumlib:modify_pool",
+      "ops": [
+        {
+          "type": "arcanumlib:modify_entry",
+          "entryCondition": {
+            "type": "arcanumlib:has_child",
+            "entryCondition": {
+              "type": "arcanumlib:item",
+              "item": "minecraft:iron_ingot"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "type": "arcanumlib:modify_pool",
+      "ops": [
+        {
+          "type": "arcanumlib:modify_entry",
+          "entryCondition": {
+            "type": "arcanumlib:not",
+            "condition": {
+              "type": "arcanumlib:item",
+              "item": "minecraft:golden_apple"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "type": "arcanumlib:modify_pool",
+      "ops": [
+        {
+          "type": "arcanumlib:modify_entry",
+          "entryCondition": {
+            "type": "arcanumlib:any_of",
+            "conditions": [
+              {
+                "type": "arcanumlib:item",
+                "item": "minecraft:golden_apple"
+              },
+              {
+                "type": "arcanumlib:item",
+                "item": "minecraft:gunpowder"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "type": "arcanumlib:modify_pool",
+      "ops": [
+        {
+          "type": "arcanumlib:modify_entry",
+          "entryCondition": {
+            "type": "arcanumlib:all_of",
+            "conditions": [
+              {
+                "type": "arcanumlib:entry_type",
+                "entryType": "minecraft:item"
+              },
+              {
+                "type": "arcanumlib:weight_in_range",
+                "max": 1,
+                "min": 1
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "type": "arcanumlib:modify_pool"
+    },
+    {
+      "type": "arcanumlib:modify_pool",
       "poolCondition": {
         "type": "arcanumlib:name",
         "name": "main"
       }
     },
     {
-      "type": "arcanumlib:modify_entry",
+      "type": "arcanumlib:modify_pool",
       "poolCondition": {
         "type": "arcanumlib:has_entry",
         "entryCondition": {
@@ -139,7 +210,7 @@
       }
     },
     {
-      "type": "arcanumlib:modify_entry",
+      "type": "arcanumlib:modify_pool",
       "poolCondition": {
         "type": "arcanumlib:not",
         "condition": {
@@ -149,7 +220,7 @@
       }
     },
     {
-      "type": "arcanumlib:modify_entry",
+      "type": "arcanumlib:modify_pool",
       "poolCondition": {
         "type": "arcanumlib:any_of",
         "conditions": [
@@ -165,7 +236,7 @@
       }
     },
     {
-      "type": "arcanumlib:modify_entry",
+      "type": "arcanumlib:modify_pool",
       "poolCondition": {
         "type": "arcanumlib:all_of",
         "conditions": [
@@ -183,18 +254,28 @@
       }
     },
     {
-      "type": "arcanumlib:modify_entry",
-      "add_functions": [
+      "type": "arcanumlib:modify_pool",
+      "ops": [
         {
-          "add": false,
-          "count": 2.0,
-          "function": "minecraft:set_count"
+          "type": "arcanumlib:modify_entry",
+          "entryCondition": {
+            "type": "arcanumlib:item",
+            "item": "minecraft:gunpowder"
+          },
+          "ops": [
+            {
+              "type": "arcanumlib:add_function",
+              "functions": [
+                {
+                  "add": false,
+                  "count": 2.0,
+                  "function": "minecraft:set_count"
+                }
+              ]
+            }
+          ]
         }
-      ],
-      "entryCondition": {
-        "type": "arcanumlib:item",
-        "item": "minecraft:gunpowder"
-      }
+      ]
     }
   ],
   "tableCondition": {

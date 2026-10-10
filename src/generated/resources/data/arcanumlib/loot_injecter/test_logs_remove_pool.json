@@ -1,7 +1,12 @@
 {
   "ops": [
     {
-      "type": "arcanumlib:remove_pool"
+      "type": "arcanumlib:modify_pool",
+      "ops": [
+        {
+          "type": "arcanumlib:remove_pool"
+        }
+      ]
     }
   ],
   "priority": 1200,

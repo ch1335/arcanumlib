@@ -1,43 +1,82 @@
 {
   "ops": [
     {
-      "type": "arcanumlib:modify_entry",
-      "add_conditions": [
+      "type": "arcanumlib:modify_pool",
+      "ops": [
         {
-          "chance": 0.5,
-          "condition": "minecraft:random_chance"
+          "type": "arcanumlib:modify_entry",
+          "entryCondition": {
+            "type": "arcanumlib:item",
+            "item": "minecraft:gunpowder"
+          },
+          "ops": [
+            {
+              "type": "arcanumlib:remove_entry"
+            }
+          ]
         }
-      ],
-      "add_functions": [
-        {
-          "add": false,
-          "count": 2.0,
-          "function": "minecraft:set_count"
-        }
-      ],
-      "poolCondition": {
-        "type": "arcanumlib:name",
-        "name": "arcanumlib_test_pool"
-      },
-      "set_quality": 1,
-      "set_weight": 20
+      ]
     },
     {
-      "type": "arcanumlib:remove_entry",
-      "entryCondition": {
-        "type": "arcanumlib:item",
-        "item": "minecraft:saddle"
-      },
+      "type": "arcanumlib:modify_pool",
+      "ops": [
+        {
+          "type": "arcanumlib:modify_entry",
+          "entryCondition": {
+            "type": "arcanumlib:item",
+            "item": "minecraft:saddle"
+          },
+          "ops": [
+            {
+              "type": "arcanumlib:remove_entry"
+            }
+          ]
+        }
+      ],
       "poolCondition": {
         "type": "arcanumlib:index",
         "index": 0
       }
     },
     {
-      "type": "arcanumlib:remove_entry",
-      "entryCondition": {
-        "type": "arcanumlib:item",
-        "item": "minecraft:gunpowder"
+      "type": "arcanumlib:modify_pool",
+      "ops": [
+        {
+          "type": "arcanumlib:modify_entry",
+          "ops": [
+            {
+              "type": "arcanumlib:add_condition",
+              "conditions": [
+                {
+                  "chance": 0.5,
+                  "condition": "minecraft:random_chance"
+                }
+              ]
+            },
+            {
+              "type": "arcanumlib:add_function",
+              "functions": [
+                {
+                  "add": false,
+                  "count": 2.0,
+                  "function": "minecraft:set_count"
+                }
+              ]
+            },
+            {
+              "type": "arcanumlib:set_weight",
+              "weight": 20
+            },
+            {
+              "type": "arcanumlib:set_quality",
+              "quality": 1
+            }
+          ]
+        }
+      ],
+      "poolCondition": {
+        "type": "arcanumlib:name",
+        "name": "arcanumlib_test_pool"
       }
     }
   ],

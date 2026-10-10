@@ -22,12 +22,17 @@ public class ArcanumLib {
     public static final Logger LOGGER = LogUtils.getLogger();
 
     public ArcanumLib(IEventBus modEventBus, ModContainer modContainer) {
-        LootInjectorOps.OP_TYPES.register(modEventBus);
+        // 三层注入操作：表级 / 池级 / 条目级
+        LootInjectorOps.TABLE_OPERATOR_TYPES.register(modEventBus);
+        LootInjectorOps.POOL_OPERATOR_TYPES.register(modEventBus);
+        LootInjectorOps.ENTRY_OPERATOR_TYPES.register(modEventBus);
         LootInjectorOps.TABLE_CONDITION_TYPES.register(modEventBus);
         LootInjectorOps.POOL_CONDITION_TYPES.register(modEventBus);
         LootInjectorOps.ENTRY_CONDITION_TYPES.register(modEventBus);
         modEventBus.addListener(NewRegistryEvent.class, event -> {
-            event.register(LootInjectorOps.REGISTRY);
+            event.register(LootInjectorOps.TABLE_OPERATORS);
+            event.register(LootInjectorOps.POOL_OPERATORS);
+            event.register(LootInjectorOps.ENTRY_OPERATORS);
             event.register(LootInjectorOps.TABLE_CONDITIONS);
             event.register(LootInjectorOps.POOL_CONDITIONS);
             event.register(LootInjectorOps.ENTRY_CONDITIONS);

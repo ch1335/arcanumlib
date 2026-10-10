@@ -2,7 +2,7 @@ package com.chen1335.arcanumlib.modules.loot.lootInjector.data;
 
 import com.chen1335.arcanumlib.modules.loot.lootEntry.AllOfEntry;
 import com.chen1335.arcanumlib.modules.loot.lootInjector.LootInjector;
-import com.chen1335.arcanumlib.modules.loot.lootInjector.LootInjectorOp;
+import com.chen1335.arcanumlib.modules.loot.lootInjector.operator.TableOperator;
 import com.chen1335.arcanumlib.modules.loot.lootInjector.LootInjectorReloadListener;
 import com.chen1335.arcanumlib.modules.loot.lootInjector.condition.TableCondition;
 import net.minecraft.core.HolderLookup;
@@ -91,14 +91,14 @@ public abstract class LootInjectorTemplate extends LootInjectorProvider {
      * 一个池 + 一个"全出"条目：池掷一次必中它，它被抽中后把所有孩子都产出去。
      * 概率挂在孩子上，所以各自独立判定、彼此不抢权重；池里只有一个条目，故权重占比恒为 1。
      */
-    protected List<LootInjectorOp> pools(Drop... drops) {
+    protected List<TableOperator> pools(Drop... drops) {
         List<LootPoolEntryContainer.Builder<?>> children = new ArrayList<>();
 
         for (Drop drop : drops) {
             children.add(drop.entry().get().when(chanceCondition(drop)));
         }
 
-        return List.of(new LootInjectorOp.AddPool(LootPool.lootPool()
+        return List.of(new TableOperator.AddPool(LootPool.lootPool()
                 .setRolls(ConstantValue.exactly(1.0F))
                 .add(allChildren(children))
                 .build()));

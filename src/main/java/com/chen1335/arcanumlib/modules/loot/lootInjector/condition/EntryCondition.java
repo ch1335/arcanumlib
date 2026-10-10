@@ -11,6 +11,7 @@ import net.minecraft.resources.ResourceKey;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.tags.TagKey;
 import net.minecraft.world.item.Item;
+import net.minecraft.world.level.storage.loot.LootPool;
 import net.minecraft.world.level.storage.loot.entries.CompositeEntryBase;
 import net.minecraft.world.level.storage.loot.entries.LootItem;
 import net.minecraft.world.level.storage.loot.entries.LootPoolEntryContainer;
@@ -30,7 +31,7 @@ public interface EntryCondition {
 
     EntryConditionType getType();
 
-    boolean test(int index, LootPoolEntryContainer entry);
+    boolean test(int index, LootPoolEntryContainer entry, LootPool pool);
 
     /** 匹配所有条目。 */
     record Any() implements EntryCondition {
@@ -40,7 +41,7 @@ public interface EntryCondition {
         }
         public static final MapCodec<Any> CODEC = MapCodec.unit(Any::new);
         @Override
-        public boolean test(int index, LootPoolEntryContainer entry) {
+        public boolean test(int index, LootPoolEntryContainer entry, LootPool pool) {
             return true;
         }
     }
@@ -54,7 +55,7 @@ public interface EntryCondition {
         public static final MapCodec<ByIndex> CODEC = RecordCodecBuilder.mapCodec(instance -> instance.group(
                 Codec.INT.fieldOf("index").forGetter(ByIndex::index)).apply(instance, ByIndex::new));
         @Override
-        public boolean test(int index, LootPoolEntryContainer entry) {
+        public boolean test(int index, LootPoolEntryContainer entry, LootPool pool) {
             return this.index == index;
         }
     }
@@ -68,7 +69,7 @@ public interface EntryCondition {
         public static final MapCodec<IsItem> CODEC = RecordCodecBuilder.mapCodec(instance -> instance.group(
                 ResourceLocation.CODEC.fieldOf("item").forGetter(IsItem::item)).apply(instance, IsItem::new));
         @Override
-        public boolean test(int index, LootPoolEntryContainer entry) {
+        public boolean test(int index, LootPoolEntryContainer entry, LootPool pool) {
             if (!(entry instanceof LootItem lootItem)) {
                 return false;
             }
@@ -86,7 +87,7 @@ public interface EntryCondition {
         public static final MapCodec<IsTag> CODEC = RecordCodecBuilder.mapCodec(instance -> instance.group(
                 TagKey.codec(Registries.ITEM).fieldOf("tag").forGetter(IsTag::tag)).apply(instance, IsTag::new));
         @Override
-        public boolean test(int index, LootPoolEntryContainer entry) {
+        public boolean test(int index, LootPoolEntryContainer entry, LootPool pool) {
             return entry instanceof TagEntry tagEntry && tagEntry.tag.equals(this.tag);
         }
     }
@@ -106,7 +107,7 @@ public interface EntryCondition {
                 TagKey.codec(Registries.ITEM).fieldOf("tag").forGetter(IsItemWithTag::tag))
                 .apply(instance, IsItemWithTag::new));
         @Override
-        public boolean test(int index, LootPoolEntryContainer entry) {
+        public boolean test(int index, LootPoolEntryContainer entry, LootPool pool) {
             return entry instanceof LootItem lootItem && lootItem.item.is(this.tag);
         }
     }
@@ -120,25 +121,59 @@ public interface EntryCondition {
         public static final MapCodec<IsType> CODEC = RecordCodecBuilder.mapCodec(instance -> instance.group(
                 ResourceLocation.CODEC.fieldOf("entryType").forGetter(IsType::entryType)).apply(instance, IsType::new));
         @Override
-        public boolean test(int index, LootPoolEntryContainer entry) {
+        public boolean test(int index, LootPoolEntryContainer entry, LootPool pool) {
             return this.entryType.equals(BuiltInRegistries.LOOT_POOL_ENTRY_TYPE.getKey(entry.getType()));
         }
     }
 
-    /** 权重下限；非单例条目（复合条目）没有权重，直接不匹配。 */
-    record WeightAtLeast(int weight) implements EntryCondition {
+    /**
+     * 条目权重是否落在闭区间 [min, max] 内。两个字段都可省略（min 默认 0、max 默认 Integer.MAX_VALUE）。
+     *
+     * <p>权重口径与 {@link PoolWeights} 一致：单例条目取它的 weight（按 0 夹下限），复合条目按子树累加。
+     */
+    record WeightInRange(int min, int max) implements EntryCondition {
         @Override
         public EntryConditionType getType() {
-            return LootInjectorOps.ENTRY_WEIGHT_AT_LEAST.get();
+            return LootInjectorOps.ENTRY_WEIGHT_IN_RANGE.get();
         }
-        public static final MapCodec<WeightAtLeast> CODEC = RecordCodecBuilder.mapCodec(instance -> instance.group(
-                Codec.INT.fieldOf("weight").forGetter(WeightAtLeast::weight)).apply(instance, WeightAtLeast::new));
+        public static final MapCodec<WeightInRange> CODEC = RecordCodecBuilder.mapCodec(instance -> instance.group(
+                Codec.INT.optionalFieldOf("min", 0).forGetter(WeightInRange::min),
+                Codec.INT.optionalFieldOf("max", Integer.MAX_VALUE).forGetter(WeightInRange::max))
+                .apply(instance, WeightInRange::new));
         @Override
-        public boolean test(int index, LootPoolEntryContainer entry) {
-            return entry instanceof LootPoolSingletonContainer singleton && singleton.weight >= this.weight;
+        public boolean test(int index, LootPoolEntryContainer entry, LootPool pool) {
+            int weight = PoolWeights.of(entry);
+
+            return weight >= this.min && weight <= this.max;
         }
     }
 
+    /**
+     * 该条目在【所属池总权重】里占的比例是否落在闭区间 [min, max] 内（比例口径 0~1）。
+     *
+     * <p>分子取条目的静态权重（复合条目按子树累加），分母取池的静态总权重，口径与
+     * {@link PoolCondition.TotalWeightInRange} 完全一致——都不含 quality × 幸运、也不按条件过滤分支。
+     */
+    record WeightShareInRange(float min, float max) implements EntryCondition {
+        @Override
+        public EntryConditionType getType() {
+            return LootInjectorOps.ENTRY_WEIGHT_SHARE.get();
+        }
+        public static final MapCodec<WeightShareInRange> CODEC = RecordCodecBuilder.mapCodec(instance -> instance.group(
+                Codec.floatRange(0.0F, 1.0F).optionalFieldOf("min", 0.0F).forGetter(WeightShareInRange::min),
+                Codec.floatRange(0.0F, 1.0F).optionalFieldOf("max", 1.0F).forGetter(WeightShareInRange::max))
+                .apply(instance, WeightShareInRange::new));
+        @Override
+        public boolean test(int index, LootPoolEntryContainer entry, LootPool pool) {
+            int total = PoolWeights.total(pool);
+            if (total <= 0) {
+                return false;
+            }
+
+            float share = (float) PoolWeights.of(entry) / total;
+            return share >= this.min && share <= this.max;
+        }
+    }
     /** 条目身上是否已经挂着某种条件，按条件类型 id 比较。 */
     record HasCondition(ResourceLocation conditionType) implements EntryCondition {
         @Override
@@ -149,7 +184,7 @@ public interface EntryCondition {
                 ResourceLocation.CODEC.fieldOf("conditionType").forGetter(HasCondition::conditionType))
                 .apply(instance, HasCondition::new));
         @Override
-        public boolean test(int index, LootPoolEntryContainer entry) {
+        public boolean test(int index, LootPoolEntryContainer entry, LootPool pool) {
             return entry.conditions.stream()
                     .anyMatch(condition -> this.conditionType.equals(
                             BuiltInRegistries.LOOT_CONDITION_TYPE.getKey(condition.getType())));
@@ -166,7 +201,7 @@ public interface EntryCondition {
                 ResourceLocation.CODEC.fieldOf("functionType").forGetter(HasFunction::functionType))
                 .apply(instance, HasFunction::new));
         @Override
-        public boolean test(int index, LootPoolEntryContainer entry) {
+        public boolean test(int index, LootPoolEntryContainer entry, LootPool pool) {
             if (!(entry instanceof LootPoolSingletonContainer singleton)) {
                 return false;
             }
@@ -186,13 +221,13 @@ public interface EntryCondition {
         public static final MapCodec<HasChild> CODEC = RecordCodecBuilder.mapCodec(instance -> instance.group(
                 EntryCondition.CODEC.fieldOf("entryCondition").forGetter(HasChild::child)).apply(instance, HasChild::new));
         @Override
-        public boolean test(int index, LootPoolEntryContainer entry) {
+        public boolean test(int index, LootPoolEntryContainer entry, LootPool pool) {
             if (!(entry instanceof CompositeEntryBase composite)) {
                 return false;
             }
 
             for (int i = 0; i < composite.children.size(); i++) {
-                if (this.child.test(i, composite.children.get(i))) {
+                if (this.child.test(i, composite.children.get(i), pool)) {
                     return true;
                 }
             }
@@ -210,8 +245,8 @@ public interface EntryCondition {
         public static final MapCodec<Not> CODEC = RecordCodecBuilder.mapCodec(instance -> instance.group(
                 EntryCondition.CODEC.fieldOf("condition").forGetter(Not::child)).apply(instance, Not::new));
         @Override
-        public boolean test(int index, LootPoolEntryContainer entry) {
-            return !this.child.test(index, entry);
+        public boolean test(int index, LootPoolEntryContainer entry, LootPool pool) {
+            return !this.child.test(index, entry, pool);
         }
     }
 
@@ -225,8 +260,8 @@ public interface EntryCondition {
                 EntryCondition.CODEC.listOf().fieldOf("conditions").forGetter(AnyOf::children))
                 .apply(instance, AnyOf::new));
         @Override
-        public boolean test(int index, LootPoolEntryContainer entry) {
-            return this.children.stream().anyMatch(child -> child.test(index, entry));
+        public boolean test(int index, LootPoolEntryContainer entry, LootPool pool) {
+            return this.children.stream().anyMatch(child -> child.test(index, entry, pool));
         }
     }
 
@@ -240,8 +275,8 @@ public interface EntryCondition {
                 EntryCondition.CODEC.listOf().fieldOf("conditions").forGetter(AllOf::children))
                 .apply(instance, AllOf::new));
         @Override
-        public boolean test(int index, LootPoolEntryContainer entry) {
-            return this.children.stream().allMatch(child -> child.test(index, entry));
+        public boolean test(int index, LootPoolEntryContainer entry, LootPool pool) {
+            return this.children.stream().allMatch(child -> child.test(index, entry, pool));
         }
     }
     /**
@@ -258,8 +293,8 @@ public interface EntryCondition {
         }
 
         @Override
-        public boolean test(int index, LootPoolEntryContainer entry) {
-            return CustomEntryConditionEvent.post(this.id, index, entry);
+        public boolean test(int index, LootPoolEntryContainer entry, LootPool pool) {
+            return CustomEntryConditionEvent.post(this.id, index, entry, pool);
         }
     }
 }

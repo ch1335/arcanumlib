@@ -1,0 +1,18 @@
+{
+  "ops": [
+    {
+      "type": "arcanumlib:set_function",
+      "functions": [
+        {
+          "add": true,
+          "count": 2.0,
+          "function": "minecraft:set_count"
+        }
+      ]
+    }
+  ],
+  "tableCondition": {
+    "type": "arcanumlib:id",
+    "id": "minecraft:chests/woodland_mansion"
+  }
+}

@@ -1,5 +1,6 @@
 package com.chen1335.arcanumlib.modules.loot.lootInjector.event;
 
+import net.minecraft.world.level.storage.loot.LootPool;
 import net.minecraft.world.level.storage.loot.entries.LootPoolEntryContainer;
 import net.neoforged.bus.api.Event;
 import net.neoforged.neoforge.common.NeoForge;
@@ -9,12 +10,14 @@ public class CustomEntryConditionEvent extends Event {
     private final String id;
     private final int index;
     private final LootPoolEntryContainer entry;
+    private final LootPool pool;
     private boolean result;
 
-    public CustomEntryConditionEvent(String id, int index, LootPoolEntryContainer entry) {
+    public CustomEntryConditionEvent(String id, int index, LootPoolEntryContainer entry, LootPool pool) {
         this.id = id;
         this.index = index;
         this.entry = entry;
+        this.pool = pool;
     }
 
     public String getId() {
@@ -30,6 +33,11 @@ public class CustomEntryConditionEvent extends Event {
         return this.entry;
     }
 
+    /** 条目所属的池：占比这类判定需要池的总权重。 */
+    public LootPool getPool() {
+        return this.pool;
+    }
+
     public boolean getResult() {
         return this.result;
     }
@@ -38,8 +46,8 @@ public class CustomEntryConditionEvent extends Event {
         this.result = result;
     }
 
-    public static boolean post(String id, int index, LootPoolEntryContainer entry) {
-        CustomEntryConditionEvent event = new CustomEntryConditionEvent(id, index, entry);
+    public static boolean post(String id, int index, LootPoolEntryContainer entry, LootPool pool) {
+        CustomEntryConditionEvent event = new CustomEntryConditionEvent(id, index, entry, pool);
         NeoForge.EVENT_BUS.post(event);
         return event.getResult();
     }

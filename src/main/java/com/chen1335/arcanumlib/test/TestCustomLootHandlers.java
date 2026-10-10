@@ -2,12 +2,15 @@ package com.chen1335.arcanumlib.test;
 
 import com.chen1335.arcanumlib.ArcanumLib;
 import com.chen1335.arcanumlib.modules.loot.lootInjector.LootInjector;
-import com.chen1335.arcanumlib.modules.loot.lootInjector.LootInjectorOp;
 import com.chen1335.arcanumlib.modules.loot.lootInjector.event.CustomEntryConditionEvent;
-import com.chen1335.arcanumlib.modules.loot.lootInjector.event.CustomInjectorOpEvent;
 import com.chen1335.arcanumlib.modules.loot.lootInjector.event.CustomPoolConditionEvent;
 import com.chen1335.arcanumlib.modules.loot.lootInjector.event.CustomTableConditionEvent;
+import com.chen1335.arcanumlib.modules.loot.lootInjector.event.EntryCustomOpEvent;
 import com.chen1335.arcanumlib.modules.loot.lootInjector.event.LootInjectorApplyEvent;
+import com.chen1335.arcanumlib.modules.loot.lootInjector.event.PoolCustomOpEvent;
+import com.chen1335.arcanumlib.modules.loot.lootInjector.event.TableCustomOpEvent;
+import com.chen1335.arcanumlib.modules.loot.lootInjector.operator.PoolOperator;
+import com.chen1335.arcanumlib.modules.loot.lootInjector.operator.TableOperator;
 import net.minecraft.world.item.Items;
 import net.minecraft.world.level.storage.loot.LootPool;
 import net.minecraft.world.level.storage.loot.entries.LootItem;
@@ -19,18 +22,18 @@ import net.neoforged.fml.common.EventBusSubscriber;
 import java.util.List;
 
 /**
- * 配对 {@link TestLootInjectorProvider} 里 Custom 系列注入器的运行时实现。
+ * 配对 {@link TestLootInjectorProvider} 里 custom 系列注入器的运行时实现。
  *
  * <p>只认自己那几个 custom_id，其他 id 一律不处理；没有测试 json 时这几个方法都是空转。
- * 每次命中都会打日志，方便在 latest.log 里确认自定义分支确实被走到了。
+ * 命中时会打日志，方便在 latest.log 里确认自定义分支确实被走到了。
  */
 @EventBusSubscriber(modid = ArcanumLib.MODID)
 public class TestCustomLootHandlers {
 
-    /** test_custom_op：直接往表里塞一个必掉的钻石块。 */
+    /** test_table_custom：往表里塞一个必掉的钻石块池。 */
     @SubscribeEvent
-    public static void onCustomOp(CustomInjectorOpEvent event) {
-        if (!"test_custom_op".equals(event.getId())) {
+    public static void onTableCustom(TableCustomOpEvent event) {
+        if (!"test_table_custom".equals(event.getId())) {
             return;
         }
 
@@ -39,7 +42,29 @@ public class TestCustomLootHandlers {
                 .name("arcanumlib_test_custom")
                 .add(LootItem.lootTableItem(Items.DIAMOND_BLOCK))
                 .build());
-        ArcanumLib.LOGGER.info("[test] custom op applied");
+        ArcanumLib.LOGGER.info("[test] table_custom applied");
+    }
+
+    /** test_pool_custom：给"当前池"追加一个必掉的下界合金锭条目。 */
+    @SubscribeEvent
+    public static void onPoolCustom(PoolCustomOpEvent event) {
+        if (!"test_pool_custom".equals(event.getId())) {
+            return;
+        }
+
+        PoolOperator.mutableEntries(event.getPool()).add(LootItem.lootTableItem(Items.NETHERITE_INGOT).build());
+        ArcanumLib.LOGGER.info("[test] pool_custom applied on pool {}", event.getPoolIndex());
+    }
+
+    /** test_entry_custom：把"当前条目"换成钻石。 */
+    @SubscribeEvent
+    public static void onEntryCustom(EntryCustomOpEvent event) {
+        if (!"test_entry_custom".equals(event.getId())) {
+            return;
+        }
+
+        event.getEntries().set(event.getIndex(), LootItem.lootTableItem(Items.DIAMOND).build());
+        ArcanumLib.LOGGER.info("[test] entry_custom applied at {}", event.getIndex());
     }
 
     /** test_table：只命中僵尸系的表。 */
@@ -66,7 +91,7 @@ public class TestCustomLootHandlers {
         event.setResult(event.getIndex() == 0);
     }
 
-    /** test_entry：命中所有单例条目。调用量最大，用静态开关把日志压到一条。 */
+    /** test_entry：命中所有单例条目。调用量最大，不打日志。 */
     @SubscribeEvent
     public static void onCustomEntry(CustomEntryConditionEvent event) {
         if (!"test_entry".equals(event.getId())) {
@@ -85,7 +110,7 @@ public class TestCustomLootHandlers {
         }
 
         event.setInjector(new LootInjector(injector.id(), injector.tableCondition(), injector.priority(),
-                List.of(new LootInjectorOp.AddPool(LootPool.lootPool()
+                List.of(new TableOperator.AddPool(LootPool.lootPool()
                         .setRolls(ConstantValue.exactly(1.0F))
                         .add(LootItem.lootTableItem(Items.DIAMOND_BLOCK))
                         .build()))));

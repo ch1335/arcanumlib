@@ -5,11 +5,13 @@ import com.chen1335.arcanumlib.modules.loot.lootCondition.ChanceModifier;
 import com.chen1335.arcanumlib.modules.loot.lootCondition.ChanceModifierCondition;
 import com.chen1335.arcanumlib.modules.loot.lootEntry.AllOfEntry;
 import com.chen1335.arcanumlib.modules.loot.lootInjector.LootInjector;
-import com.chen1335.arcanumlib.modules.loot.lootInjector.LootInjectorOp;
 import com.chen1335.arcanumlib.modules.loot.lootInjector.condition.EntryCondition;
 import com.chen1335.arcanumlib.modules.loot.lootInjector.condition.PoolCondition;
 import com.chen1335.arcanumlib.modules.loot.lootInjector.condition.TableCondition;
 import com.chen1335.arcanumlib.modules.loot.lootInjector.data.LootInjectorTemplate;
+import com.chen1335.arcanumlib.modules.loot.lootInjector.operator.EntryOperator;
+import com.chen1335.arcanumlib.modules.loot.lootInjector.operator.PoolOperator;
+import com.chen1335.arcanumlib.modules.loot.lootInjector.operator.TableOperator;
 import net.minecraft.core.HolderLookup;
 import net.minecraft.data.PackOutput;
 import net.minecraft.resources.ResourceLocation;
@@ -27,6 +29,7 @@ import net.minecraft.world.level.storage.loot.entries.AlternativesEntry;
 import net.minecraft.world.level.storage.loot.entries.LootItem;
 import net.minecraft.world.level.storage.loot.entries.LootPoolEntryContainer;
 import net.minecraft.world.level.storage.loot.entries.TagEntry;
+import net.minecraft.world.level.storage.loot.functions.LootItemFunction;
 import net.minecraft.world.level.storage.loot.functions.SetItemCountFunction;
 import net.minecraft.world.level.storage.loot.predicates.LootItemCondition;
 import net.minecraft.world.level.storage.loot.predicates.LootItemRandomChanceCondition;
@@ -40,15 +43,17 @@ import java.util.concurrent.CompletableFuture;
  * loot 模块的综合数据生成测试，跑 {@code gradlew runData} 输出到
  * {@code src/generated/resources/data/arcanumlib/loot_injecter/}。
  *
- * <p>覆盖：6 种 op、8 种 ChanceModifier、4 类选择器的全部子类型、AllOfEntry、模板骨架，
- * 以及 Custom 系列（配合 {@link TestCustomLootHandlers}）。
+ * <p>格式是三层嵌套作用域：顶层 ops 作用于表，{@code modify_pool} 的子 ops 作用于每个命中的池，
+ * {@code modify_entry} 的子 ops 作用于每个命中的条目。条件只写在作用域上。
  *
- * <p>有些选择器在 vanilla 表里不会命中（原版条目大多是扁平的、池也没有名字），
- * 这类用空操作的 ModifyEntry 只做"编码 + 求值路径"覆盖，不改变掉落。
+ * <p>25 个 op 每种至少有一条 json；空 ops 的作用域就是纯选择器探针（只求值、不改表）。
  */
 public class TestLootInjectorProvider extends LootInjectorTemplate {
 
     private static final String TEST_POOL_NAME = "arcanumlib_test_pool";
+    /** 池级函数 op 用：单条目、必掉 1 个，叠加 add 模式的 set_count 后数量可直接肉眼核对。 */
+    private static final String POOL_FUNC_NAME = "arcanumlib_test_poolfunc";
+    private static final String POOL_SET_FUNC_NAME = "arcanumlib_test_setfunc";
     private static final ResourceLocation ZOMBIE_TABLE = EntityType.ZOMBIE.getDefaultLootTable().location();
 
     public TestLootInjectorProvider(PackOutput output, CompletableFuture<HolderLookup.Provider> registries) {
@@ -79,12 +84,16 @@ public class TestLootInjectorProvider extends LootInjectorTemplate {
     protected List<LootInjector> injectors(HolderLookup.Provider registries) {
         List<LootInjector> list = new ArrayList<>();
         list.addAll(templateInjectors(registries));
-        list.addAll(opInjectors(registries));
+        list.addAll(modifierInjectors());
+        list.addAll(dungeonInjectors(registries));
+        list.addAll(tableFunctionInjectors());
         list.addAll(tableConditionInjectors());
         list.add(selectorProbe());
         list.addAll(customInjectors());
         return List.copyOf(list);
     }
+
+    // ---- 模板骨架 + 8 种 ChanceModifier ----
 
     /** 走模板骨架：merged / boss / injector + pools + allChildren + lootingCount + chanceCondition。 */
     private List<LootInjector> templateInjectors(HolderLookup.Provider registries) {
@@ -105,75 +114,146 @@ public class TestLootInjectorProvider extends LootInjectorTemplate {
                         new Drop(0.20D, () -> LootItem.lootTableItem(Items.EMERALD))));
     }
 
-    /** 6 种注入操作 + 剩下 4 种加工器。 */
-    private List<LootInjector> opInjectors(HolderLookup.Provider registries) {
-        List<LootInjector> list = new ArrayList<>();
-
-        // set_chance / multiply / invert / add
-        list.add(raw("test_zombie_modifiers", new TableCondition.ById(ZOMBIE_TABLE), 1000,
+    /** 剩下 4 种加工器：set_chance / multiply / invert / add。 */
+    private List<LootInjector> modifierInjectors() {
+        return List.of(raw("test_zombie_modifiers", new TableCondition.ById(ZOMBIE_TABLE), 1000,
                 allOfPool(
                         entry(Items.DIAMOND, 0.02D, new ChanceModifier.Multiply(2.0D)),
                         entry(Items.NETHERITE_SCRAP, 0.95D, new ChanceModifier.Invert()),
                         entry(Items.AMETHYST_SHARD, 0.02D, new ChanceModifier.Add(0.03D)),
                         entry(Items.LAPIS_LAZULI, new ChanceModifier.SetChance(0.08D)))));
+    }
 
-        // AddPool：塞一个具名池，供下一个注入器用 ByName 选中；AddEntry：按下标选中第 0 个池
-        list.add(raw("test_dungeon_add", new TableCondition.ById(BuiltInLootTables.SIMPLE_DUNGEON.location()), 900,
-                new LootInjectorOp.AddPool(LootPool.lootPool()
+    // ---- 地牢：三层作用域的主战场 ----
+
+    private List<LootInjector> dungeonInjectors(HolderLookup.Provider registries) {
+        List<LootInjector> list = new ArrayList<>();
+        TableCondition dungeon = new TableCondition.ById(BuiltInLootTables.SIMPLE_DUNGEON.location());
+
+        // 表级 add_pool 塞具名池；池级 add_entry 按池下标选中地牢原有的第 0 个池
+        list.add(raw("test_dungeon_add", dungeon, 900,
+                new TableOperator.AddPool(LootPool.lootPool()
                         .setRolls(ConstantValue.exactly(1.0F))
                         .setBonusRolls(ConstantValue.exactly(1.0F))
                         .name(TEST_POOL_NAME)
                         .add(LootItem.lootTableItem(Items.GOLD_INGOT))
                         .build()),
-                new LootInjectorOp.AddEntry(new PoolCondition.ByIndex(0),
-                        LootItem.lootTableItem(Items.IRON_INGOT).build())));
+                modifyPool(new PoolCondition.ByIndex(0), new PoolOperator.AddEntry(
+                        LootItem.lootTableItem(Items.IRON_INGOT).build()))));
 
         // 自建 tag 条目与复合条目：原版表里全是扁平 item、也没有 tag 条目，
         // 不造这两个，IsTag / HasChild / IsType(alternatives) 在运行时永远命中不了
-        list.add(raw("test_dungeon_entries", new TableCondition.ById(BuiltInLootTables.SIMPLE_DUNGEON.location()), 950,
-                new LootInjectorOp.AddPool(LootPool.lootPool()
+        list.add(raw("test_dungeon_entries", dungeon, 950,
+                namedPool("arcanumlib_test_tag", TagEntry.tagContents(ItemTags.COALS)
+                        .when(LootItemRandomChanceCondition.randomChance(1.0F))),
+                namedPool("arcanumlib_test_alt", AlternativesEntry.alternatives(
+                        LootItem.lootTableItem(Items.IRON_INGOT),
+                        LootItem.lootTableItem(Items.COPPER_INGOT))),
+                // 两条条目权重 1 与 3（总 4），占比 0.25 / 0.75，给 weight_share 用
+                new TableOperator.AddPool(LootPool.lootPool()
                         .setRolls(ConstantValue.exactly(1.0F))
-                        .name("arcanumlib_test_tag")
-                        .add(TagEntry.tagContents(ItemTags.COALS)
-                                .when(LootItemRandomChanceCondition.randomChance(1.0F)))
+                        .name("arcanumlib_test_share")
+                        .add(LootItem.lootTableItem(Items.IRON_INGOT).setWeight(1))
+                        .add(LootItem.lootTableItem(Items.GOLD_INGOT).setWeight(3))
                         .build()),
-                new LootInjectorOp.AddPool(LootPool.lootPool()
-                        .setRolls(ConstantValue.exactly(1.0F))
-                        .name("arcanumlib_test_alt")
-                        .add(AlternativesEntry.alternatives(
-                                LootItem.lootTableItem(Items.IRON_INGOT),
-                                LootItem.lootTableItem(Items.COPPER_INGOT)))
-                        .build())));
+                // 条件恒假 + 数量 3，被 remove_condition / remove_function 摘掉后应变成「必掉 1 个」
+                namedPool("arcanumlib_test_remove", LootItem.lootTableItem(Items.EMERALD)
+                        .when(LootItemRandomChanceCondition.randomChance(0.0F))
+                        .apply(SetItemCountFunction.setCount(ConstantValue.exactly(3.0F)))),
+                namedPool(POOL_FUNC_NAME, LootItem.lootTableItem(Items.AMETHYST_SHARD)),
+                namedPool(POOL_SET_FUNC_NAME, LootItem.lootTableItem(Items.QUARTZ))));
 
-        // ModifyEntry：按池名选中上面加的具名池；RemoveEntry：分别用 ByIndex 与 Any 命中
-        list.add(raw("test_dungeon_tune", new TableCondition.ById(BuiltInLootTables.SIMPLE_DUNGEON.location()), 1100,
-                new LootInjectorOp.ModifyEntry(new PoolCondition.ByName(TEST_POOL_NAME), new EntryCondition.Any(),
-                        List.of(LootItemRandomChanceCondition.randomChance(0.5F).build()),
-                        List.of(SetItemCountFunction.setCount(ConstantValue.exactly(2.0F)).build()),
-                        20, 1),
-                new LootInjectorOp.RemoveEntry(new PoolCondition.ByIndex(0),
-                        new EntryCondition.IsItem(mc("saddle"))),
-                new LootInjectorOp.RemoveEntry(new PoolCondition.Any(),
-                        new EntryCondition.IsItem(mc("gunpowder")))));
-
-        // ReplaceEntry：地牢箱里的线就地换成皮革。新条目特意挂 enchanted_count_increase（引用附魔注册表），
-        // 这样运行时 copy() 必须走 RegistryOps 才能编码得出来——用 JsonOps 会直接报 "Can't access registry"
-        list.add(raw("test_dungeon_replace", new TableCondition.ById(BuiltInLootTables.SIMPLE_DUNGEON.location()), 1050,
-                new LootInjectorOp.ReplaceEntry(new PoolCondition.Any(), new EntryCondition.IsItem(mc("string")),
-                        LootItem.lootTableItem(Items.LEATHER)
+        // 条目级 replace_entry：地牢箱里的线就地换成皮革。新条目特意挂 enchanted_count_increase（引用附魔注册表），
+        // 运行时必须走 RegistryOps 才编码得出来——用 JsonOps 会直接报 "Can't access registry"
+        list.add(raw("test_dungeon_replace", dungeon, 1050,
+                modifyPool(new PoolCondition.Any(), modifyEntry(new EntryCondition.IsItem(mc("string")),
+                        new EntryOperator.ReplaceEntry(LootItem.lootTableItem(Items.LEATHER)
                                 .apply(lootingCount(registries))
-                                .build())));
+                                .build())))));
 
-        // RemovePool + 方块标签选择器：木头方块不再掉东西，便于肉眼确认
+        // poolCondition 组合（name + total_weight）：合成池 arcanumlib_test_alt 是 alternatives，
+        // 自身权重 0、两个叶子各 1，所以总权重为 2 才命中——不递归算的话这里是 0、不会命中
+        list.add(raw("test_dungeon_weight", dungeon, 1060,
+                modifyPool(new PoolCondition.AllOf(List.of(
+                        new PoolCondition.ByName("arcanumlib_test_alt"),
+                        new PoolCondition.TotalWeightInRange(2, 2))),
+                        modifyEntry(new EntryCondition.Any(), new EntryOperator.RemoveEntry()))));
+
+        // 条目级 set_function：只命中占比 0.75 那条（金锭）并给它套数量 5；铁锭占 0.25 不在区间内，保持 1 个
+        list.add(raw("test_dungeon_share", dungeon, 1070,
+                modifyPool(new PoolCondition.ByName("arcanumlib_test_share"),
+                        modifyEntry(new EntryCondition.WeightShareInRange(0.7F, 0.8F),
+                                new EntryOperator.SetFunction(List.of(
+                                        SetItemCountFunction.setCount(ConstantValue.exactly(5.0F)).build()))))));
+
+        // 池级函数三连：加 +2、摘掉、再加 +1，最终 +1（2 个紫水晶）。
+        // 用 add=true 的 set_count，所以 remove_function 一旦失效就会变成 +3（4 个），肉眼可辨
+        list.add(raw("test_pool_functions", dungeon, 1080,
+                modifyPool(new PoolCondition.ByName(POOL_FUNC_NAME),
+                        new PoolOperator.AddFunction(List.of(addCount(2))),
+                        new PoolOperator.RemoveFunction(List.of(mc("set_count"))),
+                        new PoolOperator.AddFunction(List.of(addCount(1))))));
+
+        // 池级 set_function：整个池的函数列表被换成 +3，石英从 1 个变 4 个
+        list.add(raw("test_pool_set_function", dungeon, 1090,
+                modifyPool(new PoolCondition.ByName(POOL_SET_FUNC_NAME),
+                        new PoolOperator.SetFunction(List.of(addCount(3))))));
+
+        // 条目级：remove_entry 用 ByIndex 与 Any 两种池条件各自命中一次；
+        // add_condition / add_function / set_weight / set_quality 都落在具名池的那条金锭上
+        list.add(raw("test_dungeon_tune", dungeon, 1100,
+                modifyPool(new PoolCondition.Any(), modifyEntry(new EntryCondition.IsItem(mc("gunpowder")),
+                        new EntryOperator.RemoveEntry())),
+                modifyPool(new PoolCondition.ByIndex(0), modifyEntry(new EntryCondition.IsItem(mc("saddle")),
+                        new EntryOperator.RemoveEntry())),
+                modifyPool(new PoolCondition.ByName(TEST_POOL_NAME), modifyEntry(new EntryCondition.Any(),
+                        new EntryOperator.AddCondition(List.of(
+                                LootItemRandomChanceCondition.randomChance(0.5F).build())),
+                        new EntryOperator.AddFunction(List.of(
+                                SetItemCountFunction.setCount(ConstantValue.exactly(2.0F)).build())),
+                        new EntryOperator.SetWeight(20),
+                        new EntryOperator.SetQuality(1)))));
+
+        // 条目级 set_condition / set_function：把 1100 加上的 50% 概率门换成必然通过、函数换成空列表，
+        // 于是金锭变成「必掉 1 个」。若这两个 op 是追加语义，结果会是 allOf(0.5, 1.0) 仍然 50%、数量还是 2
+        list.add(raw("test_dungeon_set_parts", dungeon, 1150,
+                modifyPool(new PoolCondition.ByName(TEST_POOL_NAME), modifyEntry(new EntryCondition.Any(),
+                        new EntryOperator.SetCondition(List.of(
+                                LootItemRandomChanceCondition.randomChance(1.0F).build())),
+                        new EntryOperator.SetFunction(List.of())))));
+
+        // 条目级 remove_condition / remove_function：arcanumlib_test_remove 原本「random_chance 0.0 → 永不掉落
+        // + set_count 3」，摘掉后应变成「必掉 1 个绿宝石」，两个 op 各自都有肉眼可见的翻转
+        list.add(raw("test_dungeon_remove_parts", dungeon, 1160,
+                modifyPool(new PoolCondition.ByName("arcanumlib_test_remove"), modifyEntry(new EntryCondition.Any(),
+                        new EntryOperator.RemoveCondition(List.of(mc("random_chance"))),
+                        new EntryOperator.RemoveFunction(List.of(mc("set_count")))))));
+
+        // 池级 remove_pool + 方块标签选择器：木头方块不再掉东西
         list.add(raw("test_logs_remove_pool", new TableCondition.BlockTagTable(BlockTags.LOGS), 1200,
-                new LootInjectorOp.RemovePool(new PoolCondition.Any())));
+                modifyPool(new PoolCondition.Any(), new PoolOperator.RemovePool())));
 
-        // TableCondition.All + 两个 Any；效果是空操作（龙蛋不在任何表里）
+        // TableCondition.All：效果是空操作（龙蛋不在任何表里），只把选择器与 remove_entry 跑一遍
         list.add(raw("test_all_tables", new TableCondition.All(), 1500,
-                new LootInjectorOp.RemoveEntry(new PoolCondition.Any(),
-                        new EntryCondition.IsItem(mc("dragon_egg")))));
+                modifyPool(new PoolCondition.Any(), modifyEntry(new EntryCondition.IsItem(mc("dragon_egg")),
+                        new EntryOperator.RemoveEntry()))));
 
         return list;
+    }
+
+    /** 表级函数三连：+2、摘掉、+1，最终每件 +1（若 remove_function 失效则是 +3）。 */
+    private List<LootInjector> tableFunctionInjectors() {
+        return List.of(
+                raw("test_table_functions",
+                        new TableCondition.ById(BuiltInLootTables.END_CITY_TREASURE.location()), 1000,
+                        new TableOperator.AddFunction(List.of(addCount(2))),
+                        new TableOperator.RemoveFunction(List.of(mc("set_count"))),
+                        new TableOperator.AddFunction(List.of(addCount(1)))),
+
+                // 表级 set_function：整个表的函数列表被换成 +2
+                raw("test_table_set_function",
+                        new TableCondition.ById(BuiltInLootTables.WOODLAND_MANSION.location()), 1000,
+                        new TableOperator.SetFunction(List.of(addCount(2)))));
     }
 
     /** 表选择器剩余子类型：Namespace / PathPrefix / Not / AnyOf / AllOf。 */
@@ -194,31 +274,30 @@ public class TestLootInjectorProvider extends LootInjectorTemplate {
     /**
      * 池/条目选择器探针。
      *
-     * <p>空操作的 ModifyEntry（空条件与函数、权重品质 -1）只求值不改动，所以能把各选择器跑一遍；
-     * 最后一条才是真改动（矿道箱子里火药 +1）。
+     * <p>空 ops 的作用域只求值不改动，所以能把各选择器跑一遍；最后一条才是真改动（地牢箱子里火药 +1）。
      */
     private LootInjector selectorProbe() {
-        List<LootInjectorOp> ops = new ArrayList<>();
+        List<TableOperator> ops = new ArrayList<>();
 
-        ops.add(probe(new EntryCondition.Any()));
-        ops.add(probe(new EntryCondition.ByIndex(0)));
-        ops.add(probe(new EntryCondition.IsItem(mc("golden_apple"))));
-        ops.add(probe(new EntryCondition.IsTag(ItemTags.COALS)));
+        ops.add(probeEntry(new EntryCondition.Any()));
+        ops.add(probeEntry(new EntryCondition.ByIndex(0)));
+        ops.add(probeEntry(new EntryCondition.IsItem(mc("golden_apple"))));
+        ops.add(probeEntry(new EntryCondition.IsTag(ItemTags.COALS)));
         // 与上一行成对：地牢表里没有 tag 条目，但有 minecraft:coal 这个物品条目，所以只有这条会命中
-        ops.add(probe(new EntryCondition.IsItemWithTag(ItemTags.COALS)));
-        ops.add(probe(new EntryCondition.IsType(mc("item"))));
-        ops.add(probe(new EntryCondition.IsType(mc("alternatives"))));
-        ops.add(probe(new EntryCondition.WeightAtLeast(10)));
-        ops.add(probe(new EntryCondition.HasCondition(mc("random_chance"))));
-        ops.add(probe(new EntryCondition.HasFunction(mc("set_count"))));
-        ops.add(probe(new EntryCondition.HasChild(new EntryCondition.IsItem(mc("iron_ingot")))));
-        ops.add(probe(new EntryCondition.Not(new EntryCondition.IsItem(mc("golden_apple")))));
-        ops.add(probe(new EntryCondition.AnyOf(List.of(
+        ops.add(probeEntry(new EntryCondition.IsItemWithTag(ItemTags.COALS)));
+        ops.add(probeEntry(new EntryCondition.IsType(mc("item"))));
+        ops.add(probeEntry(new EntryCondition.IsType(mc("alternatives"))));
+        ops.add(probeEntry(new EntryCondition.WeightInRange(10, Integer.MAX_VALUE)));
+        ops.add(probeEntry(new EntryCondition.HasCondition(mc("random_chance"))));
+        ops.add(probeEntry(new EntryCondition.HasFunction(mc("set_count"))));
+        ops.add(probeEntry(new EntryCondition.HasChild(new EntryCondition.IsItem(mc("iron_ingot")))));
+        ops.add(probeEntry(new EntryCondition.Not(new EntryCondition.IsItem(mc("golden_apple")))));
+        ops.add(probeEntry(new EntryCondition.AnyOf(List.of(
                 new EntryCondition.IsItem(mc("golden_apple")),
                 new EntryCondition.IsItem(mc("gunpowder"))))));
-        ops.add(probe(new EntryCondition.AllOf(List.of(
+        ops.add(probeEntry(new EntryCondition.AllOf(List.of(
                 new EntryCondition.IsType(mc("item")),
-                new EntryCondition.WeightAtLeast(1)))));
+                new EntryCondition.WeightInRange(1, 1)))));
 
         ops.add(probePool(new PoolCondition.Any()));
         ops.add(probePool(new PoolCondition.ByName("main")));
@@ -229,23 +308,23 @@ public class TestLootInjectorProvider extends LootInjectorTemplate {
         ops.add(probePool(new PoolCondition.AllOf(List.of(
                 new PoolCondition.Any(), new PoolCondition.Not(new PoolCondition.ByIndex(99))))));
 
-        ops.add(new LootInjectorOp.ModifyEntry(new PoolCondition.Any(), new EntryCondition.IsItem(mc("gunpowder")),
-                List.of(), List.of(SetItemCountFunction.setCount(ConstantValue.exactly(2.0F)).build()), -1, -1));
+        ops.add(modifyPool(new PoolCondition.Any(), modifyEntry(new EntryCondition.IsItem(mc("gunpowder")),
+                new EntryOperator.AddFunction(List.of(
+                        SetItemCountFunction.setCount(ConstantValue.exactly(2.0F)).build())))));
 
         return raw("test_selector_probes", new TableCondition.ById(BuiltInLootTables.SIMPLE_DUNGEON.location()),
-                1000, ops.toArray(LootInjectorOp[]::new));
+                1000, ops.toArray(TableOperator[]::new));
     }
 
-    /** 自定义 op 与三类自定义选择器；实际行为由 {@link TestCustomLootHandlers} 决定。 */
+    /** 三类自定义 op 与三类自定义选择器；实际行为由 {@link TestCustomLootHandlers} 决定。 */
     private List<LootInjector> customInjectors() {
         return List.of(
                 raw("test_custom", new TableCondition.Custom("test_table"), 1000,
-                        new LootInjectorOp.Custom("test_custom_op"),
-                        new LootInjectorOp.AddEntry(new PoolCondition.Custom("test_pool"),
-                                LootItem.lootTableItem(Items.DIAMOND).build()),
-                        new LootInjectorOp.ModifyEntry(new PoolCondition.Any(),
-                                new EntryCondition.Custom("test_entry"),
-                                List.of(), List.of(), 10, 1)),
+                        new TableOperator.TableCustom("test_table_custom"),
+                        modifyPool(new PoolCondition.Custom("test_pool"),
+                                new PoolOperator.PoolCustom("test_pool_custom"),
+                                modifyEntry(new EntryCondition.Custom("test_entry"),
+                                        new EntryOperator.EntryCustom("test_entry_custom")))),
 
                 raw("test_apply_event", new TableCondition.ById(BuiltInLootTables.ABANDONED_MINESHAFT.location()), 1300,
                         addPool(Items.COAL, 0.10D)));
@@ -253,19 +332,36 @@ public class TestLootInjectorProvider extends LootInjectorTemplate {
 
     // ---- 组装辅助 --------------------------------------------------------
 
-    private LootInjector raw(String path, TableCondition tableCondition, int priority, LootInjectorOp... ops) {
+    private LootInjector raw(String path, TableCondition tableCondition, int priority, TableOperator... ops) {
         return new LootInjector(id(path), tableCondition, priority, List.of(ops));
     }
 
-    private LootInjectorOp.AddPool addPool(ItemLike item, double chance) {
+    private TableOperator.AddPool addPool(ItemLike item, double chance) {
         return allOfPool(entry(item, chance));
     }
 
-    private LootInjectorOp.AddPool allOfPool(LootPoolEntryContainer.Builder<?>... children) {
-        return new LootInjectorOp.AddPool(LootPool.lootPool()
+    private TableOperator.AddPool allOfPool(LootPoolEntryContainer.Builder<?>... children) {
+        return new TableOperator.AddPool(LootPool.lootPool()
                 .setRolls(ConstantValue.exactly(1.0F))
                 .add(AllOfEntry.allOf(List.of(children)))
                 .build());
+    }
+
+    /** 一个具名池，池里只有传进来的那个条目。 */
+    private TableOperator.AddPool namedPool(String name, LootPoolEntryContainer.Builder<?> entry) {
+        return new TableOperator.AddPool(LootPool.lootPool()
+                .setRolls(ConstantValue.exactly(1.0F))
+                .name(name)
+                .add(entry)
+                .build());
+    }
+
+    private TableOperator modifyPool(PoolCondition poolCondition, PoolOperator... ops) {
+        return new TableOperator.ModifyPool(poolCondition, List.of(ops));
+    }
+
+    private PoolOperator modifyEntry(EntryCondition entryCondition, EntryOperator... ops) {
+        return new PoolOperator.ModifyEntry(entryCondition, List.of(ops));
     }
 
     private LootPoolEntryContainer.Builder<?> entry(ItemLike item, double baseChance, ChanceModifier... modifiers) {
@@ -276,12 +372,19 @@ public class TestLootInjectorProvider extends LootInjectorTemplate {
         return entry(item, 0.5D, modifiers);
     }
 
-    /** 空操作探针：只求值选择器，不改动表。 */
-    private static LootInjectorOp probe(EntryCondition entryCondition) {
-        return new LootInjectorOp.ModifyEntry(new PoolCondition.Any(), entryCondition, List.of(), List.of(), -1, -1);
+    /** 追加数量的 set_count：多个叠加会累加，所以"少了一个"能被肉眼看出来。 */
+    private static LootItemFunction addCount(int count) {
+        return SetItemCountFunction.setCount(ConstantValue.exactly(count), true).build();
     }
 
-    private static LootInjectorOp probePool(PoolCondition poolCondition) {
-        return new LootInjectorOp.ModifyEntry(poolCondition, new EntryCondition.Any(), List.of(), List.of(), -1, -1);
+    /** 空 ops 的条目作用域：只求值选择器，不改动表。 */
+    private static TableOperator probeEntry(EntryCondition entryCondition) {
+        return new TableOperator.ModifyPool(new PoolCondition.Any(),
+                List.of(new PoolOperator.ModifyEntry(entryCondition, List.of())));
+    }
+
+    /** 空 ops 的池作用域：只求值池选择器。 */
+    private static TableOperator probePool(PoolCondition poolCondition) {
+        return new TableOperator.ModifyPool(poolCondition, List.of());
     }
 }

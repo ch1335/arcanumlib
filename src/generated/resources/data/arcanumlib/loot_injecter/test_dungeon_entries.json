@@ -43,6 +43,80 @@
         "name": "arcanumlib_test_alt",
         "rolls": 1.0
       }
+    },
+    {
+      "type": "arcanumlib:add_pool",
+      "pool": {
+        "bonus_rolls": 0.0,
+        "entries": [
+          {
+            "type": "minecraft:item",
+            "name": "minecraft:iron_ingot"
+          },
+          {
+            "type": "minecraft:item",
+            "name": "minecraft:gold_ingot",
+            "weight": 3
+          }
+        ],
+        "name": "arcanumlib_test_share",
+        "rolls": 1.0
+      }
+    },
+    {
+      "type": "arcanumlib:add_pool",
+      "pool": {
+        "bonus_rolls": 0.0,
+        "entries": [
+          {
+            "type": "minecraft:item",
+            "conditions": [
+              {
+                "chance": 0.0,
+                "condition": "minecraft:random_chance"
+              }
+            ],
+            "functions": [
+              {
+                "add": false,
+                "count": 3.0,
+                "function": "minecraft:set_count"
+              }
+            ],
+            "name": "minecraft:emerald"
+          }
+        ],
+        "name": "arcanumlib_test_remove",
+        "rolls": 1.0
+      }
+    },
+    {
+      "type": "arcanumlib:add_pool",
+      "pool": {
+        "bonus_rolls": 0.0,
+        "entries": [
+          {
+            "type": "minecraft:item",
+            "name": "minecraft:amethyst_shard"
+          }
+        ],
+        "name": "arcanumlib_test_poolfunc",
+        "rolls": 1.0
+      }
+    },
+    {
+      "type": "arcanumlib:add_pool",
+      "pool": {
+        "bonus_rolls": 0.0,
+        "entries": [
+          {
+            "type": "minecraft:item",
+            "name": "minecraft:quartz"
+          }
+        ],
+        "name": "arcanumlib_test_setfunc",
+        "rolls": 1.0
+      }
     }
   ],
   "priority": 950,

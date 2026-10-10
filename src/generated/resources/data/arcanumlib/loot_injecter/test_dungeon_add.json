@@ -15,11 +15,16 @@
       }
     },
     {
-      "type": "arcanumlib:add_entry",
-      "entry": {
-        "type": "minecraft:item",
-        "name": "minecraft:iron_ingot"
-      },
+      "type": "arcanumlib:modify_pool",
+      "ops": [
+        {
+          "type": "arcanumlib:add_entry",
+          "entry": {
+            "type": "minecraft:item",
+            "name": "minecraft:iron_ingot"
+          }
+        }
+      ],
       "poolCondition": {
         "type": "arcanumlib:index",
         "index": 0

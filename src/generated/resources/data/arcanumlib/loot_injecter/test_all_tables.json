@@ -1,11 +1,21 @@
 {
   "ops": [
     {
-      "type": "arcanumlib:remove_entry",
-      "entryCondition": {
-        "type": "arcanumlib:item",
-        "item": "minecraft:dragon_egg"
-      }
+      "type": "arcanumlib:modify_pool",
+      "ops": [
+        {
+          "type": "arcanumlib:modify_entry",
+          "entryCondition": {
+            "type": "arcanumlib:item",
+            "item": "minecraft:dragon_egg"
+          },
+          "ops": [
+            {
+              "type": "arcanumlib:remove_entry"
+            }
+          ]
+        }
+      ]
     }
   ],
   "priority": 1500
