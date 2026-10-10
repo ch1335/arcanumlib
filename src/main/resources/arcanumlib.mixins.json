@@ -1,0 +1,18 @@
+{
+  "required": true,
+  "minVersion": "0.8.5",
+  "package": "com.chen1335.arcanumlib.mixins",
+  "compatibilityLevel": "JAVA_21",
+  "mixins": [
+    "MixinMinecraftServer",
+    "IntrusiveBaseWeightAccessor",
+    "ApplyBonusCountMixin",
+    "BonusLevelTableConditionMixin",
+    "EnchantedCountIncreaseFunctionMixin",
+    "LootItemRandomChanceWithEnchantedBonusConditionMixin"
+  ],
+  "client": [],
+  "injectors": {
+    "defaultRequire": 1
+  }
+}

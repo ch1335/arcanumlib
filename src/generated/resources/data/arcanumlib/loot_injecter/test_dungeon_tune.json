@@ -1,0 +1,49 @@
+{
+  "ops": [
+    {
+      "type": "arcanumlib:modify_entry",
+      "add_conditions": [
+        {
+          "chance": 0.5,
+          "condition": "minecraft:random_chance"
+        }
+      ],
+      "add_functions": [
+        {
+          "add": false,
+          "count": 2.0,
+          "function": "minecraft:set_count"
+        }
+      ],
+      "poolCondition": {
+        "type": "arcanumlib:name",
+        "name": "arcanumlib_test_pool"
+      },
+      "set_quality": 1,
+      "set_weight": 20
+    },
+    {
+      "type": "arcanumlib:remove_entry",
+      "entryCondition": {
+        "type": "arcanumlib:item",
+        "item": "minecraft:saddle"
+      },
+      "poolCondition": {
+        "type": "arcanumlib:index",
+        "index": 0
+      }
+    },
+    {
+      "type": "arcanumlib:remove_entry",
+      "entryCondition": {
+        "type": "arcanumlib:item",
+        "item": "minecraft:gunpowder"
+      }
+    }
+  ],
+  "priority": 1100,
+  "tableCondition": {
+    "type": "arcanumlib:id",
+    "id": "minecraft:chests/simple_dungeon"
+  }
+}

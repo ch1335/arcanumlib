@@ -1,0 +1,32 @@
+{
+  "ops": [
+    {
+      "type": "arcanumlib:custom",
+      "custom_id": "test_custom_op"
+    },
+    {
+      "type": "arcanumlib:add_entry",
+      "entry": {
+        "type": "minecraft:item",
+        "name": "minecraft:diamond"
+      },
+      "poolCondition": {
+        "type": "arcanumlib:custom",
+        "custom_id": "test_pool"
+      }
+    },
+    {
+      "type": "arcanumlib:modify_entry",
+      "entryCondition": {
+        "type": "arcanumlib:custom",
+        "custom_id": "test_entry"
+      },
+      "set_quality": 1,
+      "set_weight": 10
+    }
+  ],
+  "tableCondition": {
+    "type": "arcanumlib:custom",
+    "custom_id": "test_table"
+  }
+}

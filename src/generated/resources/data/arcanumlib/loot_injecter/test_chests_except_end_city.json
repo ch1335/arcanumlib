@@ -1,0 +1,48 @@
+{
+  "ops": [
+    {
+      "type": "arcanumlib:add_pool",
+      "pool": {
+        "bonus_rolls": 0.0,
+        "entries": [
+          {
+            "type": "arcanumlib:all_of",
+            "children": [
+              {
+                "type": "minecraft:item",
+                "conditions": [
+                  {
+                    "base_chance": 0.05,
+                    "condition": "arcanumlib:chance_modifiers"
+                  }
+                ],
+                "name": "minecraft:emerald"
+              }
+            ]
+          }
+        ],
+        "rolls": 1.0
+      }
+    }
+  ],
+  "tableCondition": {
+    "type": "arcanumlib:all_of",
+    "conditions": [
+      {
+        "type": "arcanumlib:namespace",
+        "namespace": "minecraft"
+      },
+      {
+        "type": "arcanumlib:path_prefix",
+        "prefix": "chests/"
+      },
+      {
+        "type": "arcanumlib:not",
+        "condition": {
+          "type": "arcanumlib:id",
+          "id": "minecraft:chests/end_city_treasure"
+        }
+      }
+    ]
+  }
+}

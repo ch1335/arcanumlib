@@ -1,0 +1,125 @@
+package com.chen1335.arcanumlib.modules.attribute;
+
+import com.chen1335.arcanumlib.ArcanumLib;
+import com.chen1335.arcanumlib.mixins.IntrusiveBaseWeightAccessor;
+import net.minecraft.core.BlockPos;
+import net.minecraft.server.level.ServerLevel;
+import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.util.random.Weight;
+import net.minecraft.world.entity.ai.attributes.AttributeInstance;
+import net.minecraft.world.level.biome.MobSpawnSettings;
+import net.neoforged.bus.api.SubscribeEvent;
+import net.neoforged.fml.common.EventBusSubscriber;
+import net.neoforged.neoforge.event.level.LevelEvent;
+import net.neoforged.neoforge.event.server.ServerStoppedEvent;
+
+import java.util.IdentityHashMap;
+import java.util.List;
+import java.util.Map;
+
+/**
+ * 寻觅：按范围内最高的寻觅值提高「稀有」生物的刷怪权重。
+ *
+ * <p>做法是往表里【追加】一条额外权重的同类型条目，而不是替换原条目——原实例始终留在表里，
+ * 所以「抽到原实例」这条路径在任何坐标都能过 {@code canSpawnMobAt} 的 contains 校验；
+ * 追加项按原实例缓存、引用永不改变，只在权重变化时原地改它，于是「抽到追加项」也能靠 identity 过。
+ */
+@EventBusSubscriber(modid = ArcanumLib.MODID)
+public class SpawnEvents {
+
+    /** 与 {@code NaturalSpawner.SPAWN_DISTANCE_BLOCK} 一致：刷怪只发生在玩家 128 格内。 */
+    public static final double SEEKING_RADIUS = 128.0D;
+
+    /** 原实例 → 追加项。引用必须稳定，换实例 contains 校验就过不了。 */
+    private static final Map<MobSpawnSettings.SpawnerData, MobSpawnSettings.SpawnerData> EXTRA_ENTRIES =
+            new IdentityHashMap<>();
+
+    @SubscribeEvent
+    public static void onPotentialSpawns(LevelEvent.PotentialSpawns event) {
+        if (!(event.getLevel() instanceof ServerLevel level)) {
+            return;
+        }
+
+        List<MobSpawnSettings.SpawnerData> list = event.getSpawnerDataList();
+        if (list.isEmpty() || AttributeConfig.threshold() <= 0.0D) {
+            return;
+        }
+
+        double seeking = seeking(level, event.getPos());
+        if (seeking <= 0.0D) {
+            return;
+        }
+
+        // 阈值必须用【原始】总权重算：事件拿到的是群系原表的副本，边改边算会让占比漂移
+        int total = 0;
+        for (MobSpawnSettings.SpawnerData data : list) {
+            total += effectiveWeight(data);
+        }
+        if (total <= 0) {
+            return;
+        }
+
+        for (MobSpawnSettings.SpawnerData data : List.copyOf(list)) {
+            // 稀有判定按「权重 × 平均数量」：只刷 1 只的怪不该和一次刷 4 只的一样常见
+            if (!isRare(effectiveWeight(data), total)) {
+                continue;
+            }
+
+            int extra = (int) Math.round(data.getWeight().asInt() * seeking);
+            if (extra <= 0) {
+                continue;
+            }
+
+            MobSpawnSettings.SpawnerData boosted = EXTRA_ENTRIES.computeIfAbsent(data,
+                    key -> new MobSpawnSettings.SpawnerData(key.type, extra, key.minCount, key.maxCount));
+
+            // 只在真变化时才写：Weight.of 除 1 以外每次都要 new
+            if (boosted.getWeight().asInt() != extra) {
+                ((IntrusiveBaseWeightAccessor) boosted).arcanumlib$setWeight(Weight.of(extra));
+            }
+
+            event.addSpawnerData(boosted);
+        }
+    }
+
+    /** 生物实例随世界加载变化，服停时清一次，免得跨存档留着旧引用。 */
+    @SubscribeEvent
+    public static void onServerStopped(ServerStoppedEvent event) {
+        EXTRA_ENTRIES.clear();
+    }
+
+    /** 取范围内所有玩家的寻觅值里最高的那个：刷怪没有「贡献者」概念，只能按最强值算。 */
+    private static double seeking(ServerLevel level, BlockPos pos) {
+        double radiusSqr = SEEKING_RADIUS * SEEKING_RADIUS;
+        double best = 0.0D;
+
+        for (ServerPlayer player : level.players()) {
+            if (player.distanceToSqr(pos.getX() + 0.5D, pos.getY() + 0.5D, pos.getZ() + 0.5D) > radiusSqr) {
+                continue;
+            }
+
+            // 走 getInstance 而不是 getAttributeValue：后者对没挂上的属性会抛异常，不该在刷怪循环里赌这个
+            AttributeInstance instance = player.getAttributes().getInstance(ArcanumAttributes.SEEKING);
+            if (instance != null) {
+                best = Math.max(best, instance.getValue());
+            }
+        }
+
+        return best;
+    }
+
+    /** 有效权重 = 权重 × 平均每次刷新的数量，向上取整；用整数算避免浮点误差多进一位。 */
+    private static int effectiveWeight(MobSpawnSettings.SpawnerData data) {
+        int weight = Math.max(data.getWeight().asInt(), 0);
+        int sum = data.minCount + data.maxCount;
+
+        return (weight * sum + 1) / 2;
+    }
+
+    /** 该生物的有效权重占整张表的比例是否低于阈值。 */
+    private static boolean isRare(int weight, int total) {
+        double threshold = AttributeConfig.threshold();
+
+        return threshold > 0.0D && total > 0 && (double) Math.max(weight, 0) / total < threshold;
+    }
+}

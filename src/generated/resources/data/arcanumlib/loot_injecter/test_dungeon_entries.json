@@ -1,0 +1,53 @@
+{
+  "ops": [
+    {
+      "type": "arcanumlib:add_pool",
+      "pool": {
+        "bonus_rolls": 0.0,
+        "entries": [
+          {
+            "type": "minecraft:tag",
+            "conditions": [
+              {
+                "chance": 1.0,
+                "condition": "minecraft:random_chance"
+              }
+            ],
+            "expand": false,
+            "name": "minecraft:coals"
+          }
+        ],
+        "name": "arcanumlib_test_tag",
+        "rolls": 1.0
+      }
+    },
+    {
+      "type": "arcanumlib:add_pool",
+      "pool": {
+        "bonus_rolls": 0.0,
+        "entries": [
+          {
+            "type": "minecraft:alternatives",
+            "children": [
+              {
+                "type": "minecraft:item",
+                "name": "minecraft:iron_ingot"
+              },
+              {
+                "type": "minecraft:item",
+                "name": "minecraft:copper_ingot"
+              }
+            ]
+          }
+        ],
+        "name": "arcanumlib_test_alt",
+        "rolls": 1.0
+      }
+    }
+  ],
+  "priority": 950,
+  "tableCondition": {
+    "type": "arcanumlib:id",
+    "id": "minecraft:chests/simple_dungeon"
+  }
+}
