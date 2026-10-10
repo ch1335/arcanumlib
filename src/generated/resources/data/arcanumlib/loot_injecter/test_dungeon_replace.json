@@ -1,0 +1,31 @@
+{
+  "ops": [
+    {
+      "type": "arcanumlib:replace",
+      "entry": {
+        "type": "minecraft:item",
+        "functions": [
+          {
+            "count": {
+              "type": "minecraft:uniform",
+              "max": 1.0,
+              "min": 0.0
+            },
+            "enchantment": "minecraft:looting",
+            "function": "minecraft:enchanted_count_increase"
+          }
+        ],
+        "name": "minecraft:leather"
+      },
+      "entryCondition": {
+        "type": "arcanumlib:item",
+        "item": "minecraft:string"
+      }
+    }
+  ],
+  "priority": 1050,
+  "tableCondition": {
+    "type": "arcanumlib:id",
+    "id": "minecraft:chests/simple_dungeon"
+  }
+}

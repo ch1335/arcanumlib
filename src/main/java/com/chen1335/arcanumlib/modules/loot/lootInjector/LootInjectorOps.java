@@ -36,6 +36,8 @@ public final class LootInjectorOps {
             OP_TYPES.register("remove_entry", () -> new LootInjectorOpType(LootInjectorOp.RemoveEntry.CODEC));
     public static final DeferredHolder<LootInjectorOpType, LootInjectorOpType> MODIFY_ENTRY =
             OP_TYPES.register("modify_entry", () -> new LootInjectorOpType(LootInjectorOp.ModifyEntry.CODEC));
+    public static final DeferredHolder<LootInjectorOpType, LootInjectorOpType> REPLACE_ENTRY =
+            OP_TYPES.register("replace", () -> new LootInjectorOpType(LootInjectorOp.ReplaceEntry.CODEC));
     /** 只带一个 id，实际改动交给 CustomInjectorOpEvent 的监听者。 */
     public static final DeferredHolder<LootInjectorOpType, LootInjectorOpType> CUSTOM_OP =
             OP_TYPES.register("custom", () -> new LootInjectorOpType(LootInjectorOp.Custom.CODEC));
@@ -124,6 +126,8 @@ public final class LootInjectorOps {
             ENTRY_CONDITION_TYPES.register("item", () -> new EntryConditionType(EntryCondition.IsItem.CODEC));
     public static final DeferredHolder<EntryConditionType, EntryConditionType> ENTRY_IS_TAG =
             ENTRY_CONDITION_TYPES.register("tag", () -> new EntryConditionType(EntryCondition.IsTag.CODEC));
+    public static final DeferredHolder<EntryConditionType, EntryConditionType> ENTRY_IS_ITEM_WITH_TAG =
+            ENTRY_CONDITION_TYPES.register("item_with_tag", () -> new EntryConditionType(EntryCondition.IsItemWithTag.CODEC));
     public static final DeferredHolder<EntryConditionType, EntryConditionType> ENTRY_IS_TYPE =
             ENTRY_CONDITION_TYPES.register("entry_type", () -> new EntryConditionType(EntryCondition.IsType.CODEC));
     public static final DeferredHolder<EntryConditionType, EntryConditionType> ENTRY_WEIGHT_AT_LEAST =

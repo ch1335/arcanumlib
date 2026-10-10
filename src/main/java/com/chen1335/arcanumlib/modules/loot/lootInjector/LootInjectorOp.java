@@ -3,10 +3,14 @@ package com.chen1335.arcanumlib.modules.loot.lootInjector;
 import com.chen1335.arcanumlib.modules.loot.lootInjector.condition.EntryCondition;
 import com.chen1335.arcanumlib.modules.loot.lootInjector.condition.PoolCondition;
 import com.chen1335.arcanumlib.modules.loot.lootInjector.event.CustomInjectorOpEvent;
+import com.google.gson.JsonElement;
 import com.mojang.serialization.Codec;
+import com.mojang.serialization.JsonOps;
 import com.mojang.serialization.MapCodec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
 import net.minecraft.Util;
+import net.minecraft.core.HolderLookup;
+import net.minecraft.resources.RegistryOps;
 import net.minecraft.world.level.storage.loot.LootPool;
 import net.minecraft.world.level.storage.loot.LootTable;
 import net.minecraft.world.level.storage.loot.entries.LootPoolEntries;
@@ -31,7 +35,7 @@ public interface LootInjectorOp {
 
     LootInjectorOpType getType();
 
-    void apply(LootTable table);
+    void apply(LootTable table, HolderLookup.Provider registries);
 
     /** 新增一个池，追加在最后。 */
     record AddPool(LootPool pool) implements LootInjectorOp {
@@ -42,7 +46,7 @@ public interface LootInjectorOp {
         public static final MapCodec<AddPool> CODEC = RecordCodecBuilder.mapCodec(instance -> instance.group(
                 LootPool.CODEC.fieldOf("pool").forGetter(AddPool::pool)).apply(instance, AddPool::new));
         @Override
-        public void apply(LootTable table) {
+        public void apply(LootTable table, HolderLookup.Provider registries) {
             table.pools.add(this.pool);
         }
     }
@@ -57,7 +61,7 @@ public interface LootInjectorOp {
                 PoolCondition.CODEC.optionalFieldOf("poolCondition", new PoolCondition.Any())
                         .forGetter(RemovePool::poolCondition)).apply(instance, RemovePool::new));
         @Override
-        public void apply(LootTable table) {
+        public void apply(LootTable table, HolderLookup.Provider registries) {
             for (int i = table.pools.size() - 1; i >= 0; i--) {
                 if (this.poolCondition.test(i, table.pools.get(i))) {
                     table.pools.remove(i);
@@ -78,7 +82,7 @@ public interface LootInjectorOp {
                 LootPoolEntries.CODEC.fieldOf("entry").forGetter(AddEntry::entry))
                 .apply(instance, AddEntry::new));
         @Override
-        public void apply(LootTable table) {
+        public void apply(LootTable table, HolderLookup.Provider registries) {
             // 用下标循环：indexOf 是 O(n²)，而且同一个池实例出现两次时会拿错下标
             for (int p = 0; p < table.pools.size(); p++) {
                 LootPool pool = table.pools.get(p);
@@ -102,7 +106,7 @@ public interface LootInjectorOp {
                         .forGetter(RemoveEntry::entryCondition))
                 .apply(instance, RemoveEntry::new));
         @Override
-        public void apply(LootTable table) {
+        public void apply(LootTable table, HolderLookup.Provider registries) {
             for (int p = 0; p < table.pools.size(); p++) {
                 LootPool pool = table.pools.get(p);
                 if (!this.poolCondition.test(p, pool)) {
@@ -143,7 +147,7 @@ public interface LootInjectorOp {
                 Codec.INT.optionalFieldOf("set_quality", -1).forGetter(ModifyEntry::setQuality)
         ).apply(instance, ModifyEntry::new));
         @Override
-        public void apply(LootTable table) {
+        public void apply(LootTable table, HolderLookup.Provider registries) {
             for (int p = 0; p < table.pools.size(); p++) {
                 LootPool pool = table.pools.get(p);
                 if (!this.poolCondition.test(p, pool)) {
@@ -198,6 +202,49 @@ public interface LootInjectorOp {
 
         return pool.entries;
     }
+
+    /** 把所有命中的条目【就地】换成新条目。 */
+    record ReplaceEntry(PoolCondition poolCondition, EntryCondition entryCondition,
+                        LootPoolEntryContainer entry) implements LootInjectorOp {
+        @Override
+        public LootInjectorOpType getType() {
+            return LootInjectorOps.REPLACE_ENTRY.get();
+        }
+        public static final MapCodec<ReplaceEntry> CODEC = RecordCodecBuilder.mapCodec(instance -> instance.group(
+                PoolCondition.CODEC.optionalFieldOf("poolCondition", new PoolCondition.Any())
+                        .forGetter(ReplaceEntry::poolCondition),
+                EntryCondition.CODEC.optionalFieldOf("entryCondition", new EntryCondition.Any())
+                        .forGetter(ReplaceEntry::entryCondition),
+                LootPoolEntries.CODEC.fieldOf("entry").forGetter(ReplaceEntry::entry))
+                .apply(instance, ReplaceEntry::new));
+        @Override
+        public void apply(LootTable table, HolderLookup.Provider registries) {
+            // 每处都解出一份独立实例：直接复用同一个对象的话，后续 ModifyEntry 改权重/条件会一起改到所有位置。
+            // 必须用 RegistryOps——条目里可能有附魔这类数据包注册表引用，JsonOps 会直接报 "Can't access registry"。
+            RegistryOps<JsonElement> ops = RegistryOps.create(JsonOps.INSTANCE, registries);
+
+            for (int p = 0; p < table.pools.size(); p++) {
+                LootPool pool = table.pools.get(p);
+                if (!this.poolCondition.test(p, pool)) {
+                    continue;
+                }
+
+                // 就地 set 而不是先删后加：保位置（下标会被后面的条件读到），也保证每个原条目只判一次
+                List<LootPoolEntryContainer> entries = mutableEntries(pool);
+                for (int i = 0; i < entries.size(); i++) {
+                    if (this.entryCondition.test(i, entries.get(i))) {
+                        entries.set(i, copy(ops));
+                    }
+                }
+            }
+        }
+
+        /** 走一次 codec 往返拿新实例；encode 与 decode 用同一套 RegistryOps。 */
+        private LootPoolEntryContainer copy(RegistryOps<JsonElement> ops) {
+            JsonElement json = LootPoolEntries.CODEC.encodeStart(ops, this.entry).getOrThrow();
+            return LootPoolEntries.CODEC.parse(ops, json).getOrThrow();
+        }
+    }
     /** 自定义操作：json 里只给一个 id，具体怎么改表交给监听 CustomInjectorOpEvent 的代码。 */
     record Custom(String id) implements LootInjectorOp {
         public static final MapCodec<Custom> CODEC = RecordCodecBuilder.mapCodec(instance -> instance.group(
@@ -209,7 +256,7 @@ public interface LootInjectorOp {
         }
 
         @Override
-        public void apply(LootTable table) {
+        public void apply(LootTable table, HolderLookup.Provider registries) {
             CustomInjectorOpEvent.post(this.id, table);
         }
     }

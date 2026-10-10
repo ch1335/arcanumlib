@@ -52,6 +52,9 @@ public final class LootInjectorApplier {
             return;
         }
 
+        // op 可能要读注册表（ReplaceEntry 靠 codec 往返造新实例），一次性取好传下去
+        HolderLookup.Provider registries = server.registryAccess();
+
         long start = System.nanoTime();
         int tables = 0;
         int applications = 0;
@@ -74,7 +77,7 @@ public final class LootInjectorApplier {
                     continue;
                 }
 
-                effective.get().ops().forEach(op -> op.apply(table));
+                effective.get().ops().forEach(op -> op.apply(table, registries));
                 applications++;
             }
         }

@@ -91,6 +91,26 @@ public interface EntryCondition {
         }
     }
 
+    /**
+     * 匹配"物品本身属于某个标签"的物品条目。
+     *
+     * <p>和 {@link IsTag} 的区别：那个匹配的是 {@code minecraft:tag} 条目、比的是标签本身；
+     * 这个匹配写死具体物品的 {@code minecraft:item} 条目，按标签判断它的物品是否被收录。
+     */
+    record IsItemWithTag(TagKey<Item> tag) implements EntryCondition {
+        @Override
+        public EntryConditionType getType() {
+            return LootInjectorOps.ENTRY_IS_ITEM_WITH_TAG.get();
+        }
+        public static final MapCodec<IsItemWithTag> CODEC = RecordCodecBuilder.mapCodec(instance -> instance.group(
+                TagKey.codec(Registries.ITEM).fieldOf("tag").forGetter(IsItemWithTag::tag))
+                .apply(instance, IsItemWithTag::new));
+        @Override
+        public boolean test(int index, LootPoolEntryContainer entry) {
+            return entry instanceof LootItem lootItem && lootItem.item.is(this.tag);
+        }
+    }
+
     /** 按条目类型匹配，例如 {@code minecraft:item}、{@code minecraft:alternatives}。 */
     record IsType(ResourceLocation entryType) implements EntryCondition {
         @Override

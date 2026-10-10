@@ -79,7 +79,7 @@ public class TestLootInjectorProvider extends LootInjectorTemplate {
     protected List<LootInjector> injectors(HolderLookup.Provider registries) {
         List<LootInjector> list = new ArrayList<>();
         list.addAll(templateInjectors(registries));
-        list.addAll(opInjectors());
+        list.addAll(opInjectors(registries));
         list.addAll(tableConditionInjectors());
         list.add(selectorProbe());
         list.addAll(customInjectors());
@@ -106,7 +106,7 @@ public class TestLootInjectorProvider extends LootInjectorTemplate {
     }
 
     /** 6 种注入操作 + 剩下 4 种加工器。 */
-    private List<LootInjector> opInjectors() {
+    private List<LootInjector> opInjectors(HolderLookup.Provider registries) {
         List<LootInjector> list = new ArrayList<>();
 
         // set_chance / multiply / invert / add
@@ -156,6 +156,14 @@ public class TestLootInjectorProvider extends LootInjectorTemplate {
                 new LootInjectorOp.RemoveEntry(new PoolCondition.Any(),
                         new EntryCondition.IsItem(mc("gunpowder")))));
 
+        // ReplaceEntry：地牢箱里的线就地换成皮革。新条目特意挂 enchanted_count_increase（引用附魔注册表），
+        // 这样运行时 copy() 必须走 RegistryOps 才能编码得出来——用 JsonOps 会直接报 "Can't access registry"
+        list.add(raw("test_dungeon_replace", new TableCondition.ById(BuiltInLootTables.SIMPLE_DUNGEON.location()), 1050,
+                new LootInjectorOp.ReplaceEntry(new PoolCondition.Any(), new EntryCondition.IsItem(mc("string")),
+                        LootItem.lootTableItem(Items.LEATHER)
+                                .apply(lootingCount(registries))
+                                .build())));
+
         // RemovePool + 方块标签选择器：木头方块不再掉东西，便于肉眼确认
         list.add(raw("test_logs_remove_pool", new TableCondition.BlockTagTable(BlockTags.LOGS), 1200,
                 new LootInjectorOp.RemovePool(new PoolCondition.Any())));
@@ -196,6 +204,8 @@ public class TestLootInjectorProvider extends LootInjectorTemplate {
         ops.add(probe(new EntryCondition.ByIndex(0)));
         ops.add(probe(new EntryCondition.IsItem(mc("golden_apple"))));
         ops.add(probe(new EntryCondition.IsTag(ItemTags.COALS)));
+        // 与上一行成对：地牢表里没有 tag 条目，但有 minecraft:coal 这个物品条目，所以只有这条会命中
+        ops.add(probe(new EntryCondition.IsItemWithTag(ItemTags.COALS)));
         ops.add(probe(new EntryCondition.IsType(mc("item"))));
         ops.add(probe(new EntryCondition.IsType(mc("alternatives"))));
         ops.add(probe(new EntryCondition.WeightAtLeast(10)));

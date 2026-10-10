@@ -27,6 +27,13 @@
     {
       "type": "arcanumlib:modify_entry",
       "entryCondition": {
+        "type": "arcanumlib:item_with_tag",
+        "tag": "minecraft:coals"
+      }
+    },
+    {
+      "type": "arcanumlib:modify_entry",
+      "entryCondition": {
         "type": "arcanumlib:entry_type",
         "entryType": "minecraft:item"
       }
