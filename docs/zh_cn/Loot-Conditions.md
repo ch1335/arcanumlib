@@ -241,6 +241,8 @@ ALI 里每个档位显示成一行（`和平 : ×1.0`），**等于中性值的�
 
 先判断阶段：命中就依次过 `success` 链，否则依次过 `fail` 链；两条链本身都是普通加工器列表。
 
+（什么时候该用它、什么时候该用 AStages 自己的限制系统，见[分工说明](#与-astages-自带限制系统的分工)。）
+
 ```json
 {
   "type": "arcanumlib:stage",
@@ -274,6 +276,15 @@ ALI 里渲染成"作用域行带成功链"加一行「否则」带失败链，**
 #### 4.9 `predicate` — 按谓词二选一
 
 `predicates` 里的条件**全部**通过就依次过 `success` 链，否则依次过 `fail` 链（空列表视为通过，与原版 `all_of` 一致）；两条链都是一串普通加工器。
+
+> 组合逻辑不用额外开关：`predicates` 本身就是 **AND**；要"任一通过"就在列表里放一个原版 `minecraft:any_of`（`test_predicate_modifier.json` 里就有一例）：
+>
+> ```json
+> { "condition": "minecraft:any_of", "terms": [
+>   { "condition": "minecraft:killed_by_player" },
+>   { "condition": "minecraft:weather_check", "raining": true }
+> ] }
+> ```
 
 ```json
 {
@@ -730,3 +741,20 @@ public final class MyModifiers {
 ### 没装 AStages 时
 
 条件**照常注册但恒不通过**（用到它的 json 仍能正常解析加载），首次使用时打一条 warn 日志。
+
+### 与 AStages 自带限制系统的分工
+
+AStages 本体的「限制（restriction）」是**减法**：按阶段**禁止 / 移除**东西（方块、物品、配方、刷怪、掉落……）。
+我们这套是**门控 / 加成**：让某个战利品条目**只在**某阶段出现，或让概率**随阶段变化**。两者互不冲突，可以同时用：
+
+| 你想做的事 | 用哪个 |
+|---|---|
+| 某阶段之前**禁止**某掉落 / 方块 / 配方 | AStages 的限制系统 |
+| 某阶段**才掉**某物（条件门控） | `arcanumlib:has_stage` |
+| 概率**随阶段**放大或衰减 | `arcanumlib:stage` 加工器 |
+| 阶段 + 玩家状态等一堆条件组合 | `arcanumlib:has_stage` 混进 `conditions`，或用 `arcanumlib:predicate` |
+
+两点补充：
+
+1. **先后顺序**：我们的条件 / 加工器在原版战利品表**求值阶段**生效；AStages 的掉落联动是一个**全局战利品修饰器**（`astages:astages_loot_modifier`），在**表产出结果之后**才动手 —— 所以是"先门控、后增删"。
+2. **AStages 本体没有战利品条件**（它的 `LOOT_CONDITION_TYPE` 没注册任何条目）：它的掉落修饰器 json 直接接受原版 `"conditions"` 字段，所以可以把 `arcanumlib:has_stage` 写进它的 `conditions` 里，让那条全局掉落修饰也变成阶段门控的。

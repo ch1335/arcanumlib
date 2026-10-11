@@ -241,6 +241,8 @@ Every 1 point of Luck on the attacker makes the chance ×(1 + 0.01). With `add` 
 
 The stage is checked first: on a match the `success` chain is applied in order, otherwise the `fail` chain is. Both chains are ordinary modifier lists.
 
+(For when to use this versus AStages' own restriction system, see the [division of labour](#division-of-labour-with-astages-own-restriction-system).)
+
 ```json
 {
   "type": "arcanumlib:stage",
@@ -274,6 +276,15 @@ Stage modifier :
 #### 4.9 `predicate` — pick one of two chains by predicates
 
 If **every** condition in `predicates` passes, the `success` chain is applied in order, otherwise the `fail` chain is (an empty list counts as passing, matching vanilla `all_of`); both chains are ordinary modifier lists.
+
+> Combining logic needs no extra switch: `predicates` is **AND** by itself. To get "any of", just put a vanilla `minecraft:any_of` in the list (the test data has such a case):
+>
+> ```json
+> { "condition": "minecraft:any_of", "terms": [
+>   { "condition": "minecraft:killed_by_player" },
+>   { "condition": "minecraft:weather_check", "raining": true }
+> ] }
+> ```
 
 ```json
 {
@@ -730,3 +741,20 @@ The name comes from the `desc` localization key and is shown on the **same line*
 ### Without AStages
 
 The condition is still registered but **never passes** (JSON using it still parses and loads), and a warning is logged the first time it is evaluated.
+
+### Division of labour with AStages'' own restriction system
+
+AStages'' own "restrictions" are **subtractive**: they **deny / remove** things by stage (blocks, items, recipes, spawns, drops...).
+What this mod offers is **gating / scaling**: making a loot entry appear **only** in some stage, or letting the chance **change with the stage**. The two do not conflict and can be used together:
+
+| What you want | Which one to use |
+|---|---|
+| **Deny** a drop / block / recipe before some stage | AStages'' restriction system |
+| A drop that appears **only** in some stage (gating) | `arcanumlib:has_stage` |
+| A chance that **grows or shrinks with the stage** | the `arcanumlib:stage` modifier |
+| A combination of the stage with player state and more | put `arcanumlib:has_stage` into `conditions`, or use `arcanumlib:predicate` |
+
+Two notes:
+
+1. **Ordering**: our conditions / modifiers take effect while the vanilla loot table is **being evaluated**; AStages'' loot integration is a **global loot modifier** (`astages:astages_loot_modifier`) that acts **after** the table has produced its result - so it is "gate first, add or remove afterwards".
+2. **AStages itself has no loot condition** (its `LOOT_CONDITION_TYPE` registers nothing): its loot modifier json accepts vanilla `"conditions"` directly, so you can put `arcanumlib:has_stage` into its `conditions` and turn that global modifier into a stage-gated one.

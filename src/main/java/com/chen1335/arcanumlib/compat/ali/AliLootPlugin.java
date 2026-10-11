@@ -160,6 +160,12 @@ public class AliLootPlugin implements IPlugin {
                     } else if (!content.isBlank(true)) {
                         // ALI 把条件细节归入「高级战利品信息」（分隔键就叫 advanced_loot_info.delimiter.conditions），
                         // 基本模式下整段为空。这里退回自己列一遍注册名，至少让"有哪些谓词"看得见。
+                        //
+                        // 试过改用 ALI 的 RegistriesTooltipUtils.getConditionTypeTooltip 拿"友好名"，是死路：
+                        // 它最终走 ACI 的 RegistryNames.resolve，而 RegistryNames 只给 ITEM / BLOCK /
+                        // ENTITY_TYPE / MOB_EFFECT / ATTRIBUTE / POTION 注册了解析器，没有 LOOT_CONDITION_TYPE，
+                        // 会退化成 Component.literal(原样 id)。原版也没给条件类型任何 descriptionId，
+                        // 所以"条件的本地化名"本身不存在——想要友好名只能让用户开高级物品提示（F3+H）。
                         TooltipBuilder section = TooltipBuilder.branch(predicates -> it.predicates()
                                 .forEach(predicate -> predicates.add(TooltipBuilder.value(predicateId(predicate)).build())));
                         branch.add(section.build(key("property.predicates")));
