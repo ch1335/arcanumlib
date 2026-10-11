@@ -1,4 +1,4 @@
-// 1.21.1	2026-10-11T18:31:56.7835817	ArcanumLib Test Loot Injectors
+// 1.21.1	2026-10-11T22:43:07.9546502	ArcanumLib Test Loot Injectors
 c88df361a5cafaee0cdc0939e49bab103db8a9a2 data/arcanumlib/loot_injecter/test_all_tables.json
 93fa65ce25b487e1986d1f10e62dc884dd382ed3 data/arcanumlib/loot_injecter/test_apply_event.json
 19eebdeb7d6319cad53ce169881eea46f1ddbd9a data/arcanumlib/loot_injecter/test_block_type.json
@@ -19,6 +19,7 @@ b6be8fc0d0778eb759528b1b6058ac180897d99a data/arcanumlib/loot_injecter/test_dung
 109ebec070be6215fd12515670d97f6ff84eda70 data/arcanumlib/loot_injecter/test_match_selector.json
 4b02c04e2c978d87334a08d8bf26f6d87249c9af data/arcanumlib/loot_injecter/test_pool_functions.json
 b3740b3db6675441c3d8a3e8995552beb5ecaddc data/arcanumlib/loot_injecter/test_pool_set_function.json
+f62a0c38fd13a6f7aa323d05d3787b8854b53fb6 data/arcanumlib/loot_injecter/test_predicate_modifier.json
 e01a69a7b7a9f3fd829c81482963afd3b68d9bbf data/arcanumlib/loot_injecter/test_selector_probes.json
 db75e0331b95d0d138c1b06ac234d40968dd3b18 data/arcanumlib/loot_injecter/test_stage_modifier.json
 b7b2aa1cf0538fcb2c8f3b590cfcb7aa11141f7e data/arcanumlib/loot_injecter/test_table_functions.json

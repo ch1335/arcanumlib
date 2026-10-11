@@ -18,7 +18,9 @@ import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.enchantment.Enchantment;
 import net.minecraft.world.level.storage.loot.LootContext;
 import net.minecraft.world.level.storage.loot.parameters.LootContextParams;
+import net.minecraft.world.level.storage.loot.predicates.LootItemCondition;
 
+import java.util.List;
 import java.util.Optional;
 import java.util.function.Function;
 
@@ -292,6 +294,40 @@ public interface ChanceModifier {
         }
     }
 
+    /**
+     * 谓词修正：谓词列表**全部**通过就走 {@code success} 链，否则走 {@code fail} 链；两条链各自是一串普通加工器。
+     * 空谓词列表视为通过（与原版 {@code all_of} 的空列表语义一致）。
+     */
+    record Predicate(List<LootItemCondition> predicates, List<ChanceModifier> success, List<ChanceModifier> fail)
+            implements ChanceModifier {
+
+        public static final MapCodec<Predicate> CODEC = RecordCodecBuilder.mapCodec(instance -> instance.group(
+                LootItemCondition.DIRECT_CODEC.listOf().fieldOf("predicates").forGetter(Predicate::predicates),
+                ChanceModifier.CODEC.listOf().optionalFieldOf("success", List.<ChanceModifier>of())
+                        .forGetter(Predicate::success),
+                ChanceModifier.CODEC.listOf().optionalFieldOf("fail", List.<ChanceModifier>of())
+                        .forGetter(Predicate::fail)
+        ).apply(instance, Predicate::new));
+
+        @Override
+        public ChanceModifierType getType() {
+            return ChanceModifierTypes.PREDICATE.get();
+        }
+
+        @Override
+        public double apply(double chance, LootContext context) {
+            List<ChanceModifier> chain = this.predicates.stream().allMatch(predicate -> predicate.test(context))
+                    ? this.success
+                    : this.fail;
+            double result = chance;
+
+            for (ChanceModifier modifier : chain) {
+                result = modifier.apply(result, context);
+            }
+
+            return result;
+        }
+    }
     /** 难度档位的加工语义。 */
     enum Operation implements StringRepresentable {
         /** 概率 + 档位值。 */

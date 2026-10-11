@@ -41,6 +41,9 @@ public final class ChanceModifierTypes {
     public static final DeferredHolder<ChanceModifierType, ChanceModifierType> STAGE =
             TYPES.register("stage", () -> new ChanceModifierType(StageChanceModifier.CODEC));
 
+    /** 谓词修正：谓词列表全通过走 success 链，否则走 fail 链。 */
+    public static final DeferredHolder<ChanceModifierType, ChanceModifierType> PREDICATE =
+            TYPES.register("predicate", () -> new ChanceModifierType(ChanceModifier.Predicate.CODEC));
     private ChanceModifierTypes() {
     }
 }

@@ -18,10 +18,12 @@ import com.yanny.ali.api.IServerRegistry;
 import com.yanny.ali.api.IServerUtils;
 import com.yanny.ali.plugin.common.nodes.GroupNode;
 import com.yanny.ali.plugin.server.TooltipUtils;
+import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.item.enchantment.Enchantment;
 import net.minecraft.world.level.storage.loot.entries.LootPoolEntryContainer;
+import net.minecraft.world.level.storage.loot.predicates.LootItemCondition;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -74,7 +76,7 @@ public class AliLootPlugin implements IPlugin {
             root.add(leaf("property.base_chance", number(condition.baseChance())));
 
             for (ChanceModifier modifier : condition.modifiers()) {
-                root.add(describe(modifier));
+                root.add(describe(utils, modifier));
             }
         }).key(ROOT);
     }
@@ -105,7 +107,7 @@ public class AliLootPlugin implements IPlugin {
     }
 
     /** 本模组的八个加工器在这里逐个渲染；别的模组注册的走 default，只显示类型 id。 */
-    private static TooltipNode describe(ChanceModifier modifier) {
+    private static TooltipNode describe(IServerUtils utils, ChanceModifier modifier) {
         return switch (modifier) {
             case ChanceModifier.SetChance it -> leaf("property.set_chance", number(it.value()));
             // 加/乘合并后压成一行：「应用 : x N」/「应用 : + N」（负值直接 -N）
@@ -132,22 +134,61 @@ public class AliLootPlugin implements IPlugin {
             // 阶段加工器：作用域行带成功链、「否则」行带失败链；某条链为空就整行不显示
             case StageChanceModifier it -> TooltipBuilder.branch(branch -> {
                 TooltipBuilder scope = TooltipBuilder.value(stageName(it));
-                it.success().forEach(child -> scope.add(describe(child)));
+                it.success().forEach(child -> scope.add(describe(utils, child)));
                 branch.add(scope.build(key(it.checkServerStages()
                         ? "property.stage_scope.server"
                         : "property.stage_scope.player")));
 
                 if (!it.fail().isEmpty()) {
                     branch.add(TooltipBuilder.branch(otherwise -> it.fail()
-                                    .forEach(child -> otherwise.add(describe(child))))
-                            .build(key("property.stage_otherwise")));
+                                    .forEach(child -> otherwise.add(describe(utils, child))))
+                            .build(key("property.otherwise")));
                 }
             }).build(key("property.stage_modifier"));
+            // 谓词修正：谓词逐个列出（走 ALI 自己的条件渲染），全通过走成功链、否则走失败链；空块不显示
+            case ChanceModifier.Predicate it -> TooltipBuilder.branch(branch -> {
+
+                if (!it.predicates().isEmpty()) {
+                    // 条件列表交给 ALI 自己的值渲染（与它渲染 all_of、以及 loot 表里的条件段同一条路径）
+                    TooltipNode content = utils.getValueTooltip(utils, it.predicates()).build();
+
+                    if (!content.isBlank(false)) {
+                        // 基本模式就能显示 → 用 ALI 的渲染。注意别照搬它的 array(标题 + 内容)：
+                        // array 是无键节点，childIndent 不 +1，标题会和谓词平级；
+                        // 这里把标题当父节点，谓词缩进一层，与上面"满足条件时 / 否则"同一种风格。
+                        branch.add(TooltipBuilder.keyOnly(key("property.predicates")).add(content));
+                    } else if (!content.isBlank(true)) {
+                        // ALI 把条件细节归入「高级战利品信息」（分隔键就叫 advanced_loot_info.delimiter.conditions），
+                        // 基本模式下整段为空。这里退回自己列一遍注册名，至少让"有哪些谓词"看得见。
+                        TooltipBuilder section = TooltipBuilder.branch(predicates -> it.predicates()
+                                .forEach(predicate -> predicates.add(TooltipBuilder.value(predicateId(predicate)).build())));
+                        branch.add(section.build(key("property.predicates")));
+                    }
+                }
+
+                if (!it.success().isEmpty()) {
+                    branch.add(TooltipBuilder.branch(matched -> it.success()
+                                    .forEach(child -> matched.add(describe(utils, child))))
+                            .build(key("property.when_matched")));
+                }
+
+                if (!it.fail().isEmpty()) {
+                    branch.add(TooltipBuilder.branch(otherwise -> it.fail()
+                                    .forEach(child -> otherwise.add(describe(utils, child))))
+                            .build(key("property.otherwise")));
+                }
+            }).build(key("property.predicate_modifier"));
             // 接口对外开源，别的模组的加工器不认识：(不猜语义) 只把它的注册名显示出来
             default -> leaf("property.unknown_modifier", typeId(modifier));
         };
     }
 
+    /** 谓词的注册名（例如 minecraft:random_chance），解析不到就退回简单类名。 */
+    private static String predicateId(LootItemCondition predicate) {
+        ResourceLocation id = BuiltInRegistries.LOOT_CONDITION_TYPE.getKey(predicate.getType());
+
+        return id != null ? id.toString() : predicate.getClass().getSimpleName();
+    }
     /** 未知加工器的显示名：优先注册名，理论兜底用简单类名。 */
     private static String typeId(ChanceModifier modifier) {
         ResourceLocation id = ChanceModifierTypes.REGISTRY.getKey(modifier.getType());

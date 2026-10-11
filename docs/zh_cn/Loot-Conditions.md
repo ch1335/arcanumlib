@@ -34,7 +34,7 @@ ArcanumLib 提供的战利品条件都收录在这里。它们都是**原版 `Lo
 1. [最小示例](#1-最小示例)
 2. [求值模型](#2-求值模型)
 3. [字段](#3-字段)
-4. [八个加工器](#4-八个加工器)
+4. [九个加工器](#4-九个加工器)
 5. [两种 operation 语义（最容易错的地方）](#5-两种-operation-语义最容易错的地方)
 6. [实体来源 EntitySource](#6-实体来源-entitysource)
 7. [EnchantedLootEvent：让外部改附魔等级](#7-enchantedlootevent让外部改附魔等级)
@@ -119,7 +119,7 @@ double chance = new ChanceModifierCondition(0.25D, List.of(...)).resolveChance(c
 
 ---
 
-### 4. 八个加工器
+### 4. 九个加工器
 
 注册表：`arcanumlib:chance_modifier`。每一项都是 `{ "type": "arcanumlib:<id>", ... }`。
 
@@ -133,6 +133,7 @@ double chance = new ChanceModifierCondition(0.25D, List.of(...)).resolveChance(c
 | `tool_enchantment_level` | `enchantment`（必填）、`operation`（默认 `multiply`）、`per_level`（默认 `0.05`） | 按工具上某附魔的等级加工 |
 | `entity_attribute` | `attribute`（必填）、`entity`（默认 `attacking_entity`）、`operation`（默认 `multiply`）、`per_point`（默认 `0.05`） | 按某实体的一条属性加工 |
 | `stage` | `stage`（必填，可简写为字符串）、`desc`、`check_server_stages`、`success`、`fail` | 按 AStages 阶段二选一：命中依次过 `success` 链，否则过 `fail` 链 |
+| `predicate` | `predicates`（必填）、`success`、`fail` | 谓词**全部**通过就走 `success` 链，否则走 `fail` 链 |
 
 #### 4.1 `apply` — 加或乘
 
@@ -145,10 +146,10 @@ double chance = new ChanceModifierCondition(0.25D, List.of(...)).resolveChance(c
 `operation` 缺省是 `multiply`：乘就是 `chance × value`（乘 0 即"必不过"、乘 2 即"翻倍"）；
 写 `add` 就是 `chance + value`，value 可为负，用来折减。
 
-ALI 里显示成一行 `应用 : ×N`（加法是 `+N`，负值就是 `-N`）：
+ALI 里显示成一行 `概率修正 : ×N`（加法是 `+N`，负值就是 `-N`）：
 
 ```
-应用 : ×2.0
+概率修正 : ×2.0
 ```
 #### 4.2 `set_chance` — 直接设值
 
@@ -264,12 +265,46 @@ ALI 里渲染成"作用域行带成功链"加一行「否则」带失败链，**
 ```
 阶段修正 :
     ->玩家阶段 : 第一章
-        ->应用 : ×2.0
+        ->概率修正 : ×2.0
     ->否则 :
         ->设置概率 : 0.05
 ```
 
 （`阶段修正 :`、`玩家阶段 : %s` / `世界阶段 : %s`、`否则 :` 是本模组提供的语言键；`->` 是 ALI 自己画的树箭头。）
+#### 4.9 `predicate` — 按谓词二选一
+
+`predicates` 里的条件**全部**通过就依次过 `success` 链，否则依次过 `fail` 链（空列表视为通过，与原版 `all_of` 一致）；两条链都是一串普通加工器。
+
+```json
+{
+  "type": "arcanumlib:predicate",
+  "predicates": [
+    { "condition": "minecraft:killed_by_player" },
+    { "condition": "minecraft:inverted", "term": { "condition": "minecraft:killed_by_player" } }
+  ],
+  "success": [
+    { "type": "arcanumlib:apply", "value": 3.0 }
+  ],
+  "fail": [
+    { "type": "arcanumlib:apply", "operation": "add", "value": 0.05 }
+  ]
+}
+```
+
+`success` / `fail` 可省略（省略即空链）。ALI 里分成三段，**空的那一段不显示**；谓词逐行交给 ALI 自己的条件渲染，所以原版或其它模组的条件在这里的显示与别处一致：
+
+```
+谓词修正 :
+    ->谓词 :
+        -><谓词 1 在 ALI 里的渲染>
+        -><谓词 2 在 ALI 里的渲染>
+    ->满足条件时 :
+        ->概率修正 : ×3.0
+    ->否则 :
+        ->概率修正 : +0.05
+```
+
+> `谓词` 走的是 ALI 自己的条件渲染，所以与 ALI 里别处显示的条件一致。注意 ALI 对**少数条件**（如 `minecraft:random_chance`、`table_bonus`，正好也是它配置里 `ignoredPredicateConditions` 默认忽略的那几个）会标成「高级提示」，只有开启**原版高级物品提示（F3 + H）**才显示 —— 那种情况下本项目退回列出谓词的注册名，其余条件照常显示。
 ---
 
 ### 5. 两种 operation 语义（最容易错的地方）
@@ -596,7 +631,7 @@ public final class MyModifiers {
 
 #### 12.4 ALI tooltip 的兜底
 
-装了 ALI 时，本模组的八个加工器有专门渲染；**外部加工器走兜底分支**，只显示它的注册名（例如 `mymod:square`）。
+装了 ALI 时，本模组的九个加工器有专门渲染；**外部加工器走兜底分支**，只显示它的注册名（例如 `mymod:square`）。
 想要自己的渲染，参考 `compat/ali/AliLootPlugin.java` 自己写一个 ALI 插件。
 
 #### 12.5 其它限制
@@ -630,13 +665,13 @@ public final class MyModifiers {
 | 内容 | 文件 |
 |---|---|
 | 条件本体（求值 + builder） | `modules/loot/lootCondition/ChanceModifierCondition.java` |
-| 八个加工器 + `Operation` / `EntitySource` | `modules/loot/lootCondition/ChanceModifier.java` |
+| 九个加工器 + `Operation` / `EntitySource` | `modules/loot/lootCondition/ChanceModifier.java` |
 | 阶段加工器（需 AStages） | `compat/astages/StageChanceModifier.java` |
 | 加工器注册表与注册 | `modules/loot/lootCondition/ChanceModifierTypes.java` |
 | 条件类型注册 | `modules/loot/lootCondition/LootConditionTypes.java` |
 | 附魔等级事件 | `events/EnchantedLootEvent.java` |
 | 让原版四种机制也发该事件的 mixin | `mixins/{ApplyBonusCount,BonusLevelTableCondition,EnchantedCountIncreaseFunction,LootItemRandomChanceWithEnchantedBonusCondition}Mixin.java` |
-| 官方示例（8 个加工器各有用例） | `src/generated/resources/data/arcanumlib/loot_injecter/` 下的 `test_zombie_modifiers.json`（`apply` / `set_chance` / `invert`）与 `test_temple.json`、`test_zombies_tag.json`、`test_zombie_basic.json`（`clamp` / `difficulty_factor` / `tool_enchantment_level` / `entity_attribute`）、`test_stage_modifier.json`（`stage`） |
+| 官方示例（9 个加工器各有用例） | `src/generated/resources/data/arcanumlib/loot_injecter/` 下的 `test_zombie_modifiers.json`（`apply` / `set_chance` / `invert`）与 `test_temple.json`、`test_zombies_tag.json`、`test_zombie_basic.json`（`clamp` / `difficulty_factor` / `tool_enchantment_level` / `entity_attribute`）、`test_stage_modifier.json`（`stage`）、`test_predicate_modifier.json`（`predicate`） |
 
 ---
 

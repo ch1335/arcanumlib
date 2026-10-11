@@ -29,12 +29,15 @@ import net.minecraft.resources.ResourceLocation;
 import net.minecraft.tags.BlockTags;
 import net.minecraft.tags.EntityTypeTags;
 import net.minecraft.tags.ItemTags;
+import net.minecraft.advancements.critereon.EntityPredicate;
+import net.minecraft.advancements.critereon.ItemPredicate;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.ai.attributes.Attributes;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.item.Items;
 import net.minecraft.world.item.enchantment.Enchantments;
 import net.minecraft.world.level.ItemLike;
+import net.minecraft.world.level.storage.loot.LootContext;
 import net.minecraft.world.level.storage.loot.BuiltInLootTables;
 import net.minecraft.world.level.storage.loot.LootPool;
 import net.minecraft.world.level.storage.loot.entries.AlternativesEntry;
@@ -44,6 +47,12 @@ import net.minecraft.world.level.storage.loot.entries.TagEntry;
 import net.minecraft.world.level.storage.loot.functions.LootItemFunction;
 import net.minecraft.world.level.storage.loot.functions.SetItemCountFunction;
 import net.minecraft.world.level.storage.loot.predicates.LootItemCondition;
+import net.minecraft.world.level.storage.loot.predicates.LootItemEntityPropertyCondition;
+import net.minecraft.world.level.storage.loot.predicates.LootItemKilledByPlayerCondition;
+import net.minecraft.world.level.storage.loot.predicates.AnyOfCondition;
+import net.minecraft.world.level.storage.loot.predicates.InvertedLootItemCondition;
+import net.minecraft.world.level.storage.loot.predicates.MatchTool;
+import net.minecraft.world.level.storage.loot.predicates.WeatherCheck;
 import net.minecraft.world.level.storage.loot.predicates.LootItemRandomChanceCondition;
 import net.minecraft.world.level.storage.loot.providers.number.ConstantValue;
 
@@ -104,6 +113,7 @@ public class TestLootInjectorProvider extends LootInjectorTemplate {
         list.add(selectorProbe());
         list.add(hasStageInjector());
         list.add(stageModifierInjector());
+        list.add(predicateModifierInjector());
         list.addAll(customInjectors());
         return List.copyOf(list);
     }
@@ -480,6 +490,35 @@ public class TestLootInjectorProvider extends LootInjectorTemplate {
                                                 new StagePattern("^act[1-3]_", StagePattern.Type.REGEX),
                                                 Optional.empty(), false,
                                                 List.of(new ChanceModifier.Clamp(0.0D, 0.5D)), List.of()))))
+                        .build()));
+    }
+    /** 谓词修正：两个谓词 + 两条链，并顺带覆盖"失败链为空"的显示分支。 */
+    /** 一组常见谓词，用来检查 ALI 对各类条件的渲染（取反、带参数、组合、实体属性）。 */
+    private static List<LootItemCondition> commonPredicates() {
+        return List.of(
+                LootItemKilledByPlayerCondition.killedByPlayer().build(),
+                InvertedLootItemCondition.invert(LootItemKilledByPlayerCondition.killedByPlayer()).build(),
+                WeatherCheck.weather().setRaining(true).build(),
+                MatchTool.toolMatches(ItemPredicate.Builder.item().of(Items.IRON_SWORD)).build(),
+                AnyOfCondition.anyOf(LootItemKilledByPlayerCondition.killedByPlayer(),
+                        WeatherCheck.weather().setRaining(true)).build(),
+                LootItemEntityPropertyCondition.hasProperties(LootContext.EntityTarget.THIS,
+                        EntityPredicate.Builder.entity().of(EntityType.ZOMBIE)).build());
+    }
+    private LootInjector predicateModifierInjector() {
+        return raw("test_predicate_modifier", new TableSelector.ById(ZOMBIE_TABLE), 1000,
+                new TableOperator.AddPool(LootPool.lootPool()
+                        .setRolls(ConstantValue.exactly(1.0F))
+                        .add(LootItem.lootTableItem(Items.GOLD_INGOT)
+                                .when(ChanceModifierCondition.builder(1.0D,
+                                        new ChanceModifier.Predicate(
+                                                commonPredicates(),
+                                                List.of(ChanceModifier.Apply.multiply(3.0D)),
+                                                List.of(ChanceModifier.Apply.add(0.05D))),
+                                        new ChanceModifier.Predicate(
+                                                List.of(LootItemKilledByPlayerCondition.killedByPlayer().build()),
+                                                List.of(ChanceModifier.Clamp.of(0.0D, 0.9D)),
+                                                List.of()))))
                         .build()));
     }
     private LootInjector raw(String path, TableSelector tableSelector, int priority, TableOperator... ops) {
