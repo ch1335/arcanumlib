@@ -48,9 +48,10 @@ public class AliLootPlugin implements IPlugin {
         registry.registerConditionTooltip(ChanceModifierCondition.class, AliLootPlugin::conditionTooltip);
         registry.registerConditionTooltip(HasStageCondition.class, AliLootPlugin::stageTooltip);
 
-        // 只按基础概率修正（链上的修正如约定不参与）；返回 NumberExpr 而非绝对值，和原版 chance modifier 保持同一约定。
+        // 把整条链的结果算进 ALI 显示的概率里：拿得到上下文就用 resolveChance（与实际掉落同一段求值代码，
+        // 因此是精确值），拿不到才退回只折纯算术的几种。返回 NumberExpr 而非绝对值，和原版 chance modifier 同一约定。
         registry.registerChanceModifier(ChanceModifierCondition.class,
-                (utils, condition, chance, extra) -> NumberExpr.mul(chance, NumberExpr.constant(condition.baseChance())));
+                (utils, condition, chance, extra) -> NumberExpr.mul(chance, AliChanceCalculator.factor(utils, condition)));
         // 用【池节点】而不是组节点：池节点把子条目横向铺开，正是要的"一行多个格子"。
         // 概率条件本来就挂在这些孩子上，所以直接让它们各自算自己的概率。
         registry.registerEntry(AllOfEntry.class, (utils, entry, rawChance, sumWeight, chanceConditions,
