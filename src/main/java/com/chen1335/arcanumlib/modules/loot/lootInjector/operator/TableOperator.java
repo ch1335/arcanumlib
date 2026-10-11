@@ -63,7 +63,7 @@ public interface TableOperator {
             // 快照遍历：子 op 可能删池，直接按下标走会跳项
             for (LootPool pool : List.copyOf(table.pools)) {
                 int index = table.pools.indexOf(pool);
-                if (index < 0 || !this.poolSelector.test(index, pool)) {
+                if (index < 0 || !this.poolSelector.test(index, pool, registries)) {
                     continue;
                 }
 
@@ -189,7 +189,7 @@ public interface TableOperator {
                 Codec.STRING.fieldOf("custom_id").forGetter(TableCustom::id)).apply(instance, TableCustom::new));
         @Override
         public void apply(LootTable table, HolderLookup.Provider registries) {
-            TableCustomOpEvent.post(this.id, table);
+            TableCustomOpEvent.post(this.id, table, registries);
         }
     }
 }

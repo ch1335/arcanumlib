@@ -155,7 +155,7 @@ public interface ConditionSelector {
                 Codec.STRING.fieldOf("custom_id").forGetter(Custom::id)).apply(instance, Custom::new));
         @Override
         public boolean test(int index, LootItemCondition condition, HolderLookup.Provider registries) {
-            return CustomConditionSelectorEvent.post(this.id, index, condition);
+            return CustomConditionSelectorEvent.post(this.id, index, condition, registries);
         }
     }
 }

@@ -1,5 +1,6 @@
 package com.chen1335.arcanumlib.modules.loot.lootInjector.event;
 
+import net.minecraft.core.HolderLookup;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.level.storage.loot.LootTable;
 import net.neoforged.bus.api.Event;
@@ -13,12 +14,14 @@ public class CustomTableSelectorEvent extends Event {
     private final String id;
     private final ResourceLocation tableId;
     private final LootTable table;
+    private final HolderLookup.Provider registries;
     private boolean result;
 
-    public CustomTableSelectorEvent(String id, ResourceLocation tableId, LootTable table) {
+    public CustomTableSelectorEvent(String id, ResourceLocation tableId, LootTable table, HolderLookup.Provider registries) {
         this.id = id;
         this.tableId = tableId;
         this.table = table;
+        this.registries = registries;
     }
 
     public String getId() {
@@ -41,8 +44,13 @@ public class CustomTableSelectorEvent extends Event {
         this.result = result;
     }
 
-    public static boolean post(String id, ResourceLocation tableId, LootTable table) {
-        CustomTableSelectorEvent event = new CustomTableSelectorEvent(id, tableId, table);
+    /** 求值时可用的注册表访问：需要按 codec 反序列化 / 反查注册项时用。 */
+    public HolderLookup.Provider getRegistries() {
+        return this.registries;
+    }
+
+    public static boolean post(String id, ResourceLocation tableId, LootTable table, HolderLookup.Provider registries) {
+        CustomTableSelectorEvent event = new CustomTableSelectorEvent(id, tableId, table, registries);
         NeoForge.EVENT_BUS.post(event);
         return event.getResult();
     }

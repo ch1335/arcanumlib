@@ -5,6 +5,7 @@ import com.chen1335.arcanumlib.modules.loot.lootInjector.event.CustomPoolSelecto
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.MapCodec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
+import net.minecraft.core.HolderLookup;
 import net.minecraft.world.level.storage.loot.LootPool;
 
 import java.util.List;
@@ -20,7 +21,7 @@ public interface PoolSelector {
 
     PoolSelectorType getType();
 
-    boolean test(int index, LootPool pool);
+    boolean test(int index, LootPool pool, HolderLookup.Provider registries);
 
     /** 匹配所有池。 */
     record Any() implements PoolSelector {
@@ -30,7 +31,7 @@ public interface PoolSelector {
         }
         public static final MapCodec<Any> CODEC = MapCodec.unit(Any::new);
         @Override
-        public boolean test(int index, LootPool pool) {
+        public boolean test(int index, LootPool pool, HolderLookup.Provider registries) {
             return true;
         }
     }
@@ -44,7 +45,7 @@ public interface PoolSelector {
         public static final MapCodec<ByIndex> CODEC = RecordCodecBuilder.mapCodec(instance -> instance.group(
                 Codec.INT.fieldOf("index").forGetter(ByIndex::index)).apply(instance, ByIndex::new));
         @Override
-        public boolean test(int index, LootPool pool) {
+        public boolean test(int index, LootPool pool, HolderLookup.Provider registries) {
             return this.index == index;
         }
     }
@@ -58,7 +59,7 @@ public interface PoolSelector {
         public static final MapCodec<ByName> CODEC = RecordCodecBuilder.mapCodec(instance -> instance.group(
                 Codec.STRING.fieldOf("name").forGetter(ByName::name)).apply(instance, ByName::new));
         @Override
-        public boolean test(int index, LootPool pool) {
+        public boolean test(int index, LootPool pool, HolderLookup.Provider registries) {
             return this.name.equals(pool.getName());
         }
     }
@@ -73,9 +74,9 @@ public interface PoolSelector {
                 EntrySelector.CODEC.fieldOf("entrySelector").forGetter(HasEntry::entrySelector))
                 .apply(instance, HasEntry::new));
         @Override
-        public boolean test(int index, LootPool pool) {
+        public boolean test(int index, LootPool pool, HolderLookup.Provider registries) {
             for (int i = 0; i < pool.entries.size(); i++) {
-                if (this.entrySelector.test(i, pool.entries.get(i), pool)) {
+                if (this.entrySelector.test(i, pool.entries.get(i), pool, registries)) {
                     return true;
                 }
             }
@@ -102,7 +103,7 @@ public interface PoolSelector {
                 Codec.INT.optionalFieldOf("max", Integer.MAX_VALUE).forGetter(TotalWeightInRange::max))
                 .apply(instance, TotalWeightInRange::new));
         @Override
-        public boolean test(int index, LootPool pool) {
+        public boolean test(int index, LootPool pool, HolderLookup.Provider registries) {
             int total = PoolWeights.total(pool);
 
             return total >= this.min && total <= this.max;
@@ -118,8 +119,8 @@ public interface PoolSelector {
         public static final MapCodec<Not> CODEC = RecordCodecBuilder.mapCodec(instance -> instance.group(
                 PoolSelector.CODEC.fieldOf("condition").forGetter(Not::child)).apply(instance, Not::new));
         @Override
-        public boolean test(int index, LootPool pool) {
-            return !this.child.test(index, pool);
+        public boolean test(int index, LootPool pool, HolderLookup.Provider registries) {
+            return !this.child.test(index, pool, registries);
         }
     }
 
@@ -133,8 +134,8 @@ public interface PoolSelector {
                 PoolSelector.CODEC.listOf().fieldOf("conditions").forGetter(AnyOf::children))
                 .apply(instance, AnyOf::new));
         @Override
-        public boolean test(int index, LootPool pool) {
-            return this.children.stream().anyMatch(child -> child.test(index, pool));
+        public boolean test(int index, LootPool pool, HolderLookup.Provider registries) {
+            return this.children.stream().anyMatch(child -> child.test(index, pool, registries));
         }
     }
 
@@ -148,8 +149,8 @@ public interface PoolSelector {
                 PoolSelector.CODEC.listOf().fieldOf("conditions").forGetter(AllOf::children))
                 .apply(instance, AllOf::new));
         @Override
-        public boolean test(int index, LootPool pool) {
-            return this.children.stream().allMatch(child -> child.test(index, pool));
+        public boolean test(int index, LootPool pool, HolderLookup.Provider registries) {
+            return this.children.stream().allMatch(child -> child.test(index, pool, registries));
         }
     }
     /**
@@ -166,8 +167,8 @@ public interface PoolSelector {
         }
 
         @Override
-        public boolean test(int index, LootPool pool) {
-            return CustomPoolSelectorEvent.post(this.id, index, pool);
+        public boolean test(int index, LootPool pool, HolderLookup.Provider registries) {
+            return CustomPoolSelectorEvent.post(this.id, index, pool, registries);
         }
     }
 }

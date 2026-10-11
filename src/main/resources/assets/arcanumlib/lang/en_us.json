@@ -22,6 +22,8 @@
   "arcanumlib.ali.property.easy": "Easy",
   "arcanumlib.ali.property.normal": "Normal",
   "arcanumlib.ali.property.hard": "Hard",
+  "arcanumlib.ali.property.unknown_modifier": "Unknown modifier",
+  "arcanumlib.ali.property.unknown_modifier": "Unknown modifier",
   "attribute.name.arcanumlib.seeking": "Seeking",
   "attribute.name.arcanumlib.seeking.desc": "Increases your chance of encountering rare mobs",
   "attribute.name.arcanumlib.fortune": "Fortune",

@@ -3,6 +3,7 @@ package com.chen1335.arcanumlib.compat.ali;
 import com.chen1335.arcanumlib.ArcanumLib;
 import com.chen1335.arcanumlib.modules.loot.lootCondition.ChanceModifier;
 import com.chen1335.arcanumlib.modules.loot.lootCondition.ChanceModifierCondition;
+import com.chen1335.arcanumlib.modules.loot.lootCondition.ChanceModifierTypes;
 import com.chen1335.arcanumlib.modules.loot.lootEntry.AllOfEntry;
 import com.yanny.aci.api.NumberExpr;
 import com.yanny.aci.tooltip.TooltipBuilder;
@@ -15,6 +16,7 @@ import com.yanny.ali.api.IServerUtils;
 import com.yanny.ali.plugin.common.nodes.GroupNode;
 import com.yanny.ali.plugin.server.TooltipUtils;
 import net.minecraft.resources.ResourceKey;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.item.enchantment.Enchantment;
 import net.minecraft.world.level.storage.loot.entries.LootPoolEntryContainer;
 
@@ -73,7 +75,7 @@ public class AliLootPlugin implements IPlugin {
         }).key(ROOT);
     }
 
-    /** sealed 接口在同一文件里，所以这里可以直接穷举，加新类型时编译器会提醒。 */
+    /** 本模组的八个加工器在这里逐个渲染；别的模组注册的走 default，只显示类型 id。 */
     private static TooltipNode describe(ChanceModifier modifier) {
         return switch (modifier) {
             case ChanceModifier.SetChance it -> leaf("property.set_chance", number(it.value()));
@@ -98,7 +100,16 @@ public class AliLootPlugin implements IPlugin {
                     .add(leaf("property.normal", difficulty(it, it.normal())))
                     .add(leaf("property.hard", difficulty(it, it.hard()))))
                     .build(key("property.difficulty_modifier"));
+            // 接口对外开源，别的模组的加工器不认识：(不猜语义) 只把它的注册名显示出来
+            default -> leaf("property.unknown_modifier", typeId(modifier));
         };
+    }
+
+    /** 未知加工器的显示名：优先注册名，理论兜底用简单类名。 */
+    private static String typeId(ChanceModifier modifier) {
+        ResourceLocation id = ChanceModifierTypes.REGISTRY.getKey(modifier.getType());
+
+        return id != null ? id.toString() : modifier.getClass().getSimpleName();
     }
 
     /** 运算方式自己一层，把"每级/每点增加多少"挂在它下面。 */

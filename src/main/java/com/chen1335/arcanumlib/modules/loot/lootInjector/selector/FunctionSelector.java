@@ -177,7 +177,7 @@ public interface FunctionSelector {
                 Codec.STRING.fieldOf("custom_id").forGetter(Custom::id)).apply(instance, Custom::new));
         @Override
         public boolean test(int index, LootItemFunction function, HolderLookup.Provider registries) {
-            return CustomFunctionSelectorEvent.post(this.id, index, function);
+            return CustomFunctionSelectorEvent.post(this.id, index, function, registries);
         }
     }
 }

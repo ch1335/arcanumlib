@@ -1,5 +1,6 @@
 package com.chen1335.arcanumlib.modules.loot.lootInjector.event;
 
+import net.minecraft.core.HolderLookup;
 import net.minecraft.world.level.storage.loot.LootPool;
 import net.minecraft.world.level.storage.loot.entries.LootPoolEntryContainer;
 import net.neoforged.bus.api.Event;
@@ -16,12 +17,14 @@ public class EntryCustomOpEvent extends Event {
     private final LootPool pool;
     private final List<LootPoolEntryContainer> entries;
     private final int index;
+    private final HolderLookup.Provider registries;
 
-    public EntryCustomOpEvent(String id, LootPool pool, List<LootPoolEntryContainer> entries, int index) {
+    public EntryCustomOpEvent(String id, LootPool pool, List<LootPoolEntryContainer> entries, int index, HolderLookup.Provider registries) {
         this.id = id;
         this.pool = pool;
         this.entries = entries;
         this.index = index;
+        this.registries = registries;
     }
 
     public String getId() {
@@ -45,7 +48,12 @@ public class EntryCustomOpEvent extends Event {
         return this.entries.get(this.index);
     }
 
-    public static void post(String id, LootPool pool, List<LootPoolEntryContainer> entries, int index) {
-        NeoForge.EVENT_BUS.post(new EntryCustomOpEvent(id, pool, entries, index));
+    /** 求值时可用的注册表访问：需要按 codec 反序列化 / 反查注册项时用。 */
+    public HolderLookup.Provider getRegistries() {
+        return this.registries;
+    }
+
+    public static void post(String id, LootPool pool, List<LootPoolEntryContainer> entries, int index, HolderLookup.Provider registries) {
+        NeoForge.EVENT_BUS.post(new EntryCustomOpEvent(id, pool, entries, index, registries));
     }
 }

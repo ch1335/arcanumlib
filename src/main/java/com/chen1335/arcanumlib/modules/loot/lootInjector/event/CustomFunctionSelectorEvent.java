@@ -1,5 +1,6 @@
 package com.chen1335.arcanumlib.modules.loot.lootInjector.event;
 
+import net.minecraft.core.HolderLookup;
 import net.minecraft.world.level.storage.loot.functions.LootItemFunction;
 import net.neoforged.bus.api.Event;
 import net.neoforged.neoforge.common.NeoForge;
@@ -9,12 +10,14 @@ public class CustomFunctionSelectorEvent extends Event {
     private final String id;
     private final int index;
     private final LootItemFunction function;
+    private final HolderLookup.Provider registries;
     private boolean result;
 
-    public CustomFunctionSelectorEvent(String id, int index, LootItemFunction function) {
+    public CustomFunctionSelectorEvent(String id, int index, LootItemFunction function, HolderLookup.Provider registries) {
         this.id = id;
         this.index = index;
         this.function = function;
+        this.registries = registries;
     }
 
     public String getId() {
@@ -38,8 +41,13 @@ public class CustomFunctionSelectorEvent extends Event {
         this.result = result;
     }
 
-    public static boolean post(String id, int index, LootItemFunction function) {
-        CustomFunctionSelectorEvent event = new CustomFunctionSelectorEvent(id, index, function);
+    /** 求值时可用的注册表访问：需要按 codec 反序列化 / 反查注册项时用。 */
+    public HolderLookup.Provider getRegistries() {
+        return this.registries;
+    }
+
+    public static boolean post(String id, int index, LootItemFunction function, HolderLookup.Provider registries) {
+        CustomFunctionSelectorEvent event = new CustomFunctionSelectorEvent(id, index, function, registries);
         NeoForge.EVENT_BUS.post(event);
         return event.getResult();
     }

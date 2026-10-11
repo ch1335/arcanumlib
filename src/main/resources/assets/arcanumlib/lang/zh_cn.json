@@ -22,6 +22,8 @@
   "arcanumlib.ali.property.easy": "简单",
   "arcanumlib.ali.property.normal": "普通",
   "arcanumlib.ali.property.hard": "困难",
+  "arcanumlib.ali.property.unknown_modifier": "未识别加工器",
+  "arcanumlib.ali.property.unknown_modifier": "未识别加工器",
   "attribute.name.arcanumlib.seeking": "寻觅",
   "attribute.name.arcanumlib.seeking.desc": "提高你遇见稀有生物的概率",
   "attribute.name.arcanumlib.fortune": "时运",

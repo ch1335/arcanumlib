@@ -17,7 +17,8 @@ public final class AttributeConfig {
         RARE_SPAWN_WEIGHT_THRESHOLD = builder
                 .comment("Weight-share threshold (0~1) for rare mobs. A mob counts as rare when its share of the",
                         "whole spawn list is below this value. Rare mobs get weight x (1 + the highest Seeking",
-                        "among players within 128 blocks), uncapped. Other mobs are unaffected.",
+                        "among players within 128 blocks). The boost itself is uncapped, but the attribute",
+                        "value is clamped to 0~100, so at most x101. Other mobs are unaffected.",
                         "Set to 0 to disable the Seeking attribute entirely.",
                         "Default 0.02 (2%).")
                 .defineInRange("rare_spawn_weight_threshold", 0.02D, 0.0D, 1.0D);

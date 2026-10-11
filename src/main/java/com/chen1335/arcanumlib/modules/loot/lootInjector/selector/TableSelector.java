@@ -6,6 +6,7 @@ import com.chen1335.arcanumlib.modules.loot.lootInjector.event.CustomTableSelect
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.MapCodec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
+import net.minecraft.core.HolderLookup;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.resources.ResourceKey;
@@ -33,7 +34,7 @@ public interface TableSelector {
     /** 类型注册表项，json 里写成 命名空间:路径。 */
     TableSelectorType getType();
 
-    boolean test(ResourceLocation id, LootTable table);
+    boolean test(ResourceLocation id, LootTable table, HolderLookup.Provider registries);
 
     /** 标签在数据包 reload 时会变，派生出来的表 id 集合必须跟着失效。 */
     static void clearCaches() {
@@ -48,7 +49,7 @@ public interface TableSelector {
         }
         public static final MapCodec<All> CODEC = MapCodec.unit(All::new);
         @Override
-        public boolean test(ResourceLocation id, LootTable table) {
+        public boolean test(ResourceLocation id, LootTable table, HolderLookup.Provider registries) {
             return true;
         }
     }
@@ -62,7 +63,7 @@ public interface TableSelector {
         public static final MapCodec<ById> CODEC = RecordCodecBuilder.mapCodec(instance -> instance.group(
                 ResourceLocation.CODEC.fieldOf("id").forGetter(ById::id)).apply(instance, ById::new));
         @Override
-        public boolean test(ResourceLocation id, LootTable table) {
+        public boolean test(ResourceLocation id, LootTable table, HolderLookup.Provider registries) {
             return this.id.equals(id);
         }
     }
@@ -76,7 +77,7 @@ public interface TableSelector {
         public static final MapCodec<Namespace> CODEC = RecordCodecBuilder.mapCodec(instance -> instance.group(
                 Codec.STRING.fieldOf("namespace").forGetter(Namespace::namespace)).apply(instance, Namespace::new));
         @Override
-        public boolean test(ResourceLocation id, LootTable table) {
+        public boolean test(ResourceLocation id, LootTable table, HolderLookup.Provider registries) {
             return this.namespace.equals(id.getNamespace());
         }
     }
@@ -90,7 +91,7 @@ public interface TableSelector {
         public static final MapCodec<PathPrefix> CODEC = RecordCodecBuilder.mapCodec(instance -> instance.group(
                 Codec.STRING.fieldOf("prefix").forGetter(PathPrefix::prefix)).apply(instance, PathPrefix::new));
         @Override
-        public boolean test(ResourceLocation id, LootTable table) {
+        public boolean test(ResourceLocation id, LootTable table, HolderLookup.Provider registries) {
             return id.getPath().startsWith(this.prefix);
         }
     }
@@ -105,7 +106,7 @@ public interface TableSelector {
                 TagKey.codec(Registries.ENTITY_TYPE).fieldOf("tag").forGetter(EntityTagTable::tag))
                 .apply(instance, EntityTagTable::new));
         @Override
-        public boolean test(ResourceLocation id, LootTable table) {
+        public boolean test(ResourceLocation id, LootTable table, HolderLookup.Provider registries) {
             return TagTableCache.entityTables(this.tag).contains(id);
         }
     }
@@ -120,7 +121,7 @@ public interface TableSelector {
                 TagKey.codec(Registries.BLOCK).fieldOf("tag").forGetter(BlockTagTable::tag))
                 .apply(instance, BlockTagTable::new));
         @Override
-        public boolean test(ResourceLocation id, LootTable table) {
+        public boolean test(ResourceLocation id, LootTable table, HolderLookup.Provider registries) {
             return TagTableCache.blockTables(this.tag).contains(id);
         }
     }
@@ -134,8 +135,8 @@ public interface TableSelector {
         public static final MapCodec<Not> CODEC = RecordCodecBuilder.mapCodec(instance -> instance.group(
                 TableSelector.CODEC.fieldOf("condition").forGetter(Not::child)).apply(instance, Not::new));
         @Override
-        public boolean test(ResourceLocation id, LootTable table) {
-            return !this.child.test(id, table);
+        public boolean test(ResourceLocation id, LootTable table, HolderLookup.Provider registries) {
+            return !this.child.test(id, table, registries);
         }
     }
 
@@ -148,8 +149,8 @@ public interface TableSelector {
         public static final MapCodec<AnyOf> CODEC = RecordCodecBuilder.mapCodec(instance -> instance.group(
                 TableSelector.CODEC.listOf().fieldOf("conditions").forGetter(AnyOf::children)).apply(instance, AnyOf::new));
         @Override
-        public boolean test(ResourceLocation id, LootTable table) {
-            return this.children.stream().anyMatch(child -> child.test(id, table));
+        public boolean test(ResourceLocation id, LootTable table, HolderLookup.Provider registries) {
+            return this.children.stream().anyMatch(child -> child.test(id, table, registries));
         }
     }
 
@@ -162,8 +163,8 @@ public interface TableSelector {
         public static final MapCodec<AllOf> CODEC = RecordCodecBuilder.mapCodec(instance -> instance.group(
                 TableSelector.CODEC.listOf().fieldOf("conditions").forGetter(AllOf::children)).apply(instance, AllOf::new));
         @Override
-        public boolean test(ResourceLocation id, LootTable table) {
-            return this.children.stream().allMatch(child -> child.test(id, table));
+        public boolean test(ResourceLocation id, LootTable table, HolderLookup.Provider registries) {
+            return this.children.stream().allMatch(child -> child.test(id, table, registries));
         }
     }
 
@@ -181,8 +182,8 @@ public interface TableSelector {
         }
 
         @Override
-        public boolean test(ResourceLocation tableId, LootTable table) {
-            return CustomTableSelectorEvent.post(this.id, tableId, table);
+        public boolean test(ResourceLocation tableId, LootTable table, HolderLookup.Provider registries) {
+            return CustomTableSelectorEvent.post(this.id, tableId, table, registries);
         }
     }
 }

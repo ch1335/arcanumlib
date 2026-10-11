@@ -93,7 +93,7 @@ public interface PoolOperator {
             // 快照遍历：子 op 可能删条目，直接按下标走会跳项
             for (LootPoolEntryContainer entry : List.copyOf(entries)) {
                 int index = entries.indexOf(entry);
-                if (index < 0 || !this.entrySelector.test(index, entry, pool)) {
+                if (index < 0 || !this.entrySelector.test(index, entry, pool, registries)) {
                     continue;
                 }
 
@@ -318,7 +318,7 @@ public interface PoolOperator {
                 Codec.STRING.fieldOf("custom_id").forGetter(PoolCustom::id)).apply(instance, PoolCustom::new));
         @Override
         public void apply(LootTable table, int poolIndex, LootPool pool, HolderLookup.Provider registries) {
-            PoolCustomOpEvent.post(this.id, table, poolIndex, pool);
+            PoolCustomOpEvent.post(this.id, table, poolIndex, pool, registries);
         }
     }
 }

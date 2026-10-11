@@ -347,7 +347,7 @@ public interface EntryOperator {
         @Override
         public void apply(LootPool pool, List<LootPoolEntryContainer> entries, int index,
                           HolderLookup.Provider registries) {
-            EntryCustomOpEvent.post(this.id, pool, entries, index);
+            EntryCustomOpEvent.post(this.id, pool, entries, index, registries);
         }
     }
 }

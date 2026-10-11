@@ -5,6 +5,7 @@ import com.chen1335.arcanumlib.modules.loot.lootInjector.event.CustomEntrySelect
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.MapCodec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
+import net.minecraft.core.HolderLookup;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.resources.ResourceKey;
@@ -31,7 +32,7 @@ public interface EntrySelector {
 
     EntrySelectorType getType();
 
-    boolean test(int index, LootPoolEntryContainer entry, LootPool pool);
+    boolean test(int index, LootPoolEntryContainer entry, LootPool pool, HolderLookup.Provider registries);
 
     /** 匹配所有条目。 */
     record Any() implements EntrySelector {
@@ -41,7 +42,7 @@ public interface EntrySelector {
         }
         public static final MapCodec<Any> CODEC = MapCodec.unit(Any::new);
         @Override
-        public boolean test(int index, LootPoolEntryContainer entry, LootPool pool) {
+        public boolean test(int index, LootPoolEntryContainer entry, LootPool pool, HolderLookup.Provider registries) {
             return true;
         }
     }
@@ -55,7 +56,7 @@ public interface EntrySelector {
         public static final MapCodec<ByIndex> CODEC = RecordCodecBuilder.mapCodec(instance -> instance.group(
                 Codec.INT.fieldOf("index").forGetter(ByIndex::index)).apply(instance, ByIndex::new));
         @Override
-        public boolean test(int index, LootPoolEntryContainer entry, LootPool pool) {
+        public boolean test(int index, LootPoolEntryContainer entry, LootPool pool, HolderLookup.Provider registries) {
             return this.index == index;
         }
     }
@@ -69,7 +70,7 @@ public interface EntrySelector {
         public static final MapCodec<IsItem> CODEC = RecordCodecBuilder.mapCodec(instance -> instance.group(
                 ResourceLocation.CODEC.fieldOf("item").forGetter(IsItem::item)).apply(instance, IsItem::new));
         @Override
-        public boolean test(int index, LootPoolEntryContainer entry, LootPool pool) {
+        public boolean test(int index, LootPoolEntryContainer entry, LootPool pool, HolderLookup.Provider registries) {
             if (!(entry instanceof LootItem lootItem)) {
                 return false;
             }
@@ -87,7 +88,7 @@ public interface EntrySelector {
         public static final MapCodec<IsTag> CODEC = RecordCodecBuilder.mapCodec(instance -> instance.group(
                 TagKey.codec(Registries.ITEM).fieldOf("tag").forGetter(IsTag::tag)).apply(instance, IsTag::new));
         @Override
-        public boolean test(int index, LootPoolEntryContainer entry, LootPool pool) {
+        public boolean test(int index, LootPoolEntryContainer entry, LootPool pool, HolderLookup.Provider registries) {
             return entry instanceof TagEntry tagEntry && tagEntry.tag.equals(this.tag);
         }
     }
@@ -107,7 +108,7 @@ public interface EntrySelector {
                 TagKey.codec(Registries.ITEM).fieldOf("tag").forGetter(IsItemWithTag::tag))
                 .apply(instance, IsItemWithTag::new));
         @Override
-        public boolean test(int index, LootPoolEntryContainer entry, LootPool pool) {
+        public boolean test(int index, LootPoolEntryContainer entry, LootPool pool, HolderLookup.Provider registries) {
             return entry instanceof LootItem lootItem && lootItem.item.is(this.tag);
         }
     }
@@ -121,7 +122,7 @@ public interface EntrySelector {
         public static final MapCodec<IsType> CODEC = RecordCodecBuilder.mapCodec(instance -> instance.group(
                 ResourceLocation.CODEC.fieldOf("entryType").forGetter(IsType::entryType)).apply(instance, IsType::new));
         @Override
-        public boolean test(int index, LootPoolEntryContainer entry, LootPool pool) {
+        public boolean test(int index, LootPoolEntryContainer entry, LootPool pool, HolderLookup.Provider registries) {
             return this.entryType.equals(BuiltInRegistries.LOOT_POOL_ENTRY_TYPE.getKey(entry.getType()));
         }
     }
@@ -141,7 +142,7 @@ public interface EntrySelector {
                 Codec.INT.optionalFieldOf("max", Integer.MAX_VALUE).forGetter(WeightInRange::max))
                 .apply(instance, WeightInRange::new));
         @Override
-        public boolean test(int index, LootPoolEntryContainer entry, LootPool pool) {
+        public boolean test(int index, LootPoolEntryContainer entry, LootPool pool, HolderLookup.Provider registries) {
             int weight = PoolWeights.of(entry);
 
             return weight >= this.min && weight <= this.max;
@@ -164,7 +165,7 @@ public interface EntrySelector {
                 Codec.floatRange(0.0F, 1.0F).optionalFieldOf("max", 1.0F).forGetter(WeightShareInRange::max))
                 .apply(instance, WeightShareInRange::new));
         @Override
-        public boolean test(int index, LootPoolEntryContainer entry, LootPool pool) {
+        public boolean test(int index, LootPoolEntryContainer entry, LootPool pool, HolderLookup.Provider registries) {
             int total = PoolWeights.total(pool);
             if (total <= 0) {
                 return false;
@@ -184,7 +185,7 @@ public interface EntrySelector {
                 ResourceLocation.CODEC.fieldOf("conditionType").forGetter(HasCondition::conditionType))
                 .apply(instance, HasCondition::new));
         @Override
-        public boolean test(int index, LootPoolEntryContainer entry, LootPool pool) {
+        public boolean test(int index, LootPoolEntryContainer entry, LootPool pool, HolderLookup.Provider registries) {
             return entry.conditions.stream()
                     .anyMatch(condition -> this.conditionType.equals(
                             BuiltInRegistries.LOOT_CONDITION_TYPE.getKey(condition.getType())));
@@ -201,7 +202,7 @@ public interface EntrySelector {
                 ResourceLocation.CODEC.fieldOf("functionType").forGetter(HasFunction::functionType))
                 .apply(instance, HasFunction::new));
         @Override
-        public boolean test(int index, LootPoolEntryContainer entry, LootPool pool) {
+        public boolean test(int index, LootPoolEntryContainer entry, LootPool pool, HolderLookup.Provider registries) {
             if (!(entry instanceof LootPoolSingletonContainer singleton)) {
                 return false;
             }
@@ -221,13 +222,13 @@ public interface EntrySelector {
         public static final MapCodec<HasChild> CODEC = RecordCodecBuilder.mapCodec(instance -> instance.group(
                 EntrySelector.CODEC.fieldOf("entrySelector").forGetter(HasChild::child)).apply(instance, HasChild::new));
         @Override
-        public boolean test(int index, LootPoolEntryContainer entry, LootPool pool) {
+        public boolean test(int index, LootPoolEntryContainer entry, LootPool pool, HolderLookup.Provider registries) {
             if (!(entry instanceof CompositeEntryBase composite)) {
                 return false;
             }
 
             for (int i = 0; i < composite.children.size(); i++) {
-                if (this.child.test(i, composite.children.get(i), pool)) {
+                if (this.child.test(i, composite.children.get(i), pool, registries)) {
                     return true;
                 }
             }
@@ -245,8 +246,8 @@ public interface EntrySelector {
         public static final MapCodec<Not> CODEC = RecordCodecBuilder.mapCodec(instance -> instance.group(
                 EntrySelector.CODEC.fieldOf("condition").forGetter(Not::child)).apply(instance, Not::new));
         @Override
-        public boolean test(int index, LootPoolEntryContainer entry, LootPool pool) {
-            return !this.child.test(index, entry, pool);
+        public boolean test(int index, LootPoolEntryContainer entry, LootPool pool, HolderLookup.Provider registries) {
+            return !this.child.test(index, entry, pool, registries);
         }
     }
 
@@ -260,8 +261,8 @@ public interface EntrySelector {
                 EntrySelector.CODEC.listOf().fieldOf("conditions").forGetter(AnyOf::children))
                 .apply(instance, AnyOf::new));
         @Override
-        public boolean test(int index, LootPoolEntryContainer entry, LootPool pool) {
-            return this.children.stream().anyMatch(child -> child.test(index, entry, pool));
+        public boolean test(int index, LootPoolEntryContainer entry, LootPool pool, HolderLookup.Provider registries) {
+            return this.children.stream().anyMatch(child -> child.test(index, entry, pool, registries));
         }
     }
 
@@ -275,8 +276,8 @@ public interface EntrySelector {
                 EntrySelector.CODEC.listOf().fieldOf("conditions").forGetter(AllOf::children))
                 .apply(instance, AllOf::new));
         @Override
-        public boolean test(int index, LootPoolEntryContainer entry, LootPool pool) {
-            return this.children.stream().allMatch(child -> child.test(index, entry, pool));
+        public boolean test(int index, LootPoolEntryContainer entry, LootPool pool, HolderLookup.Provider registries) {
+            return this.children.stream().allMatch(child -> child.test(index, entry, pool, registries));
         }
     }
     /**
@@ -293,8 +294,8 @@ public interface EntrySelector {
         }
 
         @Override
-        public boolean test(int index, LootPoolEntryContainer entry, LootPool pool) {
-            return CustomEntrySelectorEvent.post(this.id, index, entry, pool);
+        public boolean test(int index, LootPoolEntryContainer entry, LootPool pool, HolderLookup.Provider registries) {
+            return CustomEntrySelectorEvent.post(this.id, index, entry, pool, registries);
         }
     }
 }

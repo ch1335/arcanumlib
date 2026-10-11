@@ -15,12 +15,12 @@ public final class ArcanumAttributes {
             DeferredRegister.create(Registries.ATTRIBUTE, ArcanumLib.MODID);
 
     /**
-     * 寻觅：提高稀有生物的刷怪权重。占比低于阈值（服务端配置）的生物最终权重 = 基础权重 ×（1 + 该值），不封顶。
-     * 基础值 0，默认不生效；{@code setSyncable} 让客户端也能读到同一个值。
+     * 寻觅：提高稀有生物的刷怪权重。占比低于阈值（服务端配置）的生物最终权重 = 基础权重 ×（1 + 该值）。
+     * 加成比例本身不设上限，只受属性范围夹取（0~100，即最多 ×101）；基础值 0，默认不生效。
      */
     public static final DeferredHolder<Attribute, Attribute> SEEKING = ATTRIBUTES.register(
             "seeking",
-            () -> new PercentageAttribute("attribute.name.arcanumlib.seeking", 0.0D, 0.0D, 10000.0D)
+            () -> new PercentageAttribute("attribute.name.arcanumlib.seeking", 0.0D, 0.0D, 100.0D)
                     .setSyncable(true));
 
     /**

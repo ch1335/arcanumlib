@@ -25,8 +25,13 @@ import java.util.function.Function;
 /**
  * 概率加工器：把当前概率变成新概率，按列表顺序依次应用。概率从 1.0 起算，「乘 0.1」即 10%。
  * 种类走 {@link ChanceModifierTypes} 注册表；类型必须用 MapCodec，Codec.dispatch 传方法引用会歧义。
+ *
+ * <p>接口对其它模组开放：实现它，再用
+ * {@code DeferredRegister.create(ChanceModifierTypes.REGISTRY_KEY, 你的 modid)} 注册即可。两条约定：
+ * {@link #apply} 必须是【无状态纯函数】（同一个条件实例会被多次掷骰复用，别在里面存可变状态），
+ * {@link #getType} 必须返回注册时给的那个 holder。
  */
-public sealed interface ChanceModifier {
+public interface ChanceModifier {
 
     /** 按注册表名分发，所以 json 里的 {@code type} 是带命名空间的 id（例如 {@code arcanumlib:clamp}）。 */
     Codec<ChanceModifier> CODEC = ChanceModifierTypes.REGISTRY.byNameCodec()

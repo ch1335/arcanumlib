@@ -64,7 +64,7 @@ public final class LootInjectorApplier {
             tables++;
 
             for (LootInjector injector : injectors) {
-                if (!injector.tableSelector().test(holder.key().location(), table)) {
+                if (!injector.tableSelector().test(holder.key().location(), table, registries)) {
                     continue;
                 }
 

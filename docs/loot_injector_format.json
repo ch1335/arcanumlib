@@ -1,7 +1,7 @@
 // 注入器格式说明（不是数据包文件，放这里只是为了避免被 datagen 当成陈旧产物删掉）。
 // 真实文件要放在 data/<ns>/loot_injecter/<id>.json；datagen 会清理它的输出目录，手写文件别放那里。
 //
-// 三层嵌套作用域：
+// 嵌套作用域（表 → 池 → 条目 → 函数 / 条件）：
 //   顶层 ops           → 作用于整张表（TableOperator）
 //   modify_pool 的子ops → 作用于"每个命中的池"（PoolOperator）
 //   modify_entry 的子ops→ 作用于"每个命中的条目"（EntryOperator）
