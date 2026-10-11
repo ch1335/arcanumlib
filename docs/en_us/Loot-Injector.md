@@ -1321,6 +1321,7 @@ and **the entries are as follows** (more will be added later; every new one gets
 | Condition id | One-line description | Detailed usage |
 |---|---|---|
 | `arcanumlib:chance_modifiers` | Chance modifier chain: starts from `base_chance`, passes through a list of modifiers in order, then rolls once against the final chance | [Loot Conditions Guide](Loot-Conditions.md) |
+| `arcanumlib:has_stage` | Stage condition: with AStages installed, gates on player / world stages | [Loot Conditions Guide](Loot-Conditions.md) |
 
 Example usage (attached to some entry):
 

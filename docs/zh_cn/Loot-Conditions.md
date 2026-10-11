@@ -4,13 +4,14 @@ ArcanumLib 提供的战利品条件都收录在这里。它们都是**原版 `Lo
 所以能写进任何战利品表的 `conditions`，也能被注入器体系当普通条件用。
 
 > 本文是**容器**：以后每加一个新条件，在下面的「条件列表」加一行、并补一节详细说明即可。
-> 目前只有 1 个条目。
+> 目前有 2 个条目。
 
 ## 条件列表
 
 | 条件 id | 一句话说明 | 详情 |
 |---|---|---|
-| `arcanumlib:chance_modifiers` | 概率加工链：从 `base_chance` 起算，按顺序过一串加工器，再用最终概率随机判定 | 下一节起 |
+| [`arcanumlib:chance_modifiers`](#arcanumlibchance_modifiers) | 概率加工链：从 `base_chance` 起算，按顺序过一串加工器，再用最终概率随机判定 | [下一节](#arcanumlibchance_modifiers) |
+| [`arcanumlib:has_stage`](#arcanumlibhas_stage) | 阶段条件：装了 AStages 时，持有匹配阶段的玩家 / 世界才通过 | [文末一节](#arcanumlibhas_stage) |
 
 ---
 
@@ -33,7 +34,7 @@ ArcanumLib 提供的战利品条件都收录在这里。它们都是**原版 `Lo
 1. [最小示例](#1-最小示例)
 2. [求值模型](#2-求值模型)
 3. [字段](#3-字段)
-4. [八个加工器](#4-八个加工器)
+4. [九个加工器](#4-九个加工器)
 5. [两种 operation 语义（最容易错的地方）](#5-两种-operation-语义最容易错的地方)
 6. [实体来源 EntitySource](#6-实体来源-entitysource)
 7. [EnchantedLootEvent：让外部改附魔等级](#7-enchantedlootevent让外部改附魔等级)
@@ -118,7 +119,7 @@ double chance = new ChanceModifierCondition(0.25D, List.of(...)).resolveChance(c
 
 ---
 
-### 4. 八个加工器
+### 4. 九个加工器
 
 注册表：`arcanumlib:chance_modifier`。每一项都是 `{ "type": "arcanumlib:<id>", ... }`。
 
@@ -132,6 +133,7 @@ double chance = new ChanceModifierCondition(0.25D, List.of(...)).resolveChance(c
 | `difficulty_factor` | `operation`（默认 `multiply`）、`peaceful`、`easy`、`normal`、`hard`（都可选） | 按当前难度取档位值，用 `operation` 加工 |
 | `tool_enchantment_level` | `enchantment`（必填）、`operation`（默认 `multiply`）、`per_level`（默认 `0.05`） | 按工具上某附魔的等级加工 |
 | `entity_attribute` | `attribute`（必填）、`entity`（默认 `attacking_entity`）、`operation`（默认 `multiply`）、`per_point`（默认 `0.05`） | 按某实体的一条属性加工 |
+| `stage` | `stage`（必填，可简写为字符串）、`desc`、`check_server_stages`、`success`、`fail` | 按 AStages 阶段二选一：命中依次过 `success` 链，否则过 `fail` 链 |
 
 #### 4.1 `add` — 加一个值
 
@@ -225,6 +227,40 @@ double chance = new ChanceModifierCondition(0.25D, List.of(...)).resolveChance(c
 - `entity` 见第 6 节，默认 `attacking_entity`；
 - 取的是 `LivingEntity.getAttributes().getInstance(attribute)`，**该实体没有这条属性时原样返回**（不当 0），所以缺某个模组的属性不会把概率意外清零。
 
+#### 4.9 `stage` — 按阶段二选一（需要 AStages）
+
+先判断阶段：命中就依次过 `success` 链，否则依次过 `fail` 链；两条链本身都是普通加工器列表。
+
+```json
+{
+  "type": "arcanumlib:stage",
+  "stage": { "pattern": "chapter_*", "type": "wildcard" },
+  "desc": "mymod.stage.chapter",
+  "check_server_stages": false,
+  "success": [
+    { "type": "arcanumlib:multiply", "factor": 2.0 }
+  ],
+  "fail": [
+    { "type": "arcanumlib:set_chance", "value": 0.05 }
+  ]
+}
+```
+
+`stage` / `desc` / `check_server_stages` 三个字段与 `arcanumlib:has_stage` 条件完全一致（`stage` 支持字符串简写或 `pattern`/`type` 对象）。`success` / `fail` 可省略，省略即空链（什么都不改）。
+
+> **没装 AStages 时等同"未命中"**，所以永远走 `fail` 链。
+
+ALI 里渲染成"作用域行带成功链"加一行「否则」带失败链，**某条链为空就整行不显示**：
+
+```
+阶段修正 :
+    ->玩家阶段 : 第一章
+        ->乘法系数 : 2.0
+    ->否则 :
+        ->设置概率 : 0.05
+```
+
+（`阶段修正 :`、`玩家阶段 : %s` / `世界阶段 : %s`、`否则 :` 是本模组提供的语言键；`->` 是 ALI 自己画的树箭头。）
 ---
 
 ### 5. 两种 operation 语义（最容易错的地方）
@@ -551,7 +587,7 @@ public final class MyModifiers {
 
 #### 12.4 ALI tooltip 的兜底
 
-装了 ALI 时，本模组的八个加工器有专门渲染；**外部加工器走兜底分支**，只显示它的注册名（例如 `mymod:square`）。
+装了 ALI 时，本模组的九个加工器有专门渲染；**外部加工器走兜底分支**，只显示它的注册名（例如 `mymod:square`）。
 想要自己的渲染，参考 `compat/ali/AliLootPlugin.java` 自己写一个 ALI 插件。
 
 #### 12.5 其它限制
@@ -585,9 +621,68 @@ public final class MyModifiers {
 | 内容 | 文件 |
 |---|---|
 | 条件本体（求值 + builder） | `modules/loot/lootCondition/ChanceModifierCondition.java` |
-| 八个加工器 + `Operation` / `EntitySource` | `modules/loot/lootCondition/ChanceModifier.java` |
+| 九个加工器 + `Operation` / `EntitySource` | `modules/loot/lootCondition/ChanceModifier.java` |
+| 阶段加工器（需 AStages） | `compat/astages/StageChanceModifier.java` |
 | 加工器注册表与注册 | `modules/loot/lootCondition/ChanceModifierTypes.java` |
 | 条件类型注册 | `modules/loot/lootCondition/LootConditionTypes.java` |
 | 附魔等级事件 | `events/EnchantedLootEvent.java` |
 | 让原版四种机制也发该事件的 mixin | `mixins/{ApplyBonusCount,BonusLevelTableCondition,EnchantedCountIncreaseFunction,LootItemRandomChanceWithEnchantedBonusCondition}Mixin.java` |
-| 官方示例（8 个加工器各有用例） | `src/generated/resources/data/arcanumlib/loot_injecter/` 下的 `test_zombie_modifiers.json`（`add` / `multiply` / `set_chance` / `invert`）与 `test_temple.json`、`test_zombies_tag.json`、`test_zombie_basic.json`（`clamp` / `difficulty_factor` / `tool_enchantment_level` / `entity_attribute`） |
+| 官方示例（9 个加工器各有用例） | `src/generated/resources/data/arcanumlib/loot_injecter/` 下的 `test_zombie_modifiers.json`（`add` / `multiply` / `set_chance` / `invert`）与 `test_temple.json`、`test_zombies_tag.json`、`test_zombie_basic.json`（`clamp` / `difficulty_factor` / `tool_enchantment_level` / `entity_attribute`）、`test_stage_modifier.json`（`stage`） |
+
+---
+
+## `arcanumlib:has_stage`
+
+按 **AStages 的阶段**放行掉落：玩家（或全服）持有匹配的阶段才通过。没装 AStages 时恒不通过。
+
+- 注册：`minecraft:loot_condition_type` 下的 `arcanumlib:has_stage`
+- 源码：`compat/astages/HasStageCondition.java`；阶段名匹配器 `compat/astages/StagePattern.java`；AStages 调用全部收在 `compat/astages/`
+
+### 格式
+
+```json
+{
+  "condition": "arcanumlib:has_stage",
+  "stage": { "pattern": "chapter_*", "type": "wildcard" },
+  "desc": "mymod.stage.chapter",
+  "check_server_stages": false
+}
+```
+
+| 字段 | 必填 | 默认 | 说明 |
+|---|---|---|---|
+| `stage` | ✅ | — | 阶段匹配。写字符串就等于 `literal`；也可以写 `{ "pattern": ..., "type": ... }` |
+| `desc` | | — | **本地化键**：ALI 里显示的阶段名。不写就显示 `pattern` 原文 |
+| `check_server_stages` | | `false` | `true` 查服务器级（世界）阶段，`false` 查玩家级阶段 |
+
+### 匹配方式
+
+`type` 三档，语义对齐 AStages 自己的 `StageMatcher`：
+
+| type | 说明 |
+|---|---|
+| `literal` | 完全相等（字符串简写即此档） |
+| `wildcard` | `*` 通配任意长度，例如 `chapter_*` |
+| `regex` | Java 正则，匹配整个阶段名 |
+
+### 取哪个玩家
+
+按顺序取第一个是玩家的：`LAST_DAMAGE_PLAYER` → `ATTACKING_ENTITY` → `THIS_ENTITY`；**都取不到就不通过**（不猜"最近玩家"，避免隐式行为）。
+
+### 在 ALI 里显示
+
+```
+玩家阶段 : 第一章      ← check_server_stages: false
+世界阶段 : 第一章      ← check_server_stages: true
+```
+
+名字来自 `desc` 那个本地化键，**一行显示完**；没写 `desc`、或 `desc` 的键不存在时，直接显示 `pattern` 原文。两个前缀由本模组提供（`%s` 会被替换成阶段名）：
+
+| 键 | 中文 | English |
+|---|---|---|
+| `arcanumlib.ali.condition.has_stage.player` | 玩家阶段 : %s | Player stage : %s |
+| `arcanumlib.ali.condition.has_stage.server` | 世界阶段 : %s | World stage : %s |
+
+### 没装 AStages 时
+
+条件**照常注册但恒不通过**（用到它的 json 仍能正常解析加载），首次使用时打一条 warn 日志。

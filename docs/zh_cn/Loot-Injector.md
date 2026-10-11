@@ -1321,6 +1321,7 @@ public final class MyDatagen {
 | 条件 id | 一句话说明 | 详细用法 |
 |---|---|---|
 | `arcanumlib:chance_modifiers` | 概率加工链：从 `base_chance` 起算，按顺序过一串加工器，再用最终概率做一次随机判定 | [战利品条件指南](Loot-Conditions.md) |
+| `arcanumlib:has_stage` | 阶段条件：装了 AStages 时按玩家级 / 世界级阶段放行 | [战利品条件指南](Loot-Conditions.md) |
 
 用法示例（挂在某个条目上）：
 

@@ -4,6 +4,9 @@ import com.chen1335.arcanumlib.ArcanumLib;
 import com.chen1335.arcanumlib.modules.loot.lootCondition.ChanceModifier;
 import com.chen1335.arcanumlib.modules.loot.lootCondition.ChanceModifierCondition;
 import com.chen1335.arcanumlib.modules.loot.lootCondition.ChanceModifierTypes;
+import com.chen1335.arcanumlib.compat.astages.HasStageCondition;
+import com.chen1335.arcanumlib.compat.astages.StageChanceModifier;
+import com.chen1335.arcanumlib.compat.astages.StagePattern;
 import com.chen1335.arcanumlib.modules.loot.lootEntry.AllOfEntry;
 import com.yanny.aci.api.NumberExpr;
 import com.yanny.aci.tooltip.TooltipBuilder;
@@ -41,6 +44,7 @@ public class AliLootPlugin implements IPlugin {
     @Override
     public void registerServer(IServerRegistry registry) {
         registry.registerConditionTooltip(ChanceModifierCondition.class, AliLootPlugin::conditionTooltip);
+        registry.registerConditionTooltip(HasStageCondition.class, AliLootPlugin::stageTooltip);
 
         // 只按基础概率修正（链上的修正如约定不参与）；返回 NumberExpr 而非绝对值，和原版 chance modifier 保持同一约定。
         registry.registerChanceModifier(ChanceModifierCondition.class,
@@ -75,6 +79,31 @@ public class AliLootPlugin implements IPlugin {
         }).key(ROOT);
     }
 
+    /** 阶段条件：一行显示成 {@code 玩家阶段 : 阶段名}（世界阶段同理）。 */
+    private static TooltipBuilder stageTooltip(IServerUtils utils, HasStageCondition condition) {
+        String scope = condition.checkServerStages()
+                ? key("condition.has_stage.server")
+                : key("condition.has_stage.player");
+
+        // 值 + 不带 \ue000 标记的键 → 走 appendTranslatableKeyWithValuesAndComponent：
+        // 值被填进键里的 %s，且不会再追加 ": 值"（带标记的键走 appendRawKey，就是上次那个 bug）。
+        // 注册接口要的是未 build 的 builder，所以用 .key(...) 收尾（和 conditionTooltip 一样）
+        return TooltipBuilder.value(stageName(condition)).key(scope);
+    }
+
+    /** 阶段名优先用 desc 的本地化键；没写 desc 就退回 pattern 原文。 */
+    private static String stageName(Optional<String> desc, StagePattern stage) {
+        return desc.map(TooltipBuilder::translate).orElseGet(stage::pattern);
+    }
+
+    private static String stageName(HasStageCondition condition) {
+        return stageName(condition.desc(), condition.stage());
+    }
+
+    private static String stageName(StageChanceModifier modifier) {
+        return stageName(modifier.desc(), modifier.stage());
+    }
+
     /** 本模组的八个加工器在这里逐个渲染；别的模组注册的走 default，只显示类型 id。 */
     private static TooltipNode describe(ChanceModifier modifier) {
         return switch (modifier) {
@@ -100,6 +129,20 @@ public class AliLootPlugin implements IPlugin {
                     .add(leaf("property.normal", difficulty(it, it.normal())))
                     .add(leaf("property.hard", difficulty(it, it.hard()))))
                     .build(key("property.difficulty_modifier"));
+            // 阶段加工器：作用域行带成功链、「否则」行带失败链；某条链为空就整行不显示
+            case StageChanceModifier it -> TooltipBuilder.branch(branch -> {
+                TooltipBuilder scope = TooltipBuilder.value(stageName(it));
+                it.success().forEach(child -> scope.add(describe(child)));
+                branch.add(scope.build(key(it.checkServerStages()
+                        ? "property.stage_scope.server"
+                        : "property.stage_scope.player")));
+
+                if (!it.fail().isEmpty()) {
+                    branch.add(TooltipBuilder.branch(otherwise -> it.fail()
+                                    .forEach(child -> otherwise.add(describe(child))))
+                            .build(key("property.stage_otherwise")));
+                }
+            }).build(key("property.stage_modifier"));
             // 接口对外开源，别的模组的加工器不认识：(不猜语义) 只把它的注册名显示出来
             default -> leaf("property.unknown_modifier", typeId(modifier));
         };

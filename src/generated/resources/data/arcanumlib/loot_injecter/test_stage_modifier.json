@@ -1,0 +1,75 @@
+{
+  "ops": [
+    {
+      "type": "arcanumlib:add_pool",
+      "pool": {
+        "bonus_rolls": 0.0,
+        "entries": [
+          {
+            "type": "minecraft:item",
+            "conditions": [
+              {
+                "chance_modifiers": [
+                  {
+                    "type": "arcanumlib:stage",
+                    "desc": "arcanumlib.test.stage.chapter_1",
+                    "fail": [
+                      {
+                        "type": "arcanumlib:set_chance",
+                        "value": 0.05
+                      }
+                    ],
+                    "stage": {
+                      "type": "wildcard",
+                      "pattern": "chapter_*"
+                    },
+                    "success": [
+                      {
+                        "type": "arcanumlib:multiply",
+                        "factor": 2.0
+                      },
+                      {
+                        "type": "arcanumlib:add",
+                        "value": 0.1
+                      }
+                    ]
+                  },
+                  {
+                    "type": "arcanumlib:stage",
+                    "check_server_stages": true,
+                    "fail": [
+                      {
+                        "type": "arcanumlib:invert"
+                      }
+                    ],
+                    "stage": "chapter_2"
+                  },
+                  {
+                    "type": "arcanumlib:stage",
+                    "stage": {
+                      "type": "regex",
+                      "pattern": "^act[1-3]_"
+                    },
+                    "success": [
+                      {
+                        "type": "arcanumlib:clamp",
+                        "max": 0.5
+                      }
+                    ]
+                  }
+                ],
+                "condition": "arcanumlib:chance_modifiers"
+              }
+            ],
+            "name": "minecraft:emerald"
+          }
+        ],
+        "rolls": 1.0
+      }
+    }
+  ],
+  "tableSelector": {
+    "type": "arcanumlib:id",
+    "id": "minecraft:entities/zombie"
+  }
+}

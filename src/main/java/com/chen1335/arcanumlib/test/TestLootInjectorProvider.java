@@ -7,6 +7,9 @@ import com.mojang.serialization.Dynamic;
 import com.mojang.serialization.JsonOps;
 import com.chen1335.arcanumlib.modules.loot.lootCondition.ChanceModifier;
 import com.chen1335.arcanumlib.modules.loot.lootCondition.ChanceModifierCondition;
+import com.chen1335.arcanumlib.compat.astages.HasStageCondition;
+import com.chen1335.arcanumlib.compat.astages.StageChanceModifier;
+import com.chen1335.arcanumlib.compat.astages.StagePattern;
 import com.chen1335.arcanumlib.modules.loot.lootEntry.AllOfEntry;
 import com.chen1335.arcanumlib.modules.loot.lootInjector.LootInjector;
 import com.chen1335.arcanumlib.modules.loot.lootInjector.selector.EntrySelector;
@@ -46,6 +49,7 @@ import net.minecraft.world.level.storage.loot.providers.number.ConstantValue;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 
 /**
@@ -98,6 +102,8 @@ public class TestLootInjectorProvider extends LootInjectorTemplate {
         list.addAll(tableFunctionInjectors());
         list.addAll(tableSelectorInjectors());
         list.add(selectorProbe());
+        list.add(hasStageInjector());
+        list.add(stageModifierInjector());
         list.addAll(customInjectors());
         return List.copyOf(list);
     }
@@ -443,6 +449,39 @@ public class TestLootInjectorProvider extends LootInjectorTemplate {
 
     // ---- 组装辅助 --------------------------------------------------------
 
+    /** 阶段条件：只用于验证 codec 往返 + 给文档一个示例；没装 AStages 时该条件恒不通过。 */
+    private LootInjector hasStageInjector() {
+        return raw("test_has_stage", new TableSelector.ById(ZOMBIE_TABLE), 1000,
+                new TableOperator.AddPool(LootPool.lootPool()
+                        .setRolls(ConstantValue.exactly(1.0F))
+                        .add(LootItem.lootTableItem(Items.DIAMOND)
+                                // 两种写法各来一份：对象形式（通配）+ 字符串简写 + desc + 世界阶段
+                                .when(HasStageCondition.builder(new StagePattern("chapter_*", StagePattern.Type.WILDCARD)))
+                                .when(HasStageCondition.builder(StagePattern.literal("chapter_1"), "arcanumlib.test.stage.chapter_1", true))
+                                .when(LootItemRandomChanceCondition.randomChance(1.0F)))
+                        .build()));
+    }
+    /** 阶段加工器：三条一起覆盖"两条链都有 / success 空 / fail 空"三种 ALI 显示分支。 */
+    private LootInjector stageModifierInjector() {
+        return raw("test_stage_modifier", new TableSelector.ById(ZOMBIE_TABLE), 1000,
+                new TableOperator.AddPool(LootPool.lootPool()
+                        .setRolls(ConstantValue.exactly(1.0F))
+                        .add(LootItem.lootTableItem(Items.EMERALD)
+                                .when(ChanceModifierCondition.builder(1.0D,
+                                        new StageChanceModifier(
+                                                new StagePattern("chapter_*", StagePattern.Type.WILDCARD),
+                                                Optional.of("arcanumlib.test.stage.chapter_1"), false,
+                                                List.of(new ChanceModifier.Multiply(2.0D), new ChanceModifier.Add(0.1D)),
+                                                List.of(new ChanceModifier.SetChance(0.05D))),
+                                        new StageChanceModifier(
+                                                StagePattern.literal("chapter_2"), Optional.empty(), true,
+                                                List.of(), List.of(new ChanceModifier.Invert())),
+                                        new StageChanceModifier(
+                                                new StagePattern("^act[1-3]_", StagePattern.Type.REGEX),
+                                                Optional.empty(), false,
+                                                List.of(new ChanceModifier.Clamp(0.0D, 0.5D)), List.of()))))
+                        .build()));
+    }
     private LootInjector raw(String path, TableSelector tableSelector, int priority, TableOperator... ops) {
         return new LootInjector(id(path), tableSelector, priority, List.of(ops));
     }

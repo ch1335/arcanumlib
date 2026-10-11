@@ -1,6 +1,7 @@
 package com.chen1335.arcanumlib.modules.loot.lootCondition;
 
 import com.chen1335.arcanumlib.ArcanumLib;
+import com.chen1335.arcanumlib.compat.astages.StageChanceModifier;
 import net.minecraft.core.Registry;
 import net.minecraft.resources.ResourceKey;
 import net.neoforged.neoforge.registries.DeferredHolder;
@@ -36,6 +37,10 @@ public final class ChanceModifierTypes {
             TYPES.register("tool_enchantment_level", () -> new ChanceModifierType(ChanceModifier.ToolEnchantmentLevel.CODEC));
     public static final DeferredHolder<ChanceModifierType, ChanceModifierType> ENTITY_ATTRIBUTE =
             TYPES.register("entity_attribute", () -> new ChanceModifierType(ChanceModifier.EntityAttribute.CODEC));
+
+    /** 阶段加工器：命中 AStages 阶段走 success 链，否则走 fail 链；两条链本身是普通加工器列表。 */
+    public static final DeferredHolder<ChanceModifierType, ChanceModifierType> STAGE =
+            TYPES.register("stage", () -> new ChanceModifierType(StageChanceModifier.CODEC));
 
     private ChanceModifierTypes() {
     }

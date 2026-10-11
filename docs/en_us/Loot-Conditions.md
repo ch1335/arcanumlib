@@ -4,13 +4,14 @@ All the loot conditions provided by ArcanumLib are collected here. They are all 
 so they can be written into the `conditions` of any loot table, and the injector system can also use them as ordinary conditions.
 
 > This document is a **container**: whenever a new condition is added later, just add a row to the "Condition list" below
-> and append a detailed section. Currently there is only 1 entry.
+> and append a detailed section. Currently there are 2 entries.
 
 ## Condition list
 
 | Condition id | One-line description | Details |
 |---|---|---|
-| `arcanumlib:chance_modifiers` | Chance modifier chain: starts from `base_chance`, passes through a list of modifiers in order, then rolls against the final chance | From the next section on |
+| [`arcanumlib:chance_modifiers`](#arcanumlibchance_modifiers) | Chance modifier chain: starts from `base_chance`, passes through a list of modifiers in order, then rolls against the final chance | [Next section](#arcanumlibchance_modifiers) |
+| [`arcanumlib:has_stage`](#arcanumlibhas_stage) | Stage condition: with AStages installed, only a player / server holding a matching stage passes | [Last section](#arcanumlibhas_stage) |
 
 ---
 
@@ -33,7 +34,7 @@ bonusing by game difficulty, by the Looting level on the tool, by the attacker's
 1. [Minimal example](#1-minimal-example)
 2. [Evaluation model](#2-evaluation-model)
 3. [Fields](#3-fields)
-4. [The eight modifiers](#4-the-eight-modifiers)
+4. [The nine modifiers](#4-the-nine-modifiers)
 5. [The two operation semantics (the easiest place to go wrong)](#5-the-two-operation-semantics-the-easiest-place-to-go-wrong)
 6. [Entity source: EntitySource](#6-entity-source-entitysource)
 7. [EnchantedLootEvent: letting outside code change the enchantment level](#7-enchantedlootevent-letting-outside-code-change-the-enchantment-level)
@@ -118,7 +119,7 @@ double chance = new ChanceModifierCondition(0.25D, List.of(...)).resolveChance(c
 
 ---
 
-### 4. The eight modifiers
+### 4. The nine modifiers
 
 Registry: `arcanumlib:chance_modifier`. Each entry is `{ "type": "arcanumlib:<id>", ... }`.
 
@@ -132,6 +133,7 @@ Registry: `arcanumlib:chance_modifier`. Each entry is `{ "type": "arcanumlib:<id
 | `difficulty_factor` | `operation` (default `multiply`), `peaceful`, `easy`, `normal`, `hard` (all optional) | Takes the tier value for the current difficulty and processes with `operation` |
 | `tool_enchantment_level` | `enchantment` (required), `operation` (default `multiply`), `per_level` (default `0.05`) | Processes by the level of some enchantment on the tool |
 | `entity_attribute` | `attribute` (required), `entity` (default `attacking_entity`), `operation` (default `multiply`), `per_point` (default `0.05`) | Processes by one attribute of some entity |
+| `stage` | `stage` (required, may be a plain string), `desc`, `check_server_stages`, `success`, `fail` | Picks one of two chains by AStages stage: on a match the `success` chain runs, otherwise the `fail` chain |
 
 #### 4.1 `add` — add a value
 
@@ -225,6 +227,40 @@ Every 1 point of Luck on the attacker makes the chance ×(1 + 0.01). With `add` 
 - For `entity` see section 6; it defaults to `attacking_entity`;
 - It reads `LivingEntity.getAttributes().getInstance(attribute)`, and **returns unchanged when the entity does not have that attribute** (it does not treat it as 0), so a missing attribute from some mod will not accidentally zero out the chance.
 
+#### 4.9 `stage` — pick one of two chains by stage (requires AStages)
+
+The stage is checked first: on a match the `success` chain is applied in order, otherwise the `fail` chain is. Both chains are ordinary modifier lists.
+
+```json
+{
+  "type": "arcanumlib:stage",
+  "stage": { "pattern": "chapter_*", "type": "wildcard" },
+  "desc": "mymod.stage.chapter",
+  "check_server_stages": false,
+  "success": [
+    { "type": "arcanumlib:multiply", "factor": 2.0 }
+  ],
+  "fail": [
+    { "type": "arcanumlib:set_chance", "value": 0.05 }
+  ]
+}
+```
+
+`stage` / `desc` / `check_server_stages` behave exactly as in the `arcanumlib:has_stage` condition (`stage` accepts a plain string or a `pattern`/`type` object). `success` / `fail` may be omitted; an omitted chain is empty and changes nothing.
+
+> **Without AStages this counts as "no match"**, so the `fail` chain is always the one applied.
+
+In ALI it renders as a scope line carrying the success chain plus an "otherwise" line carrying the fail chain; **an empty chain hides its whole line**:
+
+```
+Stage modifier :
+    ->Player stage : Chapter 1
+        ->Multiplier : 2.0
+    ->Otherwise :
+        ->Set chance : 0.05
+```
+
+(`Stage modifier :`, `Player stage : %s` / `World stage : %s` and `Otherwise :` are localization keys provided by this mod; the `->` is the tree arrow ALI draws itself.)
 ---
 
 ### 5. The two operation semantics (the easiest place to go wrong)
@@ -551,7 +587,7 @@ Once registered, it can be used anywhere just like a built-in modifier:
 
 #### 12.4 ALI tooltip fallback
 
-When ALI is installed, this mod's eight modifiers have dedicated rendering; **external modifiers go through the fallback branch** and only show their registry name (for example `mymod:square`).
+When ALI is installed, this mod's nine modifiers have dedicated rendering; **external modifiers go through the fallback branch** and only show their registry name (for example `mymod:square`).
 If you want your own rendering, write an ALI plugin of your own following `compat/ali/AliLootPlugin.java`.
 
 #### 12.5 Other limitations
@@ -585,9 +621,68 @@ If you want your own rendering, write an ALI plugin of your own following `compa
 | Content | File |
 |---|---|
 | The condition itself (evaluation + builder) | `modules/loot/lootCondition/ChanceModifierCondition.java` |
-| The eight modifiers + `Operation` / `EntitySource` | `modules/loot/lootCondition/ChanceModifier.java` |
+| The nine modifiers + `Operation` / `EntitySource` | `modules/loot/lootCondition/ChanceModifier.java` |
+| The stage modifier (requires AStages) | `compat/astages/StageChanceModifier.java` |
 | Modifier registry and registration | `modules/loot/lootCondition/ChanceModifierTypes.java` |
 | Condition type registration | `modules/loot/lootCondition/LootConditionTypes.java` |
 | Enchantment level event | `events/EnchantedLootEvent.java` |
 | The mixins that make the four vanilla mechanics fire this event too | `mixins/{ApplyBonusCount,BonusLevelTableCondition,EnchantedCountIncreaseFunction,LootItemRandomChanceWithEnchantedBonusCondition}Mixin.java` |
-| Official examples (each of the 8 modifiers has a use case) | `test_zombie_modifiers.json` (`add` / `multiply` / `set_chance` / `invert`) and `test_temple.json`, `test_zombies_tag.json`, `test_zombie_basic.json` (`clamp` / `difficulty_factor` / `tool_enchantment_level` / `entity_attribute`) under `src/generated/resources/data/arcanumlib/loot_injecter/` |
+| Official examples (each of the 9 modifiers has a use case) | `test_zombie_modifiers.json` (`add` / `multiply` / `set_chance` / `invert`) and `test_temple.json`, `test_zombies_tag.json`, `test_zombie_basic.json` (`clamp` / `difficulty_factor` / `tool_enchantment_level` / `entity_attribute`) and `test_stage_modifier.json` (`stage`) under `src/generated/resources/data/arcanumlib/loot_injecter/` |
+
+---
+
+## `arcanumlib:has_stage`
+
+Gates loot on an **AStages stage**: it passes only when the player (or the whole server) holds a matching stage. Without AStages installed it never passes.
+
+- Registered as `arcanumlib:has_stage` under `minecraft:loot_condition_type`
+- Source: `compat/astages/HasStageCondition.java`; stage name matcher `compat/astages/StagePattern.java`; every AStages call lives in `compat/astages/`
+
+### Format
+
+```json
+{
+  "condition": "arcanumlib:has_stage",
+  "stage": { "pattern": "chapter_*", "type": "wildcard" },
+  "desc": "mymod.stage.chapter",
+  "check_server_stages": false
+}
+```
+
+| Field | Required | Default | Meaning |
+|---|---|---|---|
+| `stage` | ✅ | — | Stage matcher. A plain string means `literal`; or write `{ "pattern": ..., "type": ... }` |
+| `desc` | | — | **Localization key** for the name shown in ALI. Without it the raw `pattern` is shown |
+| `check_server_stages` | | `false` | `true` checks server-wide (world) stages, `false` checks player stages |
+
+### Matching modes
+
+`type` has three values, matching the semantics of AStages' own `StageMatcher`:
+
+| type | Meaning |
+|---|---|
+| `literal` | Exact equality (what a plain string means) |
+| `wildcard` | `*` matches any length, e.g. `chapter_*` |
+| `regex` | Java regex, matched against the whole stage name |
+
+### Which player is used
+
+The first of these that is a player: `LAST_DAMAGE_PLAYER` -> `ATTACKING_ENTITY` -> `THIS_ENTITY`. If none is a player the condition **does not pass** (no implicit "nearest player"). For block loot and chests `THIS_ENTITY` is the player in the normal case.
+
+### How it shows up in ALI
+
+```
+Player stage : Chapter 1      <- check_server_stages: false
+World stage : Chapter 1       <- check_server_stages: true
+```
+
+The name comes from the `desc` localization key and is shown on the **same line**; the raw `pattern` is shown when `desc` is absent or its key does not exist. The two prefixes come from this mod (`%s` is replaced with the stage name):
+
+| Key | 中文 | English |
+|---|---|---|
+| `arcanumlib.ali.condition.has_stage.player` | 玩家阶段 : %s | Player stage : %s |
+| `arcanumlib.ali.condition.has_stage.server` | 世界阶段 : %s | World stage : %s |
+
+### Without AStages
+
+The condition is still registered but **never passes** (JSON using it still parses and loads), and a warning is logged the first time it is evaluated.
