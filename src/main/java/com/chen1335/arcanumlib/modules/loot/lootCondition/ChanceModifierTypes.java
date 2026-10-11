@@ -21,10 +21,9 @@ public final class ChanceModifierTypes {
     public static final DeferredRegister<ChanceModifierType> TYPES =
             DeferredRegister.create(REGISTRY_KEY, ArcanumLib.MODID);
 
-    public static final DeferredHolder<ChanceModifierType, ChanceModifierType> ADD =
-            TYPES.register("add", () -> new ChanceModifierType(ChanceModifier.Add.CODEC));
-    public static final DeferredHolder<ChanceModifierType, ChanceModifierType> MULTIPLY =
-            TYPES.register("multiply", () -> new ChanceModifierType(ChanceModifier.Multiply.CODEC));
+    /** 加 / 乘同一个值，由 operation 区分（合并了原来的 add 与 multiply 两种）。 */
+    public static final DeferredHolder<ChanceModifierType, ChanceModifierType> APPLY =
+            TYPES.register("apply", () -> new ChanceModifierType(ChanceModifier.Apply.CODEC));
     public static final DeferredHolder<ChanceModifierType, ChanceModifierType> SET_CHANCE =
             TYPES.register("set_chance", () -> new ChanceModifierType(ChanceModifier.SetChance.CODEC));
     public static final DeferredHolder<ChanceModifierType, ChanceModifierType> CLAMP =

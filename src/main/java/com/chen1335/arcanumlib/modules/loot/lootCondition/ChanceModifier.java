@@ -41,43 +41,28 @@ public interface ChanceModifier {
 
     double apply(double chance, LootContext context);
 
-    /** 概率加上一个值（可为负，用来折减）。 */
-    record Add(double value) implements ChanceModifier {
-        public static Add of(double value) {
-            return new Add(value);
+    /** 概率加 / 乘一个值（加可为负，用来折减）。operation 缺省 multiply，与其它带 operation 的加工器一致。 */
+    record Apply(Operation operation, double value) implements ChanceModifier {
+        public static Apply add(double value) {
+            return new Apply(Operation.ADD, value);
         }
 
-        public static final MapCodec<Add> CODEC = RecordCodecBuilder.mapCodec(instance -> instance.group(
-                Codec.DOUBLE.fieldOf("value").forGetter(Add::value)).apply(instance, Add::new));
+        public static Apply multiply(double value) {
+            return new Apply(Operation.MULTIPLY, value);
+        }
+
+        public static final MapCodec<Apply> CODEC = RecordCodecBuilder.mapCodec(instance -> instance.group(
+                Operation.CODEC.optionalFieldOf("operation", Operation.MULTIPLY).forGetter(Apply::operation),
+                Codec.DOUBLE.fieldOf("value").forGetter(Apply::value)).apply(instance, Apply::new));
 
         @Override
         public ChanceModifierType getType() {
-            return ChanceModifierTypes.ADD.get();
+            return ChanceModifierTypes.APPLY.get();
         }
 
         @Override
         public double apply(double chance, LootContext context) {
-            return chance + this.value;
-        }
-    }
-
-    /** 概率乘一个系数。 */
-    record Multiply(double factor) implements ChanceModifier {
-        public static Multiply of(double factor) {
-            return new Multiply(factor);
-        }
-
-        public static final MapCodec<Multiply> CODEC = RecordCodecBuilder.mapCodec(instance -> instance.group(
-                Codec.DOUBLE.fieldOf("factor").forGetter(Multiply::factor)).apply(instance, Multiply::new));
-
-        @Override
-        public ChanceModifierType getType() {
-            return ChanceModifierTypes.MULTIPLY.get();
-        }
-
-        @Override
-        public double apply(double chance, LootContext context) {
-            return chance * this.factor;
+            return this.operation.apply(chance, this.value);
         }
     }
 

@@ -34,7 +34,7 @@ bonusing by game difficulty, by the Looting level on the tool, by the attacker's
 1. [Minimal example](#1-minimal-example)
 2. [Evaluation model](#2-evaluation-model)
 3. [Fields](#3-fields)
-4. [The nine modifiers](#4-the-nine-modifiers)
+4. [The eight modifiers](#4-the-eight-modifiers)
 5. [The two operation semantics (the easiest place to go wrong)](#5-the-two-operation-semantics-the-easiest-place-to-go-wrong)
 6. [Entity source: EntitySource](#6-entity-source-entitysource)
 7. [EnchantedLootEvent: letting outside code change the enchantment level](#7-enchantedlootevent-letting-outside-code-change-the-enchantment-level)
@@ -119,14 +119,13 @@ double chance = new ChanceModifierCondition(0.25D, List.of(...)).resolveChance(c
 
 ---
 
-### 4. The nine modifiers
+### 4. The eight modifiers
 
 Registry: `arcanumlib:chance_modifier`. Each entry is `{ "type": "arcanumlib:<id>", ... }`.
 
 | id | Field | Semantics |
 |---|---|---|
-| `add` | `value` (required) | `chance + value` (may be negative, used to reduce) |
-| `multiply` | `factor` (required) | `chance × factor` |
+| `apply` | `operation` (default `multiply`), `value` (required) | `operation` decides: `chance + value` or `chance × value` |
 | `set_chance` | `value` (required) | **Directly sets** the value, discarding the previous result |
 | `clamp` | `min` (default `0.0`), `max` (default `1.0`) | Clamps to `[min, max]` |
 | `invert` | — | `1 - chance` (complement) |
@@ -135,21 +134,23 @@ Registry: `arcanumlib:chance_modifier`. Each entry is `{ "type": "arcanumlib:<id
 | `entity_attribute` | `attribute` (required), `entity` (default `attacking_entity`), `operation` (default `multiply`), `per_point` (default `0.05`) | Processes by one attribute of some entity |
 | `stage` | `stage` (required, may be a plain string), `desc`, `check_server_stages`, `success`, `fail` | Picks one of two chains by AStages stage: on a match the `success` chain runs, otherwise the `fail` chain |
 
-#### 4.1 `add` — add a value
+#### 4.1 `apply` — add or multiply
 
 ```json
-{ "type": "arcanumlib:add", "value": 0.1 }
+{ "type": "arcanumlib:apply", "operation": "add", "value": 0.1 }
 ```
-`0.2 → 0.3`. A negative value can be used to reduce: `{ "type": "arcanumlib:add", "value": -0.05 }`.
-
-#### 4.2 `multiply` — multiply by a factor
-
 ```json
-{ "type": "arcanumlib:multiply", "factor": 2.0 }
+{ "type": "arcanumlib:apply", "operation": "multiply", "value": 2.0 }
 ```
-`0.1 → 0.2`. Multiplying by 0 means "never passes", multiplying by 2 means "double".
+`operation` defaults to `multiply`, i.e. `chance × value` (multiplying by 0 means "never passes", by 2 means "double");
+using `add` gives `chance + value`, and the value may be negative to reduce the chance.
 
-#### 4.3 `set_chance` — set the value directly
+In ALI it renders on one line as `Apply : ×N` (`+N` for addition, `-N` when negative):
+
+```
+Apply : ×2.0
+```
+#### 4.2 `set_chance` — set the value directly
 
 ```json
 { "type": "arcanumlib:set_chance", "value": 0.08 }
@@ -157,21 +158,21 @@ Registry: `arcanumlib:chance_modifier`. Each entry is `{ "type": "arcanumlib:<id
 Placed at the head of the chain it sets the initial value (in which case it duplicates `base_chance` and is usually unnecessary);
 **placed in the middle of the chain it discards every previous processing result**, so it is generally only used for "if some condition holds, force it to a fixed chance".
 
-#### 4.4 `clamp` — clamp the range
+#### 4.3 `clamp` — clamp the range
 
 ```json
 { "type": "arcanumlib:clamp", "min": 0.0, "max": 1.0 }
 ```
 Omitting the fields gives the defaults above. Because of its "safety net" nature it is usually placed at the **end of the chain**, so that the earlier processing does not produce a negative number or a value above 1.
 
-#### 4.5 `invert` — take the complement
+#### 4.4 `invert` — take the complement
 
 ```json
 { "type": "arcanumlib:invert" }
 ```
 `0.95 → 0.05`. Typical use: turn "95% chance of not dropping" into "5% chance of dropping".
 
-#### 4.6 `difficulty_factor` — process by game difficulty
+#### 4.5 `difficulty_factor` — process by game difficulty
 
 ```json
 {
@@ -192,7 +193,15 @@ On Hard the chance is ×1.3, on Normal ×1.15, and on Peaceful/Easy it is unchan
 { "type": "arcanumlib:difficulty_factor", "hard": 1.5 }
 ```
 
-#### 4.7 `tool_enchantment_level` — process by the tool's enchantment level
+In ALI each tier is one line (`Peaceful : ×1.0`), and **a tier equal to the neutral value is hidden** (adding 0 / multiplying by 1 changes nothing), so the `hard`-only example above shows up as:
+
+```
+Difficulty modifier :
+    ->Hard : ×1.5
+```
+
+
+#### 4.6 `tool_enchantment_level` — process by the tool's enchantment level
 
 ```json
 {
@@ -211,7 +220,7 @@ Each level of Looting makes the chance ×(1 + 0.05), i.e. Looting III → ×1.15
 > Enchantments are a **data-driven registry**, so what is stored here is a `ResourceKey` and the `Holder` is fetched at runtime;
 > therefore the json contains an enchantment id (`"minecraft:looting"`), and unlike attributes it cannot be a `Holder` directly.
 
-#### 4.8 `entity_attribute` — process by an entity attribute
+#### 4.7 `entity_attribute` — process by an entity attribute
 
 ```json
 {
@@ -227,7 +236,7 @@ Every 1 point of Luck on the attacker makes the chance ×(1 + 0.01). With `add` 
 - For `entity` see section 6; it defaults to `attacking_entity`;
 - It reads `LivingEntity.getAttributes().getInstance(attribute)`, and **returns unchanged when the entity does not have that attribute** (it does not treat it as 0), so a missing attribute from some mod will not accidentally zero out the chance.
 
-#### 4.9 `stage` — pick one of two chains by stage (requires AStages)
+#### 4.8 `stage` — pick one of two chains by stage (requires AStages)
 
 The stage is checked first: on a match the `success` chain is applied in order, otherwise the `fail` chain is. Both chains are ordinary modifier lists.
 
@@ -238,7 +247,7 @@ The stage is checked first: on a match the `success` chain is applied in order, 
   "desc": "mymod.stage.chapter",
   "check_server_stages": false,
   "success": [
-    { "type": "arcanumlib:multiply", "factor": 2.0 }
+    { "type": "arcanumlib:apply", "value": 2.0 }
   ],
   "fail": [
     { "type": "arcanumlib:set_chance", "value": 0.05 }
@@ -255,7 +264,7 @@ In ALI it renders as a scope line carrying the success chain plus an "otherwise"
 ```
 Stage modifier :
     ->Player stage : Chapter 1
-        ->Multiplier : 2.0
+        ->Apply : ×2.0
     ->Otherwise :
         ->Set chance : 0.05
 ```
@@ -500,7 +509,7 @@ LootItemCondition.Builder condition = ChanceModifierCondition.builder(0.25D,
         ChanceModifier.DifficultyFactor.multiply(1.0D, 1.0D, 1.15D, 1.3D));
 ```
 
-- Every modifier has an `of(...)` factory method (`Add.of(0.1D)`, `Clamp.of(0.0D, 1.0D)`, `Invert.of()`…);
+- Every modifier has an `of(...)` factory method (`Apply.add(0.1D)`, `Clamp.of(0.0D, 1.0D)`, `Invert.of()`…);
 - `DifficultyFactor` additionally has two convenience factories, `multiply(peaceful, easy, normal, hard)` and `add(...)`,
   which are **cleaner than hand-rolling `Optional`s** (the four tiers in `PEACEFUL / EASY / NORMAL / HARD` order);
 - Omitting the chain is `ChanceModifierCondition.builder()` (equivalent to always passing).
@@ -587,7 +596,7 @@ Once registered, it can be used anywhere just like a built-in modifier:
 
 #### 12.4 ALI tooltip fallback
 
-When ALI is installed, this mod's nine modifiers have dedicated rendering; **external modifiers go through the fallback branch** and only show their registry name (for example `mymod:square`).
+When ALI is installed, this mod's eight modifiers have dedicated rendering; **external modifiers go through the fallback branch** and only show their registry name (for example `mymod:square`).
 If you want your own rendering, write an ALI plugin of your own following `compat/ali/AliLootPlugin.java`.
 
 #### 12.5 Other limitations
@@ -621,13 +630,13 @@ If you want your own rendering, write an ALI plugin of your own following `compa
 | Content | File |
 |---|---|
 | The condition itself (evaluation + builder) | `modules/loot/lootCondition/ChanceModifierCondition.java` |
-| The nine modifiers + `Operation` / `EntitySource` | `modules/loot/lootCondition/ChanceModifier.java` |
+| The eight modifiers + `Operation` / `EntitySource` | `modules/loot/lootCondition/ChanceModifier.java` |
 | The stage modifier (requires AStages) | `compat/astages/StageChanceModifier.java` |
 | Modifier registry and registration | `modules/loot/lootCondition/ChanceModifierTypes.java` |
 | Condition type registration | `modules/loot/lootCondition/LootConditionTypes.java` |
 | Enchantment level event | `events/EnchantedLootEvent.java` |
 | The mixins that make the four vanilla mechanics fire this event too | `mixins/{ApplyBonusCount,BonusLevelTableCondition,EnchantedCountIncreaseFunction,LootItemRandomChanceWithEnchantedBonusCondition}Mixin.java` |
-| Official examples (each of the 9 modifiers has a use case) | `test_zombie_modifiers.json` (`add` / `multiply` / `set_chance` / `invert`) and `test_temple.json`, `test_zombies_tag.json`, `test_zombie_basic.json` (`clamp` / `difficulty_factor` / `tool_enchantment_level` / `entity_attribute`) and `test_stage_modifier.json` (`stage`) under `src/generated/resources/data/arcanumlib/loot_injecter/` |
+| Official examples (each of the 9 modifiers has a use case) | `test_zombie_modifiers.json` (`apply` / `set_chance` / `invert`) and `test_temple.json`, `test_zombies_tag.json`, `test_zombie_basic.json` (`clamp` / `difficulty_factor` / `tool_enchantment_level` / `entity_attribute`) and `test_stage_modifier.json` (`stage`) under `src/generated/resources/data/arcanumlib/loot_injecter/` |
 
 ---
 

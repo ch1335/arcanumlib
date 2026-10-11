@@ -129,13 +129,13 @@ public class TestLootInjectorProvider extends LootInjectorTemplate {
                         new Drop(0.20D, () -> LootItem.lootTableItem(Items.EMERALD))));
     }
 
-    /** 剩下 4 种加工器：set_chance / multiply / invert / add。 */
+    /** 剩下 4 种：set_chance / apply(乘) / invert / apply(加)。 */
     private List<LootInjector> modifierInjectors() {
         return List.of(raw("test_zombie_modifiers", new TableSelector.ById(ZOMBIE_TABLE), 1000,
                 allOfPool(
-                        entry(Items.DIAMOND, 0.02D, new ChanceModifier.Multiply(2.0D)),
+                        entry(Items.DIAMOND, 0.02D, ChanceModifier.Apply.multiply(2.0D)),
                         entry(Items.NETHERITE_SCRAP, 0.95D, new ChanceModifier.Invert()),
-                        entry(Items.AMETHYST_SHARD, 0.02D, new ChanceModifier.Add(0.03D)),
+                        entry(Items.AMETHYST_SHARD, 0.02D, ChanceModifier.Apply.add(0.03D)),
                         entry(Items.LAPIS_LAZULI, new ChanceModifier.SetChance(0.08D)))));
     }
 
@@ -471,7 +471,7 @@ public class TestLootInjectorProvider extends LootInjectorTemplate {
                                         new StageChanceModifier(
                                                 new StagePattern("chapter_*", StagePattern.Type.WILDCARD),
                                                 Optional.of("arcanumlib.test.stage.chapter_1"), false,
-                                                List.of(new ChanceModifier.Multiply(2.0D), new ChanceModifier.Add(0.1D)),
+                                                List.of(ChanceModifier.Apply.multiply(2.0D), ChanceModifier.Apply.add(0.1D)),
                                                 List.of(new ChanceModifier.SetChance(0.05D))),
                                         new StageChanceModifier(
                                                 StagePattern.literal("chapter_2"), Optional.empty(), true,

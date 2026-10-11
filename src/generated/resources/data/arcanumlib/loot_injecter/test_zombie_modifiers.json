@@ -15,8 +15,8 @@
                     "base_chance": 0.02,
                     "chance_modifiers": [
                       {
-                        "type": "arcanumlib:multiply",
-                        "factor": 2.0
+                        "type": "arcanumlib:apply",
+                        "value": 2.0
                       }
                     ],
                     "condition": "arcanumlib:chance_modifiers"
@@ -46,7 +46,8 @@
                     "base_chance": 0.02,
                     "chance_modifiers": [
                       {
-                        "type": "arcanumlib:add",
+                        "type": "arcanumlib:apply",
+                        "operation": "add",
                         "value": 0.03
                       }
                     ],

@@ -108,8 +108,8 @@ public class AliLootPlugin implements IPlugin {
     private static TooltipNode describe(ChanceModifier modifier) {
         return switch (modifier) {
             case ChanceModifier.SetChance it -> leaf("property.set_chance", number(it.value()));
-            case ChanceModifier.Multiply it -> leaf("property.multiply_factor", number(it.factor()));
-            case ChanceModifier.Add it -> leaf("property.add_value", number(it.value()));
+            // 加/乘合并后压成一行：「应用 : x N」/「应用 : + N」（负值直接 -N）
+            case ChanceModifier.Apply it -> leaf("property.apply", applyValue(it));
             case ChanceModifier.Invert ignored -> leaf("property.invert", "1 - chance");
             case ChanceModifier.Clamp it -> TooltipBuilder.branch(branch -> branch
                     .add(leaf("property.min", number(it.min())))
@@ -123,12 +123,12 @@ public class AliLootPlugin implements IPlugin {
                     .add(operation(it.operation(), leaf("property.per_point", number(it.perPoint()))))
                     .add(leafTranslation("property.attribute", it.attribute().value().getDescriptionId())))
                     .build(key("property.attribute_modifier"));
-            case ChanceModifier.DifficultyFactor it -> TooltipBuilder.branch(branch -> branch
-                    .add(leaf("property.peaceful", difficulty(it, it.peaceful())))
-                    .add(leaf("property.easy", difficulty(it, it.easy())))
-                    .add(leaf("property.normal", difficulty(it, it.normal())))
-                    .add(leaf("property.hard", difficulty(it, it.hard()))))
-                    .build(key("property.difficulty_modifier"));
+            case ChanceModifier.DifficultyFactor it -> TooltipBuilder.branch(branch -> {
+                difficultyTier(branch, it, "property.peaceful", it.peaceful());
+                difficultyTier(branch, it, "property.easy", it.easy());
+                difficultyTier(branch, it, "property.normal", it.normal());
+                difficultyTier(branch, it, "property.hard", it.hard());
+            }).build(key("property.difficulty_modifier"));
             // 阶段加工器：作用域行带成功链、「否则」行带失败链；某条链为空就整行不显示
             case StageChanceModifier it -> TooltipBuilder.branch(branch -> {
                 TooltipBuilder scope = TooltipBuilder.value(stageName(it));
@@ -175,9 +175,33 @@ public class AliLootPlugin implements IPlugin {
                 TooltipBuilder.translate(translationKey)).build(WRAPPER);
     }
 
-    /** 留空的难度档位按语义取中性值，和实际计算保持一致。 */
-    private static String difficulty(ChanceModifier.DifficultyFactor modifier, Optional<Double> value) {
-        return "x" + value.orElse(modifier.operation().neutral());
+    /**
+     * 档位值等于中性值时不显示：加法 0 与乘法 1 都表示"这一档什么都没改"，留着只是噪音。
+     * 没写的档位会取中性值，所以同样不显示。
+     */
+    private static void difficultyTier(TooltipBuilder branch, ChanceModifier.DifficultyFactor modifier,
+                                       String property, Optional<Double> value) {
+        double tier = value.orElse(modifier.operation().neutral());
+
+        if (tier == modifier.operation().neutral()) {
+            return;
+        }
+
+        branch.add(leaf(property, applyPrefix(modifier.operation(), tier)));
+    }
+
+    /** 一行显示"怎么改"：乘 "×N"、加 "+N"（负值就是 "-N"）。 */
+    private static String applyPrefix(ChanceModifier.Operation operation, double raw) {
+        String value = number(raw);
+
+        return switch (operation) {
+            case MULTIPLY -> "×" + value;
+            case ADD -> raw < 0 ? value : "+" + value;
+        };
+    }
+
+    private static String applyValue(ChanceModifier.Apply modifier) {
+        return applyPrefix(modifier.operation(), modifier.value());
     }
 
     /**
