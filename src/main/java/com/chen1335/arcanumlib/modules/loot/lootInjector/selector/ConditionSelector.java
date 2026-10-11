@@ -117,11 +117,10 @@ public interface ConditionSelector {
     }
 
     /**
-     * 按模板 json 的 key 匹配：模板只写你关心的字段，候选在那些 key 上一致就算命中
-     * （语义对齐 DataComponentIngredient 的组件匹配）。strict 打开则要求与模板完全一致。
-     *
-     * <p>模板保存的是【原始 json】，没写出来的 key 不参与比对，codec 的默认值不会污染结果。
-     * 数组按有序参数看待，要求长度一致、逐元素匹配。
+ * 按模板 json 的 key 匹配：模板只写你关心的字段，候选在那些 key 上一致就算命中
+ * （语义对齐 DataComponentIngredient 的组件匹配）。strict 打开则要求与模板完全一致。
+ * <p>模板保存的是【原始 json】，没写出来的 key 不参与比对，codec 的默认值不会污染结果。
+ * 数组按有序参数看待，要求长度一致、逐元素匹配。
      */
     record Match(Dynamic<?> condition, boolean strict) implements ConditionSelector {
         @Override

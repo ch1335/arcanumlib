@@ -26,7 +26,6 @@ import java.util.List;
 
 /**
  * 池级操作：作用于"当前池"，只能出现在 {@link TableOperator.ModifyPool} 的子 {@code ops} 里。
- *
  * <p>作用域 op（{@link ModifyEntry}）把子 ops 依次应用到每个命中的条目上；当前条目若被前面的子 op
  * 删掉，剩下的子 op 立刻停止（游标语义）。
  */

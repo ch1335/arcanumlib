@@ -31,7 +31,7 @@ import java.util.Optional;
 
 /**
  * ALI 显示兼容：把 {@code chance_modifiers} 渲染成嵌套的加工树。
- * ALI 靠注解扫描发现插件，没装 ALI 时本类不会被加载，所以不能被自己的代码引用；不注册会走反射兜底、把 modifier 显示成类名。
+ * ALI 靠注解扫描发现本类，别被自己的代码引用；不注册会走反射兜底、把 modifier 显示成类名。
  */
 @AliEntrypoint
 public class AliLootPlugin implements IPlugin {
@@ -48,10 +48,10 @@ public class AliLootPlugin implements IPlugin {
         registry.registerConditionTooltip(ChanceModifierCondition.class, AliLootPlugin::conditionTooltip);
         registry.registerConditionTooltip(HasStageCondition.class, AliLootPlugin::stageTooltip);
 
-        // 把整条链的结果算进 ALI 显示的概率里：拿得到上下文就用 resolveChance（与实际掉落同一段求值代码，
-        // 因此是精确值），拿不到才退回只折纯算术的几种。返回 NumberExpr 而非绝对值，和原版 chance modifier 同一约定。
+        // 只折不依赖上下文的加工器（ALI 给的是空壳上下文，拿它算会显示"像精确其实是默认值"的数）；
+        // 返回 NumberExpr 而非绝对值，和原版 chance modifier 同一约定。
         registry.registerChanceModifier(ChanceModifierCondition.class,
-                (utils, condition, chance, extra) -> NumberExpr.mul(chance, AliChanceCalculator.factor(utils, condition)));
+                (utils, condition, chance, extra) -> NumberExpr.mul(chance, AliChanceCalculator.factor(condition)));
         // 用【池节点】而不是组节点：池节点把子条目横向铺开，正是要的"一行多个格子"。
         // 概率条件本来就挂在这些孩子上，所以直接让它们各自算自己的概率。
         registry.registerEntry(AllOfEntry.class, (utils, entry, rawChance, sumWeight, chanceConditions,
@@ -88,9 +88,8 @@ public class AliLootPlugin implements IPlugin {
                 ? key("condition.has_stage.server")
                 : key("condition.has_stage.player");
 
-        // 值 + 不带 \ue000 标记的键 → 走 appendTranslatableKeyWithValuesAndComponent：
-        // 值被填进键里的 %s，且不会再追加 ": 值"（带标记的键走 appendRawKey，就是上次那个 bug）。
-        // 注册接口要的是未 build 的 builder，所以用 .key(...) 收尾（和 conditionTooltip 一样）
+        // 值 + 不带 \ue000 标记的键 → 走 appendTranslatableKeyWithValuesAndComponent：值填进键里的 %s、不追加 ": 值"。
+        // 注册接口要的是未 build 的 builder，所以用 .key(...) 收尾。
         return TooltipBuilder.value(stageName(condition)).key(scope);
     }
 
@@ -154,19 +153,13 @@ public class AliLootPlugin implements IPlugin {
                     TooltipNode content = utils.getValueTooltip(utils, it.predicates()).build();
 
                     if (!content.isBlank(false)) {
-                        // 基本模式就能显示 → 用 ALI 的渲染。注意别照搬它的 array(标题 + 内容)：
-                        // array 是无键节点，childIndent 不 +1，标题会和谓词平级；
-                        // 这里把标题当父节点，谓词缩进一层，与上面"满足条件时 / 否则"同一种风格。
+                        // 用 ALI 的渲染，但别照搬它的 array(标题 + 内容)：array 无键 → childIndent 不 +1，标题会和谓词平级。
+                        // 把标题当父节点，谓词缩进一层，与上面"满足条件时 / 否则"同一种风格。
                         branch.add(TooltipBuilder.keyOnly(key("property.predicates")).add(content));
                     } else if (!content.isBlank(true)) {
-                        // ALI 把条件细节归入「高级战利品信息」（分隔键就叫 advanced_loot_info.delimiter.conditions），
-                        // 基本模式下整段为空。这里退回自己列一遍注册名，至少让"有哪些谓词"看得见。
-                        //
-                        // 试过改用 ALI 的 RegistriesTooltipUtils.getConditionTypeTooltip 拿"友好名"，是死路：
-                        // 它最终走 ACI 的 RegistryNames.resolve，而 RegistryNames 只给 ITEM / BLOCK /
-                        // ENTITY_TYPE / MOB_EFFECT / ATTRIBUTE / POTION 注册了解析器，没有 LOOT_CONDITION_TYPE，
-                        // 会退化成 Component.literal(原样 id)。原版也没给条件类型任何 descriptionId，
-                        // 所以"条件的本地化名"本身不存在——想要友好名只能让用户开高级物品提示（F3+H）。
+                        // ALI 把条件细节归入「高级战利品信息」，基本模式下整段为空 → 退回列谓词注册名。
+                        // 要"友好名"是死路：ACI 的 RegistryNames 没给 LOOT_CONDITION_TYPE 注册解析器，
+                        // 原版条件类型本身也没有 descriptionId —— 只能让用户开高级物品提示（F3+H）。
                         TooltipBuilder section = TooltipBuilder.branch(predicates -> it.predicates()
                                 .forEach(predicate -> predicates.add(TooltipBuilder.value(predicateId(predicate)).build())));
                         branch.add(section.build(key("property.predicates")));

@@ -11,11 +11,9 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.regex.Pattern;
 
 /**
- * 阶段名匹配器：literal 精确、wildcard 通配、regex 正则。语义对齐 AStages 的 StageMatcher（同名三档）。
- *
- * <p>json 可以只写字符串（等价 literal），也可以写 {@code {"pattern":"chapter_*","type":"wildcard"}}；
- * 只有 literal 会回落成字符串形式，其余必须写对象。
- */
+* 阶段名匹配器：literal 精确、wildcard 通配、regex 正则（语义对齐 AStages 的 StageMatcher）。
+* json 可只写字符串（等价 literal）或对象 {"pattern":"chapter_*","type":"wildcard"}；只有 literal 会回落成字符串。
+*/
 public record StagePattern(String pattern, Type type) {
 
     /** 通配/正则需要编译后的 Pattern，缓存起来避免每次掉落都重新编译。 */

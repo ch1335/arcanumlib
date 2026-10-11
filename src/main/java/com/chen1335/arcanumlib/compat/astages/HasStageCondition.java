@@ -11,13 +11,10 @@ import net.minecraft.world.level.storage.loot.predicates.LootItemConditionType;
 import java.util.Optional;
 
 /**
- * 阶段条件：掉落上下文里的玩家（或全服）持有匹配的阶段才通过。
- *
- * <p>字段：{@code stage}（字符串简写或 pattern/type 对象）、{@code desc}（本地化显示名，仅供 ALI 展示）、
- * {@code check_server_stages}（true 查服务器级阶段，false 查玩家级，默认 false）。
- *
- * <p>依赖 AStages（软依赖）：没装时恒不通过，不会抛错。
- */
+* 阶段条件：掉落上下文里的玩家（或全服）持有匹配的阶段才通过。
+* 字段 stage（字符串简写或 pattern/type 对象）、desc（本地化显示名，仅供 ALI）、check_server_stages（true 查世界级，默认 false）。
+* 软依赖 AStages：没装时恒不通过，不会抛错。
+*/
 public record HasStageCondition(StagePattern stage, Optional<String> desc, boolean checkServerStages)
         implements LootItemCondition {
 

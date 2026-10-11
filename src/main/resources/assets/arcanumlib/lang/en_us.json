@@ -46,4 +46,14 @@
   "attribute.name.arcanumlib.fortune.desc": "Raises your Fortune enchantment level",
   "attribute.name.arcanumlib.looting": "Looting",
   "attribute.name.arcanumlib.looting.desc": "Raises your Looting enchantment level"
+,
+  "arcanumlib.command.export.success": "ArcanumLib: exported %1$s modified + %2$s original loot tables to %3$s",
+  "arcanumlib.command.export.failed": "ArcanumLib: export failed - %1$s",
+  "arcanumlib.command.simulate.not_found": "Unknown loot table: %1$s",
+  "arcanumlib.command.simulate.need_context": "This loot table needs extra context parameters and cannot be simulated: %1$s",
+  "arcanumlib.command.simulate.header": "Simulated %2$s x%1$s: %3$s items in total; ratio = item count / total items, probability = item count / attempts",
+  "arcanumlib.command.simulate.column.item": "Item",
+  "arcanumlib.command.simulate.column.count": "Count",
+  "arcanumlib.command.simulate.column.ratio": "Ratio",
+  "arcanumlib.command.simulate.column.probability": "Chance"
 }

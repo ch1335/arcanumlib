@@ -9,9 +9,9 @@ import net.minecraft.world.level.storage.loot.parameters.LootContextParams;
 import java.util.Set;
 
 /**
- * 真正触碰 AStages 类的部分，只有 {@link AStagesCompat} 确认装了 astages 才会加载本类。
- * 所有 AStages 调用都集中在这里，将来它 3.0.0 改接口时只需要改这个文件。
- */
+* 唯一触碰 AStages 类的部分（由 {@link AStagesCompat} 确认装了才加载）。AStages 调用都集中在这里，
+* 将来它 3.0.0 改接口只需改这个文件。
+*/
 final class AStagesStageLookup {
 
     static boolean matches(LootContext context, boolean checkServerStages, StagePattern pattern) {

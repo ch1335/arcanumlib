@@ -16,6 +16,7 @@
                     "chance_modifiers": [
                       {
                         "type": "arcanumlib:apply",
+                        "operation": "mul",
                         "value": 2.0
                       }
                     ],

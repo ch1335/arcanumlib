@@ -46,4 +46,14 @@
   "attribute.name.arcanumlib.fortune.desc": "提高时运附魔的等效等级",
   "attribute.name.arcanumlib.looting": "抢夺",
   "attribute.name.arcanumlib.looting.desc": "提高抢夺附魔的等效等级"
+,
+  "arcanumlib.command.export.success": "ArcanumLib：已导出 %1$s 张已修改 + %2$s 张原始战利品表到 %3$s",
+  "arcanumlib.command.export.failed": "ArcanumLib：导出失败 —— %1$s",
+  "arcanumlib.command.simulate.not_found": "找不到战利品表：%1$s",
+  "arcanumlib.command.simulate.need_context": "该战利品表需要额外的上下文参数，无法模拟：%1$s",
+  "arcanumlib.command.simulate.header": "模拟 %1$s 次 %2$s：共 %3$s 个物品，比例 = 物品数量 / 总物品数量，概率 = 物品数量 / 尝试次数",
+  "arcanumlib.command.simulate.column.item": "物品",
+  "arcanumlib.command.simulate.column.count": "数量",
+  "arcanumlib.command.simulate.column.ratio": "比例",
+  "arcanumlib.command.simulate.column.probability": "概率"
 }

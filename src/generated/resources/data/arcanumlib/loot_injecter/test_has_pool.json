@@ -1,0 +1,33 @@
+{
+  "ops": [
+    {
+      "type": "arcanumlib:add_pool",
+      "pool": {
+        "bonus_rolls": 0.0,
+        "entries": [
+          {
+            "type": "minecraft:item",
+            "name": "minecraft:diamond"
+          }
+        ],
+        "rolls": 1.0
+      }
+    }
+  ],
+  "tableSelector": {
+    "type": "arcanumlib:all_of",
+    "conditions": [
+      {
+        "type": "arcanumlib:id",
+        "id": "minecraft:entities/zombie"
+      },
+      {
+        "type": "arcanumlib:has_pool",
+        "pool": {
+          "type": "arcanumlib:index",
+          "index": 0
+        }
+      }
+    ]
+  }
+}

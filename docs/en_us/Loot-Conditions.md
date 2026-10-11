@@ -26,16 +26,13 @@ bonusing by game difficulty, by the Looting level on the tool, by the attacker's
 - Source: `modules/loot/lootCondition/`
 - Package path: `com.chen1335.arcanumlib.modules.loot.lootCondition`
 
-> **Strict json parsing**: like the injector, it goes through `SimpleJsonResourceReloadListener` (`lenient = false`),
-> so **you cannot write `//` comments and you cannot have trailing commas**. Every example in this document is strictly valid json.
-
 ### Table of contents
 
 1. [Minimal example](#1-minimal-example)
 2. [Evaluation model](#2-evaluation-model)
 3. [Fields](#3-fields)
-4. [The nine modifiers](#4-the-nine-modifiers)
-5. [The two operation semantics (the easiest place to go wrong)](#5-the-two-operation-semantics-the-easiest-place-to-go-wrong)
+4. [Modifiers (9)](#4-modifiers-9)
+5. [The two operation semantics (a common point of confusion)](#5-the-two-operation-semantics-a-common-point-of-confusion)
 6. [Entity source: EntitySource](#6-entity-source-entitysource)
 7. [EnchantedLootEvent: letting outside code change the enchantment level](#7-enchantedlootevent-letting-outside-code-change-the-enchantment-level)
 8. [Behavior when the tool / entity is unavailable](#8-behavior-when-the-tool--entity-is-unavailable)
@@ -60,8 +57,16 @@ Because it is just an ordinary loot condition, it can be written into the `condi
       "condition": "arcanumlib:chance_modifiers",
       "base_chance": 0.05,
       "chance_modifiers": [
-        { "type": "arcanumlib:tool_enchantment_level", "enchantment": "minecraft:fortune", "per_level": 0.02 },
-        { "type": "arcanumlib:clamp", "min": 0.0, "max": 0.5 }
+        {
+          "type": "arcanumlib:tool_enchantment_level",
+          "enchantment": "minecraft:fortune",
+          "per_level": 0.02
+        },
+        {
+          "type": "arcanumlib:clamp",
+          "min": 0.0,
+          "max": 0.5
+        }
       ]
     }
   ]
@@ -76,7 +81,9 @@ How to read it: base 5%, each level of **Fortune** on the tool makes the chance 
 The simplest form (equivalent to "always passes"):
 
 ```json
-{ "condition": "arcanumlib:chance_modifiers" }
+{
+  "condition": "arcanumlib:chance_modifiers"
+}
 ```
 
 ---
@@ -119,32 +126,46 @@ double chance = new ChanceModifierCondition(0.25D, List.of(...)).resolveChance(c
 
 ---
 
-### 4. The nine modifiers
+### 4. Modifiers (9)
 
 Registry: `arcanumlib:chance_modifier`. Each entry is `{ "type": "arcanumlib:<id>", ... }`.
 
-| id | Field | Semantics |
-|---|---|---|
-| `apply` | `operation` (default `multiply`), `value` (required) | `operation` decides: `chance + value` or `chance × value` |
-| `set_chance` | `value` (required) | **Directly sets** the value, discarding the previous result |
-| `clamp` | `min` (default `0.0`), `max` (default `1.0`) | Clamps to `[min, max]` |
-| `invert` | — | `1 - chance` (complement) |
-| `difficulty_factor` | `operation` (default `multiply`), `peaceful`, `easy`, `normal`, `hard` (all optional) | Takes the tier value for the current difficulty and processes with `operation` |
-| `tool_enchantment_level` | `enchantment` (required), `operation` (default `multiply`), `per_level` (default `0.05`) | Processes by the level of some enchantment on the tool |
-| `entity_attribute` | `attribute` (required), `entity` (default `attacking_entity`), `operation` (default `multiply`), `per_point` (default `0.05`) | Processes by one attribute of some entity |
-| `stage` | `stage` (required, may be a plain string), `desc`, `check_server_stages`, `success`, `fail` | Picks one of two chains by AStages stage: on a match the `success` chain runs, otherwise the `fail` chain |
-| `predicate` | `predicates` (required), `success`, `fail` | If **every** predicate passes the `success` chain runs, otherwise the `fail` chain |
+**Entries**:
+
+- [4.1 `apply`](#41-apply--add-or-multiply) — add or multiply
+- [4.2 `set_chance`](#42-set_chance--set-the-value-directly) — set the value directly
+- [4.3 `clamp`](#43-clamp--clamp-the-range) — clamp the range
+- [4.4 `invert`](#44-invert--take-the-complement) — take the complement
+- [4.5 `difficulty_factor`](#45-difficulty_factor--process-by-game-difficulty) — process by game difficulty
+- [4.6 `tool_enchantment_level`](#46-tool_enchantment_level--process-by-the-tools-enchantment-level) — process by the tool's enchantment level
+- [4.7 `entity_attribute`](#47-entity_attribute--process-by-an-entity-attribute) — process by an entity attribute
+- [4.8 `stage`](#48-stage--pick-one-of-two-chains-by-stage-requires-astages) — pick one of two chains by stage (requires AStages)
+- [4.9 `predicate`](#49-predicate--pick-one-of-two-chains-by-predicates) — pick one of two chains by predicates
 
 #### 4.1 `apply` — add or multiply
+- `*operation`: <String> **required**; `mul` means `chance × value`, `add` means `chance + value`.
+- `*value`: <double> the operand; with `add` it may be negative to reduce the chance.
 
 ```json
-{ "type": "arcanumlib:apply", "operation": "add", "value": 0.1 }
+{
+  "type": "arcanumlib:apply",
+  "operation": "add",
+  "value": 0.1
+}
 ```
 ```json
-{ "type": "arcanumlib:apply", "operation": "multiply", "value": 2.0 }
+{
+  "type": "arcanumlib:apply",
+  "operation": "mul",
+  "value": 2.0
+}
 ```
-`operation` defaults to `multiply`, i.e. `chance × value` (multiplying by 0 means "never passes", by 2 means "double");
+`operation` is **required**: `mul` means `chance × value` (multiplying by 0 means "never passes", by 2 means "double");
 using `add` gives `chance + value`, and the value may be negative to reduce the chance.
+
+> The probability shown in ALI gets the modifiers applied by this mod, but **only the context-free ones** (`apply` / `set_chance` / `clamp` / `invert`):
+> the context ALI hands to plugins is a stub (no tool, no player, no difficulty), so computing `tool_enchantment_level` / `entity_attribute` / `stage` / `predicate`
+> from it would only yield "precise-looking but actually default" numbers - those are left out of the display.
 
 In ALI it renders on one line as `Chance modifier : ×N` (`+N` for addition, `-N` when negative):
 
@@ -152,33 +173,48 @@ In ALI it renders on one line as `Chance modifier : ×N` (`+N` for addition, `-N
 Chance modifier : ×2.0
 ```
 #### 4.2 `set_chance` — set the value directly
+- `*value`: <double> sets the chance to this value directly (0~1).
 
 ```json
-{ "type": "arcanumlib:set_chance", "value": 0.08 }
+{
+  "type": "arcanumlib:set_chance",
+  "value": 0.08
+}
 ```
 Placed at the head of the chain it sets the initial value (in which case it duplicates `base_chance` and is usually unnecessary);
 **placed in the middle of the chain it discards every previous processing result**, so it is generally only used for "if some condition holds, force it to a fixed chance".
 
 #### 4.3 `clamp` — clamp the range
+- `*min`: <double> the lower bound, default `0.0`.
+- `*max`: <double> the upper bound, default `1.0`.
 
 ```json
-{ "type": "arcanumlib:clamp", "min": 0.0, "max": 1.0 }
+{
+  "type": "arcanumlib:clamp",
+  "min": 0.0,
+  "max": 1.0
+}
 ```
 Omitting the fields gives the defaults above. Because of its "safety net" nature it is usually placed at the **end of the chain**, so that the earlier processing does not produce a negative number or a value above 1.
 
 #### 4.4 `invert` — take the complement
+- No parameters.
 
 ```json
-{ "type": "arcanumlib:invert" }
+{
+  "type": "arcanumlib:invert"
+}
 ```
 `0.95 → 0.05`. Typical use: turn "95% chance of not dropping" into "5% chance of dropping".
 
 #### 4.5 `difficulty_factor` — process by game difficulty
+- `*operation`: <String> **required**; `mul` uses the tier value itself, `add` uses "tier value - neutral".
+- `peaceful` / `easy` / `normal` / `hard`: <double> the value per difficulty tier; a tier you did not write falls back to the neutral value (`mul`: 1.0, `add`: 0.0), i.e. "this tier changes nothing".
 
 ```json
 {
   "type": "arcanumlib:difficulty_factor",
-  "operation": "multiply",
+  "operation": "mul",
   "peaceful": 1.0,
   "easy": 1.0,
   "normal": 1.15,
@@ -187,11 +223,14 @@ Omitting the fields gives the defaults above. Because of its "safety net" nature
 ```
 On Hard the chance is ×1.3, on Normal ×1.15, and on Peaceful/Easy it is unchanged.
 
-- `operation` defaults to `multiply`; with `add` the tier value is "how much to add";
-- **Tiers may be left empty**: an empty tier is treated as the **neutral value** of the `operation` (1.0 for multiply / 0.0 for add), i.e. "does not change the chance on that difficulty". So if you only care about Hard you can write just `hard`:
+- `operation` is **required**; with `add` the tier value is "how much to add";
+- **Tiers may be left empty**: an empty tier is treated as the **neutral value** of the `operation` (1.0 for `mul` / 0.0 for add), i.e. "does not change the chance on that difficulty". So if you only care about Hard you can write just `hard`:
 
 ```json
-{ "type": "arcanumlib:difficulty_factor", "hard": 1.5 }
+{
+  "type": "arcanumlib:difficulty_factor",
+  "hard": 1.5
+}
 ```
 
 In ALI each tier is one line (`Peaceful : ×1.0`), and **a tier equal to the neutral value is hidden** (adding 0 / multiplying by 1 changes nothing), so the `hard`-only example above shows up as:
@@ -201,14 +240,16 @@ Difficulty modifier :
     ->Hard : ×1.5
 ```
 
-
 #### 4.6 `tool_enchantment_level` — process by the tool's enchantment level
+- `*enchantment`: <ResourceLocation> an enchantment id, e.g. `minecraft:looting`.
+- `*operation`: <String> **required**; `mul` means `chance × (1 + level × per_level)`, `add` means `chance + level × per_level`.
+- `per_level`: <double> the increment per level, default `0.05`.
 
 ```json
 {
   "type": "arcanumlib:tool_enchantment_level",
   "enchantment": "minecraft:looting",
-  "operation": "multiply",
+  "operation": "mul",
   "per_level": 0.05
 }
 ```
@@ -222,13 +263,17 @@ Each level of Looting makes the chance ×(1 + 0.05), i.e. Looting III → ×1.15
 > therefore the json contains an enchantment id (`"minecraft:looting"`), and unlike attributes it cannot be a `Holder` directly.
 
 #### 4.7 `entity_attribute` — process by an entity attribute
+- `*attribute`: <ResourceLocation> an attribute id, e.g. `minecraft:generic.luck`.
+- `entity`: <String> the entity to read, default `attacking_entity`; one of `direct_attacking_entity` / `last_damage_player` / `this_entity`.
+- `*operation`: <String> **required**.
+- `per_point`: <double> the increment per attribute point, default `0.05`.
 
 ```json
 {
   "type": "arcanumlib:entity_attribute",
   "attribute": "minecraft:generic.luck",
   "entity": "attacking_entity",
-  "operation": "multiply",
+  "operation": "mul",
   "per_point": 0.01
 }
 ```
@@ -238,6 +283,10 @@ Every 1 point of Luck on the attacker makes the chance ×(1 + 0.01). With `add` 
 - It reads `LivingEntity.getAttributes().getInstance(attribute)`, and **returns unchanged when the entity does not have that attribute** (it does not treat it as 0), so a missing attribute from some mod will not accidentally zero out the chance.
 
 #### 4.8 `stage` — pick one of two chains by stage (requires AStages)
+- `*stage`: <StagePattern> the stage matcher; a plain string means `literal`, or write `{ "pattern": "chapter_*", "type": "wildcard" }`.
+- `desc`: <String> the localised display name, used by ALI only.
+- `check_server_stages`: <boolean> default `false`; `true` checks world-wide stages, `false` checks player stages.
+- `success` / `fail`: <json array> two modifier lists; a match runs `success`, otherwise `fail`.
 
 The stage is checked first: on a match the `success` chain is applied in order, otherwise the `fail` chain is. Both chains are ordinary modifier lists.
 
@@ -246,14 +295,24 @@ The stage is checked first: on a match the `success` chain is applied in order, 
 ```json
 {
   "type": "arcanumlib:stage",
-  "stage": { "pattern": "chapter_*", "type": "wildcard" },
+  "stage": {
+    "pattern": "chapter_*",
+    "type": "wildcard"
+  },
   "desc": "mymod.stage.chapter",
   "check_server_stages": false,
   "success": [
-    { "type": "arcanumlib:apply", "value": 2.0 }
+    {
+      "type": "arcanumlib:apply",
+      "operation": "mul",
+      "value": 2.0
+    }
   ],
   "fail": [
-    { "type": "arcanumlib:set_chance", "value": 0.05 }
+    {
+      "type": "arcanumlib:set_chance",
+      "value": 0.05
+    }
   ]
 }
 ```
@@ -274,6 +333,8 @@ Stage modifier :
 
 (`Stage modifier :`, `Player stage : %s` / `World stage : %s` and `Otherwise :` are localization keys provided by this mod; the `->` is the tree arrow ALI draws itself.)
 #### 4.9 `predicate` — pick one of two chains by predicates
+- `*predicates`: <json array> a list of vanilla predicates (each a `minecraft:` predicate); **all** of them must pass.
+- `success` / `fail`: <json array> two modifier lists; a match runs `success`, otherwise `fail`.
 
 If **every** condition in `predicates` passes, the `success` chain is applied in order, otherwise the `fail` chain is (an empty list counts as passing, matching vanilla `all_of`); both chains are ordinary modifier lists.
 
@@ -290,14 +351,29 @@ If **every** condition in `predicates` passes, the `success` chain is applied in
 {
   "type": "arcanumlib:predicate",
   "predicates": [
-    { "condition": "minecraft:killed_by_player" },
-    { "condition": "minecraft:inverted", "term": { "condition": "minecraft:killed_by_player" } }
+    {
+      "condition": "minecraft:killed_by_player"
+    },
+    {
+      "condition": "minecraft:inverted",
+      "term": {
+        "condition": "minecraft:killed_by_player"
+      }
+    }
   ],
   "success": [
-    { "type": "arcanumlib:apply", "value": 3.0 }
+    {
+      "type": "arcanumlib:apply",
+      "operation": "mul",
+      "value": 3.0
+    }
   ],
   "fail": [
-    { "type": "arcanumlib:apply", "operation": "add", "value": 0.05 }
+    {
+      "type": "arcanumlib:apply",
+      "operation": "add",
+      "value": 0.05
+    }
   ]
 }
 ```
@@ -318,9 +394,9 @@ Predicate modifier :
 > `Predicates` uses ALI's own condition rendering, so it matches how ALI shows conditions elsewhere. Note that ALI marks a **few** conditions (such as `minecraft:random_chance` and `table_bonus` - exactly the ones its config ignores by default via `ignoredPredicateConditions`) as "advanced": those only appear with vanilla **advanced item tooltips (F3 + H)** on. In that case this mod falls back to listing the predicate ids; every other condition renders normally.
 ---
 
-### 5. The two operation semantics (the easiest place to go wrong)
+### 5. The two operation semantics (a common point of confusion)
 
-The `add` / `multiply` enum means **different things** in different modifiers; in the code it is split into two methods:
+The `add` / `mul` enum means **different things** in different modifiers; in the code it is split into two methods:
 
 | Method | ADD | MULTIPLY | Who uses it |
 |---|---|---|---|
@@ -329,8 +405,8 @@ The `add` / `multiply` enum means **different things** in different modifiers; i
 
 Plug in numbers to see the difference:
 
-- `difficulty_factor` + `multiply` + `hard: 1.3` → chance **×1.3**
-- `tool_enchantment_level` + `multiply` + `per_level: 0.05` + level 3 → delta = 0.15 → chance **×(1 + 0.15) = ×1.15**
+- `difficulty_factor` + `mul` + `hard: 1.3` → chance **×1.3**
+- `tool_enchantment_level` + `mul` + `per_level: 0.05` + level 3 → delta = 0.15 → chance **×(1 + 0.15) = ×1.15**
 
 The design reason is that `per_level` / `per_point` are **deltas**: the natural reading of `per_level: 0.05` is "+5% per level", not "multiply by 0.05 per level" (the latter would make the chance approach 0 as the level rises). Difficulty tiers, on the other hand, are naturally "multipliers", so they use absolute semantics.
 
@@ -427,8 +503,15 @@ In other words, both of them are "**change it if present, leave it alone if abse
   "condition": "arcanumlib:chance_modifiers",
   "base_chance": 0.2,
   "chance_modifiers": [
-    { "type": "arcanumlib:tool_enchantment_level", "enchantment": "minecraft:looting", "per_level": 0.1 },
-    { "type": "arcanumlib:clamp", "max": 0.6 }
+    {
+      "type": "arcanumlib:tool_enchantment_level",
+      "enchantment": "minecraft:looting",
+      "per_level": 0.1
+    },
+    {
+      "type": "arcanumlib:clamp",
+      "max": 0.6
+    }
   ]
 }
 ```
@@ -441,7 +524,12 @@ Each level of Looting is +10% (multiply by `1 + 0.1×level`), up to a maximum of
   "condition": "arcanumlib:chance_modifiers",
   "base_chance": 0.1,
   "chance_modifiers": [
-    { "type": "arcanumlib:difficulty_factor", "easy": 0.5, "normal": 1.0, "hard": 2.0 }
+    {
+      "type": "arcanumlib:difficulty_factor",
+      "easy": 0.5,
+      "normal": 1.0,
+      "hard": 2.0
+    }
   ]
 }
 ```
@@ -454,8 +542,15 @@ On Easy the chance is ×0.5, on Normal it is unchanged, and on Hard ×2 (the Pea
   "condition": "arcanumlib:chance_modifiers",
   "base_chance": 0.15,
   "chance_modifiers": [
-    { "type": "arcanumlib:entity_attribute", "attribute": "minecraft:generic.luck", "per_point": 0.02 },
-    { "type": "arcanumlib:clamp", "max": 0.5 }
+    {
+      "type": "arcanumlib:entity_attribute",
+      "attribute": "minecraft:generic.luck",
+      "per_point": 0.02
+    },
+    {
+      "type": "arcanumlib:clamp",
+      "max": 0.5
+    }
   ]
 }
 ```
@@ -466,7 +561,11 @@ On Easy the chance is ×0.5, on Normal it is unchanged, and on Hard ×2 (the Pea
 {
   "condition": "arcanumlib:chance_modifiers",
   "base_chance": 0.95,
-  "chance_modifiers": [{ "type": "arcanumlib:invert" }]
+  "chance_modifiers": [
+    {
+      "type": "arcanumlib:invert"
+    }
+  ]
 }
 ```
 
@@ -477,9 +576,23 @@ On Easy the chance is ×0.5, on Normal it is unchanged, and on Hard ×2 (the Pea
   "condition": "arcanumlib:chance_modifiers",
   "base_chance": 0.08,
   "chance_modifiers": [
-    { "type": "arcanumlib:tool_enchantment_level", "enchantment": "minecraft:fortune", "per_level": 0.05 },
-    { "type": "arcanumlib:entity_attribute", "attribute": "minecraft:generic.luck", "entity": "this_entity", "operation": "add", "per_point": 0.01 },
-    { "type": "arcanumlib:clamp", "min": 0.0, "max": 1.0 }
+    {
+      "type": "arcanumlib:tool_enchantment_level",
+      "enchantment": "minecraft:fortune",
+      "per_level": 0.05
+    },
+    {
+      "type": "arcanumlib:entity_attribute",
+      "attribute": "minecraft:generic.luck",
+      "entity": "this_entity",
+      "operation": "add",
+      "per_point": 0.01
+    },
+    {
+      "type": "arcanumlib:clamp",
+      "min": 0.0,
+      "max": 1.0
+    }
   ]
 }
 ```
@@ -507,7 +620,11 @@ so this condition can be written inside them as-is:
             "condition": "arcanumlib:chance_modifiers",
             "base_chance": 0.25,
             "chance_modifiers": [
-              { "type": "arcanumlib:tool_enchantment_level", "enchantment": "minecraft:looting", "per_level": 0.02 }
+              {
+                "type": "arcanumlib:tool_enchantment_level",
+                "enchantment": "minecraft:looting",
+                "per_level": 0.02
+              }
             ]
           }
         ]
@@ -522,7 +639,10 @@ Attaching it to an existing entry with the injector's `modify_entry` works the s
 ```json
 {
   "type": "arcanumlib:modify_entry",
-  "entrySelector": { "type": "arcanumlib:item", "item": "minecraft:gunpowder" },
+  "entrySelector": {
+    "type": "arcanumlib:item",
+    "item": "minecraft:gunpowder"
+  },
   "ops": [
     {
       "type": "arcanumlib:add_condition",
@@ -530,7 +650,12 @@ Attaching it to an existing entry with the injector's `modify_entry` works the s
         {
           "condition": "arcanumlib:chance_modifiers",
           "base_chance": 0.5,
-          "chance_modifiers": [{ "type": "arcanumlib:difficulty_factor", "hard": 1.5 }]
+          "chance_modifiers": [
+            {
+              "type": "arcanumlib:difficulty_factor",
+              "hard": 1.5
+            }
+          ]
         }
       ]
     }
@@ -627,7 +752,10 @@ Once registered, it can be used anywhere just like a built-in modifier:
   "condition": "arcanumlib:chance_modifiers",
   "base_chance": 0.2,
   "chance_modifiers": [
-    { "type": "mymod:square", "factor": 1.5 }
+    {
+      "type": "mymod:square",
+      "factor": 1.5
+    }
   ]
 }
 ```
@@ -647,7 +775,7 @@ If you want your own rendering, write an ALI plugin of your own following `compa
 
 #### 12.5 Other limitations
 
-- `operation` only has the two values `add` / `multiply`;
+- `operation` only has the two values `add` / `mul`;
 - Evaluating the condition **consumes one random number** (`nextFloat()`), consistent with vanilla `random_chance` behavior;
 - The chance chain itself **does not clamp**; if you do not put a `clamp` at the end of the chain you may get a negative number or a value > 1 (the behavior being "never passes / always passes").
 
@@ -657,7 +785,7 @@ If you want your own rendering, write an ALI plugin of your own following `compa
 
 1. **The two semantics of `operation`** (section 5) — the tier value of `difficulty_factor` is a **multiplier**, while
    `tool_enchantment_level.per_level` / `entity_attribute.per_point` are **deltas**. Getting it wrong produces chances that differ greatly.
-2. **Order matters**: `[{add 0.1}, {multiply 2}]` and `[{multiply 2}, {add 0.1}]` give different results.
+2. **Order matters**: `[{add 0.1}, {mul 2}]` and `[{mul 2}, {add 0.1}]` give different results.
 3. **Custom modifiers must be stateless**: the interface is open to outside code, but the implementation is called repeatedly; do not store mutable state in `apply`.
    Also, the ALI tooltip only shows the registry name for external modifiers (section 12.4).
 4. **A missing tool / missing attribute both mean "no change"**, not "zeroed"; conversely, if you really want "zero it when absent",
@@ -667,7 +795,6 @@ If you want your own rendering, write an ALI plugin of your own following `compa
 6. **`entity_attribute`'s `attribute` is a static registry** (`BuiltInRegistries.ATTRIBUTE`),
    whereas `tool_enchantment_level`'s `enchantment` is a **datapack registry** — so the former can be written directly as a
    `Holder` in datagen, while the latter can only be written as a `ResourceKey`.
-7. **Strict json parsing**: no comments and no trailing commas.
 
 ---
 
@@ -698,7 +825,10 @@ Gates loot on an **AStages stage**: it passes only when the player (or the whole
 ```json
 {
   "condition": "arcanumlib:has_stage",
-  "stage": { "pattern": "chapter_*", "type": "wildcard" },
+  "stage": {
+    "pattern": "chapter_*",
+    "type": "wildcard"
+  },
   "desc": "mymod.stage.chapter",
   "check_server_stages": false
 }

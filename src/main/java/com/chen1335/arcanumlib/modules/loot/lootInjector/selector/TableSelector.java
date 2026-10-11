@@ -14,6 +14,7 @@ import net.minecraft.resources.ResourceLocation;
 import net.minecraft.tags.TagKey;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.level.block.Block;
+import net.minecraft.world.level.storage.loot.LootPool;
 import net.minecraft.world.level.storage.loot.LootTable;
 
 import java.util.List;
@@ -175,6 +176,27 @@ public interface TableSelector {
         }
     }
 
+    /** 表里任意一个池满足给定的池选择器。 */
+    record HasPool(PoolSelector pool) implements TableSelector {
+        @Override
+        public TableSelectorType getType() {
+            return LootInjectorOps.TABLE_HAS_POOL.get();
+        }
+        public static final MapCodec<HasPool> CODEC = RecordCodecBuilder.mapCodec(instance -> instance.group(
+                PoolSelector.CODEC.fieldOf("pool").forGetter(HasPool::pool)).apply(instance, HasPool::new));
+        @Override
+        public boolean test(ResourceLocation id, LootTable table, HolderLookup.Provider registries) {
+            List<LootPool> pools = table.pools;
+
+            for (int index = 0; index < pools.size(); index++) {
+                if (this.pool.test(index, pools.get(index), registries)) {
+                    return true;
+                }
+            }
+
+            return false;
+        }
+    }
     /** 任一满足；JSON 里写成数组时等价于 {@link AllOf}。 */
     record AnyOf(List<TableSelector> children) implements TableSelector {
         @Override

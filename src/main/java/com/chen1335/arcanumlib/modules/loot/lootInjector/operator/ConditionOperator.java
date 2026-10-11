@@ -14,7 +14,6 @@ import java.util.List;
 
 /**
  * 条件级操作：作用于"当前条件"，只能出现在 {@code modify_condition} 作用域的子 {@code ops} 里。
- *
  * <p>改完（无论哪一层）都必须由所在作用域重算复合体，否则判定时改动不生效。
  */
 public interface ConditionOperator {

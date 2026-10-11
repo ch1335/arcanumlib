@@ -5,9 +5,9 @@ import net.minecraft.world.level.storage.loot.LootContext;
 import net.neoforged.fml.ModList;
 
 /**
- * AStages 软依赖入口。本类**不允许**出现任何 AStages 类型：只有确认装了 astages 才会去加载
- * {@link AStagesStageLookup}（JVM 延迟解析符号引用），否则调用它就会 NoClassDefFoundError。
- */
+* AStages 软依赖入口：本类**不允许**出现任何 AStages 类型 —— 只有确认装了 astages 才会去加载
+* {@link AStagesStageLookup}，否则调用它就会 NoClassDefFoundError。
+*/
 public final class AStagesCompat {
 
     private static Boolean loaded;

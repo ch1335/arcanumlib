@@ -28,12 +28,9 @@ import net.neoforged.neoforge.registries.DeferredRegister;
 import net.neoforged.neoforge.registries.RegistryBuilder;
 
 /**
- * 注入操作的类型注册表，按作用层级分成三套：表级 / 池级 / 条目级。
- *
- * <p>同一个 id（例如 {@code set_function}）在三级各注册一份，json 里靠嵌套层级区分——
- * 写错层级会在解析期直接报"这一层没有这个 op"。别的模组用
- * {@code DeferredRegister.create(REGISTRY_KEY, 自己的 modid)} 就能加自己的 op。
- */
+* 注入操作的类型注册表：表级 / 池级 / 条目级三套，同一 id（如 {@code set_function}）三级各注册一份，json 靠嵌套层级区分。
+* 写错层级会在解析期报"这一层没有这个 op"；别的模组用 {@code DeferredRegister.create(REGISTRY_KEY, 自己的 modid)} 加自己的 op。
+*/
 public final class LootInjectorOps {
 
     // ---- 表级操作 ----
@@ -221,6 +218,9 @@ public final class LootInjectorOps {
             TABLE_SELECTOR_TYPES.register("entity_type", () -> new TableSelectorType(TableSelector.ByEntityType.CODEC));
     public static final DeferredHolder<TableSelectorType, TableSelectorType> TABLE_BLOCK_TYPE =
             TABLE_SELECTOR_TYPES.register("block_type", () -> new TableSelectorType(TableSelector.ByBlockType.CODEC));
+    /** 表里任意池满足给定的池选择器。 */
+    public static final DeferredHolder<TableSelectorType, TableSelectorType> TABLE_HAS_POOL =
+            TABLE_SELECTOR_TYPES.register("has_pool", () -> new TableSelectorType(TableSelector.HasPool.CODEC));
     public static final DeferredHolder<TableSelectorType, TableSelectorType> TABLE_NOT =
             TABLE_SELECTOR_TYPES.register("not", () -> new TableSelectorType(TableSelector.Not.CODEC));
     public static final DeferredHolder<TableSelectorType, TableSelectorType> TABLE_ANY_OF =

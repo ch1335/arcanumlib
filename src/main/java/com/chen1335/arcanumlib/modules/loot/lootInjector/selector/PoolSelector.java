@@ -86,12 +86,11 @@ public interface PoolSelector {
     }
 
     /**
-     * 按池的【总权重】是否落在闭区间 [min, max] 内匹配。
-     *
-     * <p>只算静态基础权重，和原版掷骰时的实数有出入，因为选择器拿不到 LootContext：
-     * ① getWeight(luck) 还要加 quality × 幸运，这里按幸运 0 算；
-     * ② 原版经 expand(context) 展开、会按条目条件过滤分支，这里不过滤；
-     * ③ alternatives 掷骰时只走第一个条件通过的分支，这里把所有分支都累加（静态上界）。
+ * 按池的【总权重】是否落在闭区间 [min, max] 内匹配。
+ * <p>只算静态基础权重，和原版掷骰时的实数有出入，因为选择器拿不到 LootContext：
+ * ① getWeight(luck) 还要加 quality × 幸运，这里按幸运 0 算；
+ * ② 原版经 expand(context) 展开、会按条目条件过滤分支，这里不过滤；
+ * ③ alternatives 掷骰时只走第一个条件通过的分支，这里把所有分支都累加（静态上界）。
      */
     record TotalWeightInRange(int min, int max) implements PoolSelector {
         @Override

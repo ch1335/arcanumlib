@@ -20,7 +20,6 @@ import java.util.List;
 
 /**
  * 函数选择器：在某个容器的函数列表里挑出要动的函数。
- *
  * <p>函数自身还可能带条件（{@link LootItemConditionalFunction#predicates}），那是
  * {@code modify_function} 作用域往里再钻一层的入口——现有一堆 flat op 完全够不着那一层。
  */
@@ -138,12 +137,9 @@ public interface FunctionSelector {
     }
 
     /**
-     * 按模板 json 的 key 匹配：模板只写你关心的字段，候选在那些 key 上一致就算命中
-     * （语义对齐 DataComponentIngredient 的组件匹配）。strict 打开则要求与模板完全一致。
-     *
-     * <p>模板保存的是【原始 json】，没写出来的 key 不参与比对，codec 的默认值不会污染结果。
-     * 数组按有序参数看待，要求长度一致、逐元素匹配。
-     */
+    * 按模板 json 的 key 匹配：模板只写关心的字段，候选在那些 key 上一致即命中（对齐 DataComponentIngredient），strict 则要求完全一致。
+    * 模板存【原始 json】，没写的 key 不参与比对（codec 默认值不污染结果）；数组按有序参数看待，长度一致且逐元素匹配。
+    */
     record Match(Dynamic<?> function, boolean strict) implements FunctionSelector {
         @Override
         public FunctionSelectorType getType() {

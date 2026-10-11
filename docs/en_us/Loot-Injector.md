@@ -7,11 +7,6 @@ without touching vanilla data and without fighting other mods over block/entity 
 - Datapack directory: `data/<namespace>/loot_injecter/<injector id>.json`
 - The namespace is **not limited** to `arcanumlib`: open your own `data/<your modid>/loot_injecter/` and you can write your own injectors, using the same set of types.
 
-> **json syntax restrictions (important)**: loading goes through vanilla `SimpleJsonResourceReloadListener`, which internally calls
-> `GsonHelper.fromJson(gson, reader, JsonElement.class, false)` — **strict mode**.
-> So **`//` comments are not allowed and trailing commas are not allowed**; every example in this wiki is strictly valid json.
-> (If you want comments, put them in an ordinary field such as `_comment`; unknown fields are ignored.)
-
 ---
 
 ## Table of Contents
@@ -20,7 +15,7 @@ without touching vanilla data and without fighting other mods over block/entity 
 2. [Nested Scope Model](#2-nested-scope-model)
 3. [Execution Semantics (Must Read)](#3-execution-semantics-must-read)
 4. [Top-Level Fields](#4-top-level-fields)
-5. [Table Selectors (12)](#5-table-selectors-12)
+5. [Table Selectors (13)](#5-table-selectors-13)
 6. [Table-Level Operators (7)](#6-table-level-operators-7)
 7. [Pool Selectors (9)](#7-pool-selectors-9)
 8. [Pool-Level Operators (12)](#8-pool-level-operators-12)
@@ -32,7 +27,7 @@ without touching vanilla data and without fighting other mods over block/entity 
 14. [Condition-Level Operators (2)](#14-condition-level-operators-2)
 15. [Custom Hooks (9 Events)](#15-custom-hooks-9-events)
 16. [Extension Points for Mods](#16-extension-points-for-mods)
-17. [Cookbook: Common Tasks](#17-cookbook-common-tasks)
+17. [Recipes: Common Tasks](#17-recipes-common-tasks)
 18. [Writing Injectors with Datagen](#18-writing-injectors-with-datagen)
 19. [Cheat Sheet](#19-cheat-sheet)
 20. [Semantic Boundaries and Pitfalls](#20-semantic-boundaries-and-pitfalls)
@@ -152,80 +147,205 @@ Every op that modifies a list **automatically recomputes the corresponding compo
 ```json
 {
   "priority": 1000,
-  "tableSelector": { "type": "arcanumlib:id", "id": "minecraft:chests/simple_dungeon" },
+  "tableSelector": {
+    "type": "arcanumlib:id",
+    "id": "minecraft:chests/simple_dungeon"
+  },
   "ops": []
 }
 ```
 
 ---
 
-## 5. Table Selectors (12)
+## 5. Table Selectors (13)
 
 Decides "whether this injector should act on a given table". Registry: `arcanumlib:table_selector`.
 
-| id | Fields | Description |
-|---|---|---|
-| `all` | — | All tables |
-| `id` | `id` | Exact match on the table id |
-| `namespace` | `namespace` | Match on the namespace |
-| `path_prefix` | `prefix` | Match on the path prefix |
-| `entity_tag` | `tag` | Entity tag; the table id equals the default loot table of any entity in that tag |
-| `block_tag` | `tag` | Block tag; the table id equals the table of any block in that tag |
-| `entity_type` | `entity` | Entity type; the table id equals its default loot table (no tag expansion) |
-| `block_type` | `block` | Block; the table id equals its loot table (no tag expansion; blocks without a loot table never match) |
-| `not` | `condition` | Negation |
-| `any_of` | `conditions` | Any of them matches |
-| `all_of` | `conditions` | All of them match |
-| `custom` | `custom_id` | The decision is handed to the listeners of `CustomTableSelectorEvent` |
+**Entries**:
+
+- [5.1 `all`](#51-all--all-tables) — all tables
+- [5.2 `id`](#52-id--exact-table-id) — exact table id
+- [5.3 `namespace`](#53-namespace--namespace-match) — namespace match
+- [5.4 `path_prefix`](#54-path_prefix--path-prefix-match) — path prefix match
+- [5.5 `entity_tag`](#55-entity_tag--entity-tag) — entity tag
+- [5.6 `block_tag`](#56-block_tag--block-tag) — block tag
+- [5.7 `entity_type`](#57-entity_type--entity-type) — entity type
+- [5.8 `block_type`](#58-block_type--block) — block
+- [5.9 `not`](#59-not--negation) — negation
+- [5.10 `any_of`](#510-any_of--any-of) — any of
+- [5.11 `all_of`](#511-all_of--all-of) — all of
+- [5.12 `has_pool`](#512-has_pool--any-pool-satisfies-the-given-pool-selector) — any pool satisfies the given pool selector
+- [5.13 `custom`](#513-custom--custom-decided-by-customtableselectorevent) — custom (decided by `CustomTableSelectorEvent`)
+
+#### 5.1 `all` — all tables
+
+- No parameters.
 
 ```json
-{ "type": "arcanumlib:all" }
-```
-```json
-{ "type": "arcanumlib:id", "id": "minecraft:chests/simple_dungeon" }
-```
-```json
-{ "type": "arcanumlib:namespace", "namespace": "minecraft" }
-```
-```json
-{ "type": "arcanumlib:path_prefix", "prefix": "chests/" }
-```
-```json
-{ "type": "arcanumlib:entity_tag", "tag": "minecraft:zombies" }
-```
-```json
-{ "type": "arcanumlib:block_tag", "tag": "minecraft:logs" }
+{
+  "type": "arcanumlib:all"
+}
 ```
 
+#### 5.2 `id` — exact table id
+
+- `*id`: <ResourceLocation> the target loot table, e.g. `minecraft:entities/zombie`.
+
 ```json
-{ "type": "arcanumlib:entity_type", "entity": "minecraft:zombie" }
+{
+  "type": "arcanumlib:id",
+  "id": "minecraft:entities/zombie"
+}
 ```
+
+#### 5.3 `namespace` — namespace match
+
+- `*namespace`: <String> the namespace, e.g. `minecraft`.
+
 ```json
-{ "type": "arcanumlib:block_type", "block": "minecraft:stone" }
+{
+  "type": "arcanumlib:namespace",
+  "namespace": "minecraft"
+}
 ```
+
+#### 5.4 `path_prefix` — path prefix match
+
+- `*prefix`: <String> the path prefix, e.g. `entities/`.
+
 ```json
-{ "type": "arcanumlib:not", "condition": { "type": "arcanumlib:id", "id": "minecraft:chests/end_city_treasure" } }
+{
+  "type": "arcanumlib:path_prefix",
+  "prefix": "entities/"
+}
 ```
+
+#### 5.5 `entity_tag` — entity tag
+
+- `*tag`: <TagKey<EntityType<?>>> an entity tag, e.g. `minecraft:zombies`; the table id equals the default loot table of any entity in it.
+
+```json
+{
+  "type": "arcanumlib:entity_tag",
+  "tag": "minecraft:zombies"
+}
+```
+
+#### 5.6 `block_tag` — block tag
+
+- `*tag`: <TagKey<Block>> a block tag, e.g. `minecraft:logs`; the table id equals the table of any block in it.
+
+```json
+{
+  "type": "arcanumlib:block_tag",
+  "tag": "minecraft:logs"
+}
+```
+
+#### 5.7 `entity_type` — entity type
+
+- `*entity`: <EntityType<?>> an entity type, e.g. `minecraft:zombie`; tags are not expanded.
+
+```json
+{
+  "type": "arcanumlib:entity_type",
+  "entity": "minecraft:zombie"
+}
+```
+
+#### 5.8 `block_type` — block
+
+- `*block`: <Block> a block, e.g. `minecraft:diamond_ore`; tags are not expanded, and blocks without a loot table never match.
+
+```json
+{
+  "type": "arcanumlib:block_type",
+  "block": "minecraft:diamond_ore"
+}
+```
+
+#### 5.9 `not` — negation
+
+- `*condition`: <TableSelector> the child selector to negate, see [5. Table Selectors](#5-table-selectors-13).
+
+```json
+{
+  "type": "arcanumlib:not",
+  "condition": {
+    "type": "arcanumlib:id",
+    "id": "minecraft:entities/zombie"
+  }
+}
+```
+
+#### 5.10 `any_of` — any of
+
+- `*conditions`: <json array> a list of child selectors (each a <TableSelector>); matches when any of them matches.
+
 ```json
 {
   "type": "arcanumlib:any_of",
   "conditions": [
-    { "type": "arcanumlib:id", "id": "minecraft:chests/village/village_temple" },
-    { "type": "arcanumlib:id", "id": "minecraft:chests/village/village_toolsmith" }
+    {
+      "type": "arcanumlib:namespace",
+      "namespace": "minecraft"
+    },
+    {
+      "type": "arcanumlib:path_prefix",
+      "prefix": "chests/"
+    }
   ]
 }
 ```
+
+#### 5.11 `all_of` — all of
+
+- `*conditions`: <json array> a list of child selectors (each a <TableSelector>); matches only when all of them match.
+
 ```json
 {
   "type": "arcanumlib:all_of",
   "conditions": [
-    { "type": "arcanumlib:namespace", "namespace": "minecraft" },
-    { "type": "arcanumlib:path_prefix", "prefix": "chests/" }
+    {
+      "type": "arcanumlib:id",
+      "id": "minecraft:entities/zombie"
+    },
+    {
+      "type": "arcanumlib:has_pool",
+      "pool": {
+        "type": "arcanumlib:index",
+        "index": 0
+      }
+    }
   ]
 }
 ```
+
+#### 5.12 `has_pool` — any pool satisfies the given pool selector
+
+- `*pool`: <PoolSelector> the pool selector applied to each pool of the table, see [7. Pool Selectors](#7-pool-selectors-9).
+
 ```json
-{ "type": "arcanumlib:custom", "custom_id": "my_table_hook" }
+{
+  "type": "arcanumlib:has_pool",
+  "pool": {
+    "type": "arcanumlib:index",
+    "index": 0
+  }
+}
+```
+
+The `pool` field is a **pool selector**.
+
+#### 5.13 `custom` — custom (decided by `CustomTableSelectorEvent`)
+
+- `*custom_id`: <String> the custom id handed to `CustomTableSelectorEvent` listeners.
+
+```json
+{
+  "type": "arcanumlib:custom",
+  "custom_id": "mymod:my_check"
+}
 ```
 
 ---
@@ -234,15 +354,19 @@ Decides "whether this injector should act on a given table". Registry: `arcanuml
 
 Written inside the top-level `ops`. Registry: `arcanumlib:table_operator`.
 
-| id | Fields | Description |
-|---|---|---|
-| `add_pool` | `pool` | **Append** a pool to the table (vanilla json pool format) |
-| `modify_pool` | `poolSelector`, `ops` | Scope: run the child ops on each matched pool |
-| `modify_function` | `functionSelector`, `ops` | Scope: run the child ops on the matched functions in the table's function list |
-| `set_function` | `functions` | **Replace** the table's own function list |
-| `add_function` | `functions` | **Append** to the table's own function list |
-| `remove_function` | `functionTypes` | Remove the table's own functions by function type id |
-| `table_custom` | `custom_id` | Handed to the listeners of `TableCustomOpEvent` |
+**Entries**:
+
+- [6.1 `add_pool`](#61-add_pool--append-a-pool-to-the-table-vanilla-json-pool-format) — **Append** a pool to the table (vanilla json pool format)
+- [6.2 `modify_pool`](#62-modify_pool--scope-apply-the-child-ops-on-each-matched-pool) — Scope: apply the child ops on each matched pool
+- [6.3 `modify_function`](#63-modify_function--scope-apply-the-child-ops-on-the-matched-functions-in-the-tables-function-list) — Scope: apply the child ops on the matched functions in the table's function list
+- [6.4 `set_function`](#64-set_function--replace-the-tables-own-function-list) — **Replace** the table's own function list
+- [6.5 `add_function`](#65-add_function--append-to-the-tables-own-function-list) — **Append** to the table's own function list
+- [6.6 `remove_function`](#66-remove_function--remove-the-tables-own-functions-by-function-type-id) — Remove the table's own functions by function type id
+- [6.7 `table_custom`](#67-table_custom--handed-to-the-listeners-of-tablecustomopevent) — Handed to the listeners of `TableCustomOpEvent`
+
+#### 6.1 `add_pool` — **Append** a pool to the table (vanilla json pool format)
+
+- `*pool`: <json object> a vanilla loot pool (`rolls` / `bonus_rolls` / `entries` ...), appended to the table as a whole pool.
 
 ```json
 {
@@ -252,51 +376,124 @@ Written inside the top-level `ops`. Registry: `arcanumlib:table_operator`.
     "bonus_rolls": 0.0,
     "name": "my_extra_pool",
     "entries": [
-      { "type": "minecraft:item", "name": "minecraft:diamond", "weight": 1, "functions": [] }
+      {
+        "type": "minecraft:item",
+        "name": "minecraft:diamond",
+        "weight": 1,
+        "functions": []
+      }
     ]
   }
 }
 ```
+
+#### 6.2 `modify_pool` — Scope: apply the child ops on each matched pool
+
+- `*poolSelector`: <PoolSelector> selects the pools to modify, see [7. Pool Selectors](#7-pool-selectors-9).
+- `*ops`: <json array> a list of pool operators (each a `PoolOperator`), see [8. Pool-Level Operators](#8-pool-level-operators-12).
+
 ```json
 {
   "type": "arcanumlib:modify_pool",
-  "poolSelector": { "type": "arcanumlib:name", "name": "my_extra_pool" },
+  "poolSelector": {
+    "type": "arcanumlib:name",
+    "name": "my_extra_pool"
+  },
   "ops": [
-    { "type": "arcanumlib:remove_pool" },
-    { "type": "arcanumlib:add_entry", "entry": { "type": "minecraft:item", "name": "minecraft:emerald" } }
+    {
+      "type": "arcanumlib:remove_pool"
+    },
+    {
+      "type": "arcanumlib:add_entry",
+      "entry": {
+        "type": "minecraft:item",
+        "name": "minecraft:emerald"
+      }
+    }
   ]
 }
 ```
+
+#### 6.3 `modify_function` — Scope: apply the child ops on the matched functions in the table's function list
+
+- `*functionSelector`: <FunctionSelector> selects the functions to modify, see [11. Function Selectors](#11-function-selectors-9).
+- `*ops`: <json array> a list of function operators (each a `FunctionOperator`), see [12. Function-Level Operators](#12-function-level-operators-3).
+
 ```json
 {
   "type": "arcanumlib:modify_function",
-  "functionSelector": { "type": "arcanumlib:function_type", "functionType": "minecraft:set_count" },
+  "functionSelector": {
+    "type": "arcanumlib:function_type",
+    "functionType": "minecraft:set_count"
+  },
   "ops": [
-    { "type": "arcanumlib:replace_function", "function": { "function": "minecraft:set_count", "count": 3.0 } }
+    {
+      "type": "arcanumlib:replace_function",
+      "function": {
+        "function": "minecraft:set_count",
+        "count": 3.0
+      }
+    }
   ]
 }
 ```
+
+#### 6.4 `set_function` — **Replace** the table's own function list
+
+- `*functions`: <json array> a list of vanilla item modifiers (such as `minecraft:set_count`); **replaces** the table list.
+
 ```json
 {
   "type": "arcanumlib:set_function",
   "functions": [
-    { "function": "minecraft:set_count", "count": 2.0, "add": true }
+    {
+      "function": "minecraft:set_count",
+      "count": 2.0,
+      "add": true
+    }
   ]
 }
 ```
+
+#### 6.5 `add_function` — **Append** to the table's own function list
+
+- `*functions`: <json array> a list of vanilla item modifiers (such as `minecraft:set_count`); **appends** to the table list.
+
 ```json
 {
   "type": "arcanumlib:add_function",
   "functions": [
-    { "function": "minecraft:set_count", "count": 1.0, "add": true }
+    {
+      "function": "minecraft:set_count",
+      "count": 1.0,
+      "add": true
+    }
   ]
 }
 ```
+
+#### 6.6 `remove_function` — Remove the table's own functions by function type id
+
+- `*functionTypes`: <json array> vanilla function type ids to strip, e.g. `["minecraft:set_count"]`.
+
 ```json
-{ "type": "arcanumlib:remove_function", "functionTypes": ["minecraft:set_count"] }
+{
+  "type": "arcanumlib:remove_function",
+  "functionTypes": [
+    "minecraft:set_count"
+  ]
+}
 ```
+
+#### 6.7 `table_custom` — Handed to the listeners of `TableCustomOpEvent`
+
+- `*custom_id`: <String> the id handed to `TableCustomOpEvent` listeners.
+
 ```json
-{ "type": "arcanumlib:table_custom", "custom_id": "my_table_hook" }
+{
+  "type": "arcanumlib:table_custom",
+  "custom_id": "my_table_hook"
+}
 ```
 
 ---
@@ -305,261 +502,584 @@ Written inside the top-level `ops`. Registry: `arcanumlib:table_operator`.
 
 Written inside `modify_pool.poolSelector`. Registry: `arcanumlib:pool_selector`.
 
-| id | Fields | Description |
-|---|---|---|
-| `any` | — | All pools (**default**) |
-| `index` | `index` | Pool index (starting from 0) |
-| `name` | `name` | Pool name; **unnamed pools never match** |
-| `has_entry` | `entrySelector` | **Any** entry in the pool satisfies that entry selector |
-| `total_weight` | `min`, `max` | The pool's total weight falls inside the closed interval |
-| `not` | `condition` | Negation |
-| `any_of` | `conditions` | Any of them matches |
-| `all_of` | `conditions` | All of them match |
-| `custom` | `custom_id` | Handed to the listeners of `CustomPoolSelectorEvent` |
+**Entries**:
+
+- [7.1 `any`](#71-any--all-pools-default) — All pools (**default**)
+- [7.2 `index`](#72-index--pool-index-starting-from-0) — Pool index (starting from 0)
+- [7.3 `name`](#73-name--pool-name-unnamed-pools-never-match) — Pool name; **unnamed pools never match**
+- [7.4 `has_entry`](#74-has_entry--any-entry-in-the-pool-satisfies-that-entry-selector) — **Any** entry in the pool satisfies that entry selector
+- [7.5 `total_weight`](#75-total_weight--the-pools-total-weight-falls-inside-the-closed-interval) — The pool's total weight falls inside the closed interval
+- [7.6 `not`](#76-not--negation) — Negation
+- [7.7 `any_of`](#77-any_of--any-of-them-matches) — Any of them matches
+- [7.8 `all_of`](#78-all_of--all-of-them-match) — All of them match
+- [7.9 `custom`](#79-custom--handed-to-the-listeners-of-custompoolselectorevent) — Handed to the listeners of `CustomPoolSelectorEvent`
+
+#### 7.1 `any` — All pools (**default**)
+
+- No parameters.
 
 ```json
-{ "type": "arcanumlib:any" }
+{
+  "type": "arcanumlib:any"
+}
 ```
+
+#### 7.2 `index` — Pool index (starting from 0)
+
+- `*index`: <int> the index of the pool in the table, starting at 0.
+
 ```json
-{ "type": "arcanumlib:index", "index": 0 }
+{
+  "type": "arcanumlib:index",
+  "index": 0
+}
 ```
+
+#### 7.3 `name` — Pool name; **unnamed pools never match**
+
+- `*name`: <String> the pool name; unnamed pools never match.
+
 ```json
-{ "type": "arcanumlib:name", "name": "main" }
+{
+  "type": "arcanumlib:name",
+  "name": "main"
+}
 ```
+
+#### 7.4 `has_entry` — **Any** entry in the pool satisfies that entry selector
+
+- `*entrySelector`: <EntrySelector> the selector used to test the entries of the pool, see [9. Entry Selectors](#9-entry-selectors-15).
+
 ```json
 {
   "type": "arcanumlib:has_entry",
-  "entrySelector": { "type": "arcanumlib:item", "item": "minecraft:gunpowder" }
+  "entrySelector": {
+    "type": "arcanumlib:item",
+    "item": "minecraft:gunpowder"
+  }
 }
 ```
+
+#### 7.5 `total_weight` — The pool's total weight falls inside the closed interval
+
+- `min`: <int> the lower weight bound (default 0).
+- `max`: <int> the upper weight bound (default Integer.MAX_VALUE).
+
 ```json
-{ "type": "arcanumlib:total_weight", "min": 2, "max": 20 }
+{
+  "type": "arcanumlib:total_weight",
+  "min": 2,
+  "max": 20
+}
 ```
+
+#### 7.6 `not` — Negation
+
+- `*condition`: <PoolSelector> the child selector to negate, see [7. Pool Selectors](#7-pool-selectors-9).
+
 ```json
-{ "type": "arcanumlib:not", "condition": { "type": "arcanumlib:index", "index": 99 } }
+{
+  "type": "arcanumlib:not",
+  "condition": {
+    "type": "arcanumlib:index",
+    "index": 99
+  }
+}
 ```
+
+#### 7.7 `any_of` — Any of them matches
+
+- `*conditions`: <json array> a list of child selectors (each a <PoolSelector>); matches when any of them matches.
+
 ```json
 {
   "type": "arcanumlib:any_of",
   "conditions": [
-    { "type": "arcanumlib:index", "index": 0 },
-    { "type": "arcanumlib:index", "index": 1 }
+    {
+      "type": "arcanumlib:index",
+      "index": 0
+    },
+    {
+      "type": "arcanumlib:index",
+      "index": 1
+    }
   ]
 }
 ```
+
+#### 7.8 `all_of` — All of them match
+
+- `*conditions`: <json array> a list of child selectors (each a <PoolSelector>); matches only when all of them match.
+
 ```json
 {
   "type": "arcanumlib:all_of",
   "conditions": [
-    { "type": "arcanumlib:any" },
-    { "type": "arcanumlib:not", "condition": { "type": "arcanumlib:index", "index": 99 } }
+    {
+      "type": "arcanumlib:any"
+    },
+    {
+      "type": "arcanumlib:not",
+      "condition": {
+        "type": "arcanumlib:index",
+        "index": 99
+      }
+    }
   ]
 }
 ```
+
+#### 7.9 `custom` — Handed to the listeners of `CustomPoolSelectorEvent`
+
+- `*custom_id`: <String> the id handed to the pool-level custom event listener.
+
 ```json
-{ "type": "arcanumlib:custom", "custom_id": "my_pool_hook" }
+{
+  "type": "arcanumlib:custom",
+  "custom_id": "my_pool_hook"
+}
 ```
 
 **How the total weight is measured** (`arcanumlib:total_weight`, as well as the entry-level `weight_in_range` / `weight_share`):
-
 - Only the **static base weight** counts: the `weight` field, equivalent to vanilla `getWeight(luck = 0)` (including the `max(..., 0)` clamp);
 - **Excludes** `quality × luck` — selectors have no access to a `LootContext`;
 - **Does not filter by entry conditions** — vanilla expands via `expand(context)` when rolling;
 - Composite entries (`alternatives`/`sequence`/`group`) have no `weight` of their own, so their **subtrees are summed recursively**; for `alternatives`, vanilla only walks the first branch whose condition passes, whereas here every branch is counted, which makes it a **static upper bound**.
-
 ---
-
 ## 8. Pool-Level Operators (12)
 
 Written inside `modify_pool.ops`. Registry: `arcanumlib:pool_operator`.
 
-| id | Fields | Description |
-|---|---|---|
-| `remove_pool` | — | Delete **the current pool** |
-| `add_entry` | `entry` | Append an entry to the current pool |
-| `modify_entry` | `entrySelector`, `ops` | Scope: run the child ops on the matched entries in the current pool |
-| `modify_function` | `functionSelector`, `ops` | Scope: on the current pool's function list |
-| `modify_condition` | `conditionSelector`, `ops` | Scope: on the current pool's own conditions |
-| `set_condition` | `conditions` | Replace the pool's own condition list |
-| `add_condition` | `conditions` | Append to the pool's own condition list |
-| `remove_condition` | `conditionTypes` | Remove the pool's own conditions by condition type id |
-| `set_function` | `functions` | Replace the pool's own function list |
-| `add_function` | `functions` | Append to the pool's own function list |
-| `remove_function` | `functionTypes` | Remove the pool's own functions by function type id |
-| `pool_custom` | `custom_id` | Handed to the listeners of `PoolCustomOpEvent` |
+**Entries**:
+
+- [8.1 `remove_pool`](#81-remove_pool--delete-the-current-pool) — Delete **the current pool**
+- [8.2 `add_entry`](#82-add_entry--append-an-entry-to-the-current-pool) — Append an entry to the current pool
+- [8.3 `modify_entry`](#83-modify_entry--scope-apply-the-child-ops-on-the-matched-entries-in-the-current-pool) — Scope: apply the child ops on the matched entries in the current pool
+- [8.4 `modify_function`](#84-modify_function--scope-on-the-current-pools-function-list) — Scope: on the current pool's function list
+- [8.5 `modify_condition`](#85-modify_condition--scope-on-the-current-pools-own-conditions) — Scope: on the current pool's own conditions
+- [8.6 `set_condition`](#86-set_condition--replace-the-pools-own-condition-list) — Replace the pool's own condition list
+- [8.7 `add_condition`](#87-add_condition--append-to-the-pools-own-condition-list) — Append to the pool's own condition list
+- [8.8 `remove_condition`](#88-remove_condition--remove-the-pools-own-conditions-by-condition-type-id) — Remove the pool's own conditions by condition type id
+- [8.9 `set_function`](#89-set_function--replace-the-pools-own-function-list) — Replace the pool's own function list
+- [8.10 `add_function`](#810-add_function--append-to-the-pools-own-function-list) — Append to the pool's own function list
+- [8.11 `remove_function`](#811-remove_function--remove-the-pools-own-functions-by-function-type-id) — Remove the pool's own functions by function type id
+- [8.12 `pool_custom`](#812-pool_custom--handed-to-the-listeners-of-poolcustomopevent) — Handed to the listeners of `PoolCustomOpEvent`
+
+#### 8.1 `remove_pool` — Delete **the current pool**
+- No parameters.
 
 ```json
-{ "type": "arcanumlib:remove_pool" }
+{
+  "type": "arcanumlib:remove_pool"
+}
 ```
+
+#### 8.2 `add_entry` — Append an entry to the current pool
+- `*entry`: <json object> a vanilla entry (`minecraft:item` / `minecraft:tag` ...).
+
 ```json
-{ "type": "arcanumlib:add_entry", "entry": { "type": "minecraft:item", "name": "minecraft:iron_ingot" } }
+{
+  "type": "arcanumlib:add_entry",
+  "entry": {
+    "type": "minecraft:item",
+    "name": "minecraft:iron_ingot"
+  }
+}
 ```
+
+#### 8.3 `modify_entry` — Scope: apply the child ops on the matched entries in the current pool
+- `*entrySelector`: <EntrySelector> selects the entries to modify, see [9. Entry Selectors](#9-entry-selectors-15).
+- `*ops`: <json array> a list of entry-level operators, see [10. Entry-Level Operators](#10-entry-level-operators-13).
+
 ```json
 {
   "type": "arcanumlib:modify_entry",
-  "entrySelector": { "type": "arcanumlib:weight_share", "min": 0.7, "max": 0.8 },
+  "entrySelector": {
+    "type": "arcanumlib:weight_share",
+    "min": 0.7,
+    "max": 0.8
+  },
   "ops": [
-    { "type": "arcanumlib:set_function", "functions": [{ "function": "minecraft:set_count", "count": 5.0 }] }
+    {
+      "type": "arcanumlib:set_function",
+      "functions": [
+        {
+          "function": "minecraft:set_count",
+          "count": 5.0
+        }
+      ]
+    }
   ]
 }
 ```
+
+#### 8.4 `modify_function` — Scope: on the current pool's function list
+- `*functionSelector`: <FunctionSelector> selects the functions to modify, see [11. Function Selectors](#11-function-selectors-9).
+- `*ops`: <json array> a list of function-level operators, see [12. Function-Level Operators](#12-function-level-operators-3).
+
 ```json
 {
   "type": "arcanumlib:modify_function",
-  "functionSelector": { "type": "arcanumlib:any" },
+  "functionSelector": {
+    "type": "arcanumlib:any"
+  },
   "ops": [
-    { "type": "arcanumlib:remove_function" }
+    {
+      "type": "arcanumlib:remove_function"
+    }
   ]
 }
 ```
+
+#### 8.5 `modify_condition` — Scope: on the current pool's own conditions
+- `*conditionSelector`: <ConditionSelector> selects the conditions to modify, see [13. Condition Selectors](#13-condition-selectors-8).
+- `*ops`: <json array> a list of condition-level operators, see [14. Condition-Level Operators](#14-condition-level-operators-2).
+
 ```json
 {
   "type": "arcanumlib:modify_condition",
-  "conditionSelector": { "type": "arcanumlib:condition_type", "conditionType": "minecraft:random_chance" },
-  "ops": [{ "type": "arcanumlib:remove_condition" }]
+  "conditionSelector": {
+    "type": "arcanumlib:condition_type",
+    "conditionType": "minecraft:random_chance"
+  },
+  "ops": [
+    {
+      "type": "arcanumlib:remove_condition"
+    }
+  ]
 }
 ```
+
+#### 8.6 `set_condition` — Replace the pool's own condition list
+- `*conditions`: <json array> a list of vanilla predicates (each a `minecraft:` predicate).
+
 ```json
 {
   "type": "arcanumlib:set_condition",
-  "conditions": [{ "condition": "minecraft:random_chance", "chance": 1.0 }]
+  "conditions": [
+    {
+      "condition": "minecraft:random_chance",
+      "chance": 1.0
+    }
+  ]
 }
 ```
+
+#### 8.7 `add_condition` — Append to the pool's own condition list
+- `*conditions`: <json array> a list of vanilla predicates (each a `minecraft:` predicate).
+
 ```json
 {
   "type": "arcanumlib:add_condition",
-  "conditions": [{ "condition": "minecraft:random_chance", "chance": 0.5 }]
+  "conditions": [
+    {
+      "condition": "minecraft:random_chance",
+      "chance": 0.5
+    }
+  ]
 }
 ```
+
+#### 8.8 `remove_condition` — Remove the pool's own conditions by condition type id
+- `*conditionTypes`: <json array> vanilla condition type ids, e.g. `["minecraft:random_chance"]`.
+
 ```json
-{ "type": "arcanumlib:remove_condition", "conditionTypes": ["minecraft:random_chance"] }
+{
+  "type": "arcanumlib:remove_condition",
+  "conditionTypes": [
+    "minecraft:random_chance"
+  ]
+}
 ```
+
+#### 8.9 `set_function` — Replace the pool's own function list
+- `*functions`: <json array> a list of vanilla item modifiers (such as `minecraft:set_count`).
+
 ```json
 {
   "type": "arcanumlib:set_function",
-  "functions": [{ "function": "minecraft:set_count", "count": 2.0, "add": true }]
+  "functions": [
+    {
+      "function": "minecraft:set_count",
+      "count": 2.0,
+      "add": true
+    }
+  ]
 }
 ```
+
+#### 8.10 `add_function` — Append to the pool's own function list
+- `*functions`: <json array> a list of vanilla item modifiers (such as `minecraft:set_count`).
+
 ```json
 {
   "type": "arcanumlib:add_function",
-  "functions": [{ "function": "minecraft:set_count", "count": 1.0, "add": true }]
+  "functions": [
+    {
+      "function": "minecraft:set_count",
+      "count": 1.0,
+      "add": true
+    }
+  ]
 }
 ```
+
+#### 8.11 `remove_function` — Remove the pool's own functions by function type id
+- `*functionTypes`: <json array> vanilla function type ids, e.g. `["minecraft:set_count"]`.
+
 ```json
-{ "type": "arcanumlib:remove_function", "functionTypes": ["minecraft:set_count"] }
+{
+  "type": "arcanumlib:remove_function",
+  "functionTypes": [
+    "minecraft:set_count"
+  ]
+}
 ```
+
+#### 8.12 `pool_custom` — Handed to the listeners of `PoolCustomOpEvent`
+- `*custom_id`: <String> the id handed to the pool-level custom event listener.
+
 ```json
-{ "type": "arcanumlib:pool_custom", "custom_id": "my_pool_hook" }
+{
+  "type": "arcanumlib:pool_custom",
+  "custom_id": "my_pool_hook"
+}
 ```
 
 ---
-
 ## 9. Entry Selectors (15)
 
 Written inside `modify_entry.entrySelector`. Registry: `arcanumlib:entry_selector`.
 
-| id | Fields | Description |
-|---|---|---|
-| `any` | — | All entries (**default**) |
-| `index` | `index` | The entry's index inside the pool |
-| `item` | `item` | Exact match on the item id (only meaningful for `minecraft:item` entries) |
-| `tag` | `tag` | Matches **`minecraft:tag` entries**: the tag itself equals the given tag |
-| `item_with_tag` | `tag` | Matches `minecraft:item` entries: their **item** belongs to the given tag (note the difference from `tag`) |
-| `entry_type` | `entryType` | Entry type, such as `minecraft:item`, `minecraft:alternatives` |
-| `weight_in_range` | `min`, `max` | The entry's weight (for a composite entry, its subtree's) falls inside the closed interval |
-| `weight_share` | `min`, `max` | The entry's share of its pool's total weight falls inside the closed interval `[0, 1]` |
-| `has_condition` | `conditionType` | The entry carries a condition of this type |
-| `has_function` | `functionType` | The entry carries a function of this type |
-| `has_child` | `entrySelector` | Some **direct child** of a composite entry matches (not recursive) |
-| `not` | `condition` | Negation |
-| `any_of` | `conditions` | Any of them matches |
-| `all_of` | `conditions` | All of them match |
-| `custom` | `custom_id` | Handed to the listeners of `CustomEntrySelectorEvent` |
+**Entries**:
+
+- [9.1 `any`](#91-any--all-entries-default) — All entries (**default**)
+- [9.2 `index`](#92-index--the-entrys-index-inside-the-pool) — The entry's index inside the pool
+- [9.3 `item`](#93-item--exact-match-on-the-item-id-only-meaningful-for-minecraftitem-entries) — Exact match on the item id (only meaningful for `minecraft:item` entries)
+- [9.4 `tag`](#94-tag--matches-minecrafttag-entries-the-tag-itself-equals-the-given-tag) — Matches **`minecraft:tag` entries**: the tag itself equals the given tag
+- [9.5 `item_with_tag`](#95-item_with_tag--matches-minecraftitem-entries-their-item-belongs-to-the-given-tag-note-the-difference-from-tag) — Matches `minecraft:item` entries: their **item** belongs to the given tag (note the difference from `tag`)
+- [9.6 `entry_type`](#96-entry_type--entry-type-such-as-minecraftitem-minecraftalternatives) — Entry type, such as `minecraft:item`, `minecraft:alternatives`
+- [9.7 `weight_in_range`](#97-weight_in_range--the-entrys-weight-for-a-composite-entry-its-subtrees-falls-inside-the-closed-interval) — The entry's weight (for a composite entry, its subtree's) falls inside the closed interval
+- [9.8 `weight_share`](#98-weight_share--the-entrys-share-of-its-pools-total-weight-falls-inside-the-closed-interval-0-1) — The entry's share of its pool's total weight falls inside the closed interval `[0, 1]`
+- [9.9 `has_condition`](#99-has_condition--the-entry-carries-a-condition-of-this-type) — The entry carries a condition of this type
+- [9.10 `has_function`](#910-has_function--the-entry-carries-a-function-of-this-type) — The entry carries a function of this type
+- [9.11 `has_child`](#911-has_child--some-direct-child-of-a-composite-entry-matches-not-recursive) — Some **direct child** of a composite entry matches (not recursive)
+- [9.12 `not`](#912-not--negation) — Negation
+- [9.13 `any_of`](#913-any_of--any-of-them-matches) — Any of them matches
+- [9.14 `all_of`](#914-all_of--all-of-them-match) — All of them match
+- [9.15 `custom`](#915-custom--handed-to-the-listeners-of-customentryselectorevent) — Handed to the listeners of `CustomEntrySelectorEvent`
+
+#### 9.1 `any` — All entries (**default**)
+- No parameters.
 
 ```json
-{ "type": "arcanumlib:any" }
+{
+  "type": "arcanumlib:any"
+}
 ```
+
+#### 9.2 `index` — The entry's index inside the pool
+- `*index`: <int> the index of the entry inside the pool, starting at 0.
+
 ```json
-{ "type": "arcanumlib:index", "index": 0 }
+{
+  "type": "arcanumlib:index",
+  "index": 0
+}
 ```
+
+#### 9.3 `item` — Exact match on the item id (only meaningful for `minecraft:item` entries)
+- `*item`: <ResourceLocation> an item id, e.g. `minecraft:diamond`.
+
 ```json
-{ "type": "arcanumlib:item", "item": "minecraft:gunpowder" }
+{
+  "type": "arcanumlib:item",
+  "item": "minecraft:gunpowder"
+}
 ```
+
+#### 9.4 `tag` — Matches **`minecraft:tag` entries**: the tag itself equals the given tag
+- `*tag`: <TagKey<Item>> an item tag; matches a `minecraft:tag` **entry**, comparing the tag itself.
+
 ```json
-{ "type": "arcanumlib:tag", "tag": "minecraft:coals" }
+{
+  "type": "arcanumlib:tag",
+  "tag": "minecraft:coals"
+}
 ```
+
+#### 9.5 `item_with_tag` — Matches `minecraft:item` entries: their **item** belongs to the given tag (note the difference from `tag`)
+- `*tag`: <TagKey<Item>> an item tag; matches an entry that names a concrete item, testing whether that item is in the tag.
+
 ```json
-{ "type": "arcanumlib:item_with_tag", "tag": "minecraft:coals" }
+{
+  "type": "arcanumlib:item_with_tag",
+  "tag": "minecraft:coals"
+}
 ```
+
+#### 9.6 `entry_type` — Entry type, such as `minecraft:item`, `minecraft:alternatives`
+- `*entryType`: <ResourceLocation> an entry type id, e.g. `minecraft:item`.
+
 ```json
-{ "type": "arcanumlib:entry_type", "entryType": "minecraft:alternatives" }
+{
+  "type": "arcanumlib:entry_type",
+  "entryType": "minecraft:alternatives"
+}
 ```
+
+#### 9.7 `weight_in_range` — The entry's weight (for a composite entry, its subtree's) falls inside the closed interval
+- `min`: <int> the lower weight bound (default 0).
+- `max`: <int> the upper weight bound (default Integer.MAX_VALUE).
+
 ```json
-{ "type": "arcanumlib:weight_in_range", "min": 1, "max": 1 }
+{
+  "type": "arcanumlib:weight_in_range",
+  "min": 1,
+  "max": 1
+}
 ```
+
+#### 9.8 `weight_share` — The entry's share of its pool's total weight falls inside the closed interval `[0, 1]`
+- `min`: <float> the lower share bound (0~1).
+- `max`: <float> the upper share bound (0~1).
+
 ```json
-{ "type": "arcanumlib:weight_share", "min": 0.05, "max": 0.2 }
+{
+  "type": "arcanumlib:weight_share",
+  "min": 0.05,
+  "max": 0.2
+}
 ```
+
+#### 9.9 `has_condition` — The entry carries a condition of this type
+- `*conditionType`: <ResourceLocation> a vanilla condition type id, e.g. `minecraft:random_chance`.
+
 ```json
-{ "type": "arcanumlib:has_condition", "conditionType": "minecraft:random_chance" }
+{
+  "type": "arcanumlib:has_condition",
+  "conditionType": "minecraft:random_chance"
+}
 ```
+
+#### 9.10 `has_function` — The entry carries a function of this type
+- `*functionType`: <ResourceLocation> a vanilla function type id, e.g. `minecraft:set_count`.
+
 ```json
-{ "type": "arcanumlib:has_function", "functionType": "minecraft:set_count" }
+{
+  "type": "arcanumlib:has_function",
+  "functionType": "minecraft:set_count"
+}
 ```
+
+#### 9.11 `has_child` — Some **direct child** of a composite entry matches (not recursive)
+- `*entrySelector`: <EntrySelector> the selector used to test the direct children, see [9. Entry Selectors](#9-entry-selectors-15).
+
 ```json
-{ "type": "arcanumlib:has_child", "entrySelector": { "type": "arcanumlib:item", "item": "minecraft:iron_ingot" } }
+{
+  "type": "arcanumlib:has_child",
+  "entrySelector": {
+    "type": "arcanumlib:item",
+    "item": "minecraft:iron_ingot"
+  }
+}
 ```
+
+#### 9.12 `not` — Negation
+- `*condition`: <EntrySelector> the child selector to negate, see [9. Entry Selectors](#9-entry-selectors-15).
+
 ```json
-{ "type": "arcanumlib:not", "condition": { "type": "arcanumlib:item", "item": "minecraft:golden_apple" } }
+{
+  "type": "arcanumlib:not",
+  "condition": {
+    "type": "arcanumlib:item",
+    "item": "minecraft:golden_apple"
+  }
+}
 ```
+
+#### 9.13 `any_of` — Any of them matches
+- `*conditions`: <json array> a list of child selectors (each an <EntrySelector>); matches when any of them matches.
+
 ```json
 {
   "type": "arcanumlib:any_of",
   "conditions": [
-    { "type": "arcanumlib:item", "item": "minecraft:golden_apple" },
-    { "type": "arcanumlib:item", "item": "minecraft:gunpowder" }
+    {
+      "type": "arcanumlib:item",
+      "item": "minecraft:golden_apple"
+    },
+    {
+      "type": "arcanumlib:item",
+      "item": "minecraft:gunpowder"
+    }
   ]
 }
 ```
+
+#### 9.14 `all_of` — All of them match
+- `*conditions`: <json array> a list of child selectors (each an <EntrySelector>); matches only when all of them match.
+
 ```json
 {
   "type": "arcanumlib:all_of",
   "conditions": [
-    { "type": "arcanumlib:entry_type", "entryType": "minecraft:item" },
-    { "type": "arcanumlib:weight_in_range", "min": 1, "max": 1 }
+    {
+      "type": "arcanumlib:entry_type",
+      "entryType": "minecraft:item"
+    },
+    {
+      "type": "arcanumlib:weight_in_range",
+      "min": 1,
+      "max": 1
+    }
   ]
 }
 ```
+
+#### 9.15 `custom` — Handed to the listeners of `CustomEntrySelectorEvent`
+- `*custom_id`: <String> the id handed to the entry-level custom event listener.
+
 ```json
-{ "type": "arcanumlib:custom", "custom_id": "my_entry_hook" }
+{
+  "type": "arcanumlib:custom",
+  "custom_id": "my_entry_hook"
+}
 ```
 
 ---
-
 ## 10. Entry-Level Operators (13)
 
 Written inside `modify_entry.ops`. Registry: `arcanumlib:entry_operator`.
 
-| id | Fields | Description |
-|---|---|---|
-| `remove_entry` | — | Delete the current entry |
-| `replace_entry` | `entry` | Replace the current entry with a new one (one independent instance per site) |
-| `set_weight` | `weight` | Set the weight; **a negative number means "do not change"**; composite entries have no weight and are skipped |
-| `set_quality` | `quality` | Set the quality; **a negative number means "do not change"**; composite entries have no quality and are skipped |
-| `modify_function` | `functionSelector`, `ops` | Scope: on the current entry's function list |
-| `modify_condition` | `conditionSelector`, `ops` | Scope: on the current entry's own conditions |
-| `set_condition` | `conditions` | Replace the current entry's condition list |
-| `add_condition` | `conditions` | Append to the current entry's condition list |
-| `remove_condition` | `conditionTypes` | Remove the current entry's conditions by type id |
-| `set_function` | `functions` | Replace the current entry's function list (composite entries are skipped) |
-| `add_function` | `functions` | Append to the current entry's function list (composite entries are skipped) |
-| `remove_function` | `functionTypes` | Remove the current entry's functions by type id (composite entries are skipped) |
-| `entry_custom` | `custom_id` | Handed to the listeners of `EntryCustomOpEvent` |
+**Entries**:
+
+- [10.1 `remove_entry`](#101-remove_entry--delete-the-current-entry) — Delete the current entry
+- [10.2 `replace_entry`](#102-replace_entry--replace-the-current-entry-with-a-new-one-one-independent-instance-per-site) — Replace the current entry with a new one (one independent instance per site)
+- [10.3 `set_weight`](#103-set_weight--set-the-weight-a-negative-number-means-do-not-change-composite-entries-have-no-weight-and-are-skipped) — Set the weight; **a negative number means "do not change"**; composite entries have no weight and are skipped
+- [10.4 `set_quality`](#104-set_quality--set-the-quality-a-negative-number-means-do-not-change-composite-entries-have-no-quality-and-are-skipped) — Set the quality; **a negative number means "do not change"**; composite entries have no quality and are skipped
+- [10.5 `modify_function`](#105-modify_function--scope-on-the-current-entrys-function-list) — Scope: on the current entry's function list
+- [10.6 `modify_condition`](#106-modify_condition--scope-on-the-current-entrys-own-conditions) — Scope: on the current entry's own conditions
+- [10.7 `set_condition`](#107-set_condition--replace-the-current-entrys-condition-list) — Replace the current entry's condition list
+- [10.8 `add_condition`](#108-add_condition--append-to-the-current-entrys-condition-list) — Append to the current entry's condition list
+- [10.9 `remove_condition`](#109-remove_condition--remove-the-current-entrys-conditions-by-type-id) — Remove the current entry's conditions by type id
+- [10.10 `set_function`](#1010-set_function--replace-the-current-entrys-function-list-composite-entries-are-skipped) — Replace the current entry's function list (composite entries are skipped)
+- [10.11 `add_function`](#1011-add_function--append-to-the-current-entrys-function-list-composite-entries-are-skipped) — Append to the current entry's function list (composite entries are skipped)
+- [10.12 `remove_function`](#1012-remove_function--remove-the-current-entrys-functions-by-type-id-composite-entries-are-skipped) — Remove the current entry's functions by type id (composite entries are skipped)
+- [10.13 `entry_custom`](#1013-entry_custom--handed-to-the-listeners-of-entrycustomopevent) — Handed to the listeners of `EntryCustomOpEvent`
+
+#### 10.1 `remove_entry` — Delete the current entry
+- No parameters.
 
 ```json
-{ "type": "arcanumlib:remove_entry" }
+{
+  "type": "arcanumlib:remove_entry"
+}
 ```
+
+#### 10.2 `replace_entry` — Replace the current entry with a new one (one independent instance per site)
+- `*entry`: <json object> a vanilla entry used to replace the current one (one independent instance per site).
+
 ```json
 {
   "type": "arcanumlib:replace_entry",
@@ -567,257 +1087,531 @@ Written inside `modify_entry.ops`. Registry: `arcanumlib:entry_operator`.
     "type": "minecraft:item",
     "name": "minecraft:leather",
     "functions": [
-      { "function": "minecraft:enchanted_count_increase", "enchantment": "minecraft:looting", "count": { "type": "minecraft:uniform", "min": 0.0, "max": 1.0 } }
+      {
+        "function": "minecraft:enchanted_count_increase",
+        "enchantment": "minecraft:looting",
+        "count": {
+          "type": "minecraft:uniform",
+          "min": 0.0,
+          "max": 1.0
+        }
+      }
     ]
   }
 }
 ```
+
+#### 10.3 `set_weight` — Set the weight; **a negative number means "do not change"**; composite entries have no weight and are skipped
+- `*weight`: <int> the target weight; a **negative number means "leave unchanged"** (legacy semantics, so old json can be reused).
+
 ```json
-{ "type": "arcanumlib:set_weight", "weight": 20 }
+{
+  "type": "arcanumlib:set_weight",
+  "weight": 20
+}
 ```
+
+#### 10.4 `set_quality` — Set the quality; **a negative number means "do not change"**; composite entries have no quality and are skipped
+- `*quality`: <int> the target quality; a **negative number means "leave unchanged"** (legacy semantics).
+
 ```json
-{ "type": "arcanumlib:set_quality", "quality": 1 }
+{
+  "type": "arcanumlib:set_quality",
+  "quality": 1
+}
 ```
+
+#### 10.5 `modify_function` — Scope: on the current entry's function list
+- `*functionSelector`: <FunctionSelector> selects the functions to modify, see [11. Function Selectors](#11-function-selectors-9).
+- `*ops`: <json array> a list of function-level operators, see [12. Function-Level Operators](#12-function-level-operators-3).
+
 ```json
 {
   "type": "arcanumlib:modify_function",
-  "functionSelector": { "type": "arcanumlib:match", "function": { "function": "minecraft:set_count", "count": 3.0 } },
-  "ops": [{ "type": "arcanumlib:remove_function" }]
-}
-```
-```json
-{
-  "type": "arcanumlib:modify_condition",
-  "conditionSelector": { "type": "arcanumlib:index", "index": 0 },
+  "functionSelector": {
+    "type": "arcanumlib:match",
+    "function": {
+      "function": "minecraft:set_count",
+      "count": 3.0
+    }
+  },
   "ops": [
-    { "type": "arcanumlib:replace_condition", "condition": { "condition": "minecraft:random_chance", "chance": 1.0 } }
+    {
+      "type": "arcanumlib:remove_function"
+    }
   ]
 }
 ```
+
+#### 10.6 `modify_condition` — Scope: on the current entry's own conditions
+- `*conditionSelector`: <ConditionSelector> selects the conditions to modify, see [13. Condition Selectors](#13-condition-selectors-8).
+- `*ops`: <json array> a list of condition-level operators, see [14. Condition-Level Operators](#14-condition-level-operators-2).
+
+```json
+{
+  "type": "arcanumlib:modify_condition",
+  "conditionSelector": {
+    "type": "arcanumlib:index",
+    "index": 0
+  },
+  "ops": [
+    {
+      "type": "arcanumlib:replace_condition",
+      "condition": {
+        "condition": "minecraft:random_chance",
+        "chance": 1.0
+      }
+    }
+  ]
+}
+```
+
+#### 10.7 `set_condition` — Replace the current entry's condition list
+- `*conditions`: <json array> a list of vanilla predicates (each a `minecraft:` predicate); **replaces** the entry list.
+
 ```json
 {
   "type": "arcanumlib:set_condition",
-  "conditions": [{ "condition": "minecraft:random_chance", "chance": 1.0 }]
+  "conditions": [
+    {
+      "condition": "minecraft:random_chance",
+      "chance": 1.0
+    }
+  ]
 }
 ```
+
+#### 10.8 `add_condition` — Append to the current entry's condition list
+- `*conditions`: <json array> a list of vanilla predicates (each a `minecraft:` predicate); **appends** to the entry list.
+
 ```json
 {
   "type": "arcanumlib:add_condition",
-  "conditions": [{ "condition": "minecraft:random_chance", "chance": 0.5 }]
+  "conditions": [
+    {
+      "condition": "minecraft:random_chance",
+      "chance": 0.5
+    }
+  ]
 }
 ```
+
+#### 10.9 `remove_condition` — Remove the current entry's conditions by type id
+- `*conditionTypes`: <json array> vanilla condition type ids, e.g. `["minecraft:random_chance"]`.
+
 ```json
-{ "type": "arcanumlib:remove_condition", "conditionTypes": ["minecraft:random_chance"] }
+{
+  "type": "arcanumlib:remove_condition",
+  "conditionTypes": [
+    "minecraft:random_chance"
+  ]
+}
 ```
+
+#### 10.10 `set_function` — Replace the current entry's function list (composite entries are skipped)
+- `*functions`: <json array> a list of vanilla item modifiers (such as `minecraft:set_count`); **replaces** the entry list.
+
 ```json
 {
   "type": "arcanumlib:set_function",
-  "functions": [{ "function": "minecraft:set_count", "count": 2.0 }]
+  "functions": [
+    {
+      "function": "minecraft:set_count",
+      "count": 2.0
+    }
+  ]
 }
 ```
+
+#### 10.11 `add_function` — Append to the current entry's function list (composite entries are skipped)
+- `*functions`: <json array> a list of vanilla item modifiers (such as `minecraft:set_count`); **appends** to the entry list.
+
 ```json
 {
   "type": "arcanumlib:add_function",
-  "functions": [{ "function": "minecraft:set_count", "count": 1.0, "add": true }]
+  "functions": [
+    {
+      "function": "minecraft:set_count",
+      "count": 1.0,
+      "add": true
+    }
+  ]
 }
 ```
+
+#### 10.12 `remove_function` — Remove the current entry's functions by type id (composite entries are skipped)
+- `*functionTypes`: <json array> vanilla function type ids, e.g. `["minecraft:set_count"]`.
+
 ```json
-{ "type": "arcanumlib:remove_function", "functionTypes": ["minecraft:set_count"] }
+{
+  "type": "arcanumlib:remove_function",
+  "functionTypes": [
+    "minecraft:set_count"
+  ]
+}
 ```
+
+#### 10.13 `entry_custom` — Handed to the listeners of `EntryCustomOpEvent`
+- `*custom_id`: <String> the id handed to the entry-level custom event listener.
+
 ```json
-{ "type": "arcanumlib:entry_custom", "custom_id": "my_entry_hook" }
+{
+  "type": "arcanumlib:entry_custom",
+  "custom_id": "my_entry_hook"
+}
 ```
 
 ---
-
 ## 11. Function Selectors (9)
 
 Written inside `modify_function.functionSelector`. Registry: `arcanumlib:function_selector`.
 
-| id | Fields | Description |
-|---|---|---|
-| `any` | — | All functions (**default**) |
-| `index` | `index` | The function's index in the list |
-| `function_type` | `functionType` | By function type id, such as `minecraft:set_count` |
-| `has_condition` | `conditionType` | The function's **own** conditions contain this type |
-| `not` | `selector` | Negation |
-| `any_of` | `selectors` | Any of them matches |
-| `all_of` | `selectors` | All of them match |
-| `match` | `function`, `strict` | Match by the **keys of a template json** (see below) |
-| `custom` | `custom_id` | Handed to the listeners of `CustomFunctionSelectorEvent` |
+**Entries**:
+
+- [11.1 `any`](#111-any--all-functions-default) — All functions (**default**)
+- [11.2 `index`](#112-index--the-functions-index-in-the-list) — The function's index in the list
+- [11.3 `function_type`](#113-function_type--by-function-type-id-such-as-minecraftset_count) — By function type id, such as `minecraft:set_count`
+- [11.4 `has_condition`](#114-has_condition--the-functions-own-conditions-contain-this-type) — The function's **own** conditions contain this type
+- [11.5 `not`](#115-not--negation) — Negation
+- [11.6 `any_of`](#116-any_of--any-of-them-matches) — Any of them matches
+- [11.7 `all_of`](#117-all_of--all-of-them-match) — All of them match
+- [11.8 `match`](#118-match--match-by-the-keys-of-a-template-json-see-below) — Match by the **keys of a template json** (see below)
+- [11.9 `custom`](#119-custom--handed-to-the-listeners-of-customfunctionselectorevent) — Handed to the listeners of `CustomFunctionSelectorEvent`
+
+#### 11.1 `any` — All functions (**default**)
+- No parameters.
 
 ```json
-{ "type": "arcanumlib:any" }
+{
+  "type": "arcanumlib:any"
+}
 ```
+
+#### 11.2 `index` — The function's index in the list
+- `*index`: <int> the index of the function in the list, starting at 0.
+
 ```json
-{ "type": "arcanumlib:index", "index": 0 }
+{
+  "type": "arcanumlib:index",
+  "index": 0
+}
 ```
+
+#### 11.3 `function_type` — By function type id, such as `minecraft:set_count`
+- `*functionType`: <ResourceLocation> a vanilla function type id, e.g. `minecraft:set_count`.
+
 ```json
-{ "type": "arcanumlib:function_type", "functionType": "minecraft:set_count" }
+{
+  "type": "arcanumlib:function_type",
+  "functionType": "minecraft:set_count"
+}
 ```
+
+#### 11.4 `has_condition` — The function's **own** conditions contain this type
+- `*conditionType`: <ResourceLocation> a vanilla condition type id, e.g. `minecraft:random_chance`; matches when the function carries such a condition.
+
 ```json
-{ "type": "arcanumlib:has_condition", "conditionType": "minecraft:random_chance" }
+{
+  "type": "arcanumlib:has_condition",
+  "conditionType": "minecraft:random_chance"
+}
 ```
+
+#### 11.5 `not` — Negation
+- `*selector`: <FunctionSelector> the child selector to negate, see [11. Function Selectors](#11-function-selectors-9).
+
 ```json
-{ "type": "arcanumlib:not", "selector": { "type": "arcanumlib:index", "index": 99 } }
+{
+  "type": "arcanumlib:not",
+  "selector": {
+    "type": "arcanumlib:index",
+    "index": 99
+  }
+}
 ```
+
+#### 11.6 `any_of` — Any of them matches
+- `*selectors`: <json array> a list of child selectors (each a <FunctionSelector>); matches when any of them matches.
+
 ```json
 {
   "type": "arcanumlib:any_of",
   "selectors": [
-    { "type": "arcanumlib:index", "index": 0 },
-    { "type": "arcanumlib:function_type", "functionType": "minecraft:set_count" }
+    {
+      "type": "arcanumlib:index",
+      "index": 0
+    },
+    {
+      "type": "arcanumlib:function_type",
+      "functionType": "minecraft:set_count"
+    }
   ]
 }
 ```
+
+#### 11.7 `all_of` — All of them match
+- `*selectors`: <json array> a list of child selectors (each a <FunctionSelector>); matches only when all of them match.
+
 ```json
 {
   "type": "arcanumlib:all_of",
   "selectors": [
-    { "type": "arcanumlib:function_type", "functionType": "minecraft:set_count" },
-    { "type": "arcanumlib:not", "selector": { "type": "arcanumlib:index", "index": 99 } }
+    {
+      "type": "arcanumlib:function_type",
+      "functionType": "minecraft:set_count"
+    },
+    {
+      "type": "arcanumlib:not",
+      "selector": {
+        "type": "arcanumlib:index",
+        "index": 99
+      }
+    }
   ]
 }
 ```
+
+#### 11.8 `match` — Match by the **keys of a template json** (see below)
+- `*function`: <json object> the template json is kept **as written**, and only the keys you actually wrote are compared.
+- `strict`: <boolean> defaults to `false`; when enabled the candidate must match the template **exactly**.
+
 ```json
 {
   "type": "arcanumlib:match",
-  "function": { "function": "minecraft:set_count", "count": 3.0 }
+  "function": {
+    "function": "minecraft:set_count",
+    "count": 3.0
+  }
 }
 ```
+
+#### 11.9 `custom` — Handed to the listeners of `CustomFunctionSelectorEvent`
+- `*custom_id`: <String> the id handed to the function-level custom event listener.
+
 ```json
 {
-  "type": "arcanumlib:match",
-  "strict": true,
-  "function": { "function": "minecraft:set_count", "count": 2.0, "add": false }
+  "type": "arcanumlib:custom",
+  "custom_id": "my_function_hook"
 }
-```
-```json
-{ "type": "arcanumlib:custom", "custom_id": "my_function_hook" }
 ```
 
 ### About `match`
-
 The semantics mirror vanilla's `DataComponentIngredient` component matching:
-
 - The template keeps the **raw json**, so **only the keys you actually wrote are compared** — keys you did not write do not participate, and codec defaults never pollute the result (this is the key reason it is more useful than "deserialize into a function first, then compare");
 - `strict` defaults to `false`: every key in the template must exist in the candidate with an equal value (subset matching);
 - `strict: true`: requires an **exact match** with the candidate (compared by the equality of the serialized json);
 - Arrays are treated as **ordered arguments**: the lengths must be equal and every element must match;
 - Numbers are compared by value (`3` and `3.0` count as equal);
 - The type key in the template (for functions `"function"`, for conditions `"condition"`) **must be present**, otherwise it never matches.
-
 Typical use: **telling functions of the same type apart by their arguments**. For example, if an entry has both `set_count(2)` and `set_count(+3)`, `function_type` selects both of them, while `match` can pick out just one.
-
 > Note: the `match` template is **not validated**. A misspelled key (for example `coun`) raises no error, it simply never matches.
-
 ---
-
 ## 12. Function-Level Operators (3)
 
 Written inside `modify_function.ops`. Registry: `arcanumlib:function_operator`.
 
-| id | Fields | Description |
-|---|---|---|
-| `remove_function` | — | Delete the current function |
-| `replace_function` | `function` | Replace the current function with a new one (one independent instance per site) |
-| `modify_condition` | `conditionSelector`, `ops` | Scope: descend into **the current function's own conditions**; non-conditional functions (such as `set_count`) have no conditions and are skipped |
+**Entries**:
+
+- [12.1 `remove_function`](#121-remove_function--delete-the-current-function) — Delete the current function
+- [12.2 `replace_function`](#122-replace_function--replace-the-current-function-with-a-new-one-one-independent-instance-per-site) — Replace the current function with a new one (one independent instance per site)
+- [12.3 `modify_condition`](#123-modify_condition--scope-descend-into-the-current-functions-own-conditions-non-conditional-functions-such-as-set_count-have-no-conditions-and-are-skipped) — Scope: descend into **the current function's own conditions**; non-conditional functions (such as `set_count`) have no conditions and are skipped
+
+#### 12.1 `remove_function` — Delete the current function
+- No parameters.
 
 ```json
-{ "type": "arcanumlib:remove_function" }
+{
+  "type": "arcanumlib:remove_function"
+}
 ```
+
+#### 12.2 `replace_function` — Replace the current function with a new one (one independent instance per site)
+- `*function`: <json object> a vanilla item modifier used to replace the current function (one independent instance per site).
+
 ```json
 {
   "type": "arcanumlib:replace_function",
-  "function": { "function": "minecraft:set_count", "count": 7.0, "add": true }
+  "function": {
+    "function": "minecraft:set_count",
+    "count": 7.0,
+    "add": true
+  }
 }
 ```
+
+#### 12.3 `modify_condition` — Scope: descend into **the current function's own conditions**; non-conditional functions (such as `set_count`) have no conditions and are skipped
+- `*conditionSelector`: <ConditionSelector> selects the conditions to modify, see [13. Condition Selectors](#13-condition-selectors-8).
+- `*ops`: <json array> a list of condition-level operators, see [14. Condition-Level Operators](#14-condition-level-operators-2).
+
 ```json
 {
   "type": "arcanumlib:modify_condition",
-  "conditionSelector": { "type": "arcanumlib:condition_type", "conditionType": "minecraft:random_chance" },
-  "ops": [{ "type": "arcanumlib:remove_condition" }]
+  "conditionSelector": {
+    "type": "arcanumlib:condition_type",
+    "conditionType": "minecraft:random_chance"
+  },
+  "ops": [
+    {
+      "type": "arcanumlib:remove_condition"
+    }
+  ]
 }
 ```
 
 > There is **no** generic implementation of "change an argument" (for example changing `count` from 5 to 10): each function's argument fields are private to that function.
 > When you need it, combine `remove_function` + `add_function`, or write a `function_custom`-level custom op (see section 16).
-
 ---
-
 ## 13. Condition Selectors (8)
 
 Written inside `modify_condition.conditionSelector`. Registry: `arcanumlib:condition_selector`.
 
-| id | Fields | Description |
-|---|---|---|
-| `any` | — | All conditions (**default**) |
-| `index` | `index` | The condition's index |
-| `condition_type` | `conditionType` | By condition type id, such as `minecraft:random_chance` |
-| `not` | `selector` | Negation |
-| `any_of` | `selectors` | Any of them matches |
-| `all_of` | `selectors` | All of them match |
-| `match` | `condition`, `strict` | Match by the keys of a template json (same semantics as `match` on the function side) |
-| `custom` | `custom_id` | Handed to the listeners of `CustomConditionSelectorEvent` |
+**Entries**:
+
+- [13.1 `any`](#131-any--all-conditions-default) — All conditions (**default**)
+- [13.2 `index`](#132-index--the-conditions-index) — The condition's index
+- [13.3 `condition_type`](#133-condition_type--by-condition-type-id-such-as-minecraftrandom_chance) — By condition type id, such as `minecraft:random_chance`
+- [13.4 `not`](#134-not--negation) — Negation
+- [13.5 `any_of`](#135-any_of--any-of-them-matches) — Any of them matches
+- [13.6 `all_of`](#136-all_of--all-of-them-match) — All of them match
+- [13.7 `match`](#137-match--match-by-the-keys-of-a-template-json-same-semantics-as-match-on-the-function-side) — Match by the keys of a template json (same semantics as `match` on the function side)
+- [13.8 `custom`](#138-custom--handed-to-the-listeners-of-customconditionselectorevent) — Handed to the listeners of `CustomConditionSelectorEvent`
+
+#### 13.1 `any` — All conditions (**default**)
+- No parameters.
 
 ```json
-{ "type": "arcanumlib:any" }
+{
+  "type": "arcanumlib:any"
+}
 ```
+
+#### 13.2 `index` — The condition's index
+- `*index`: <int> the index of the condition in the list, starting at 0.
+
 ```json
-{ "type": "arcanumlib:index", "index": 0 }
+{
+  "type": "arcanumlib:index",
+  "index": 0
+}
 ```
+
+#### 13.3 `condition_type` — By condition type id, such as `minecraft:random_chance`
+- `*conditionType`: <ResourceLocation> a vanilla condition type id, e.g. `minecraft:random_chance`.
+
 ```json
-{ "type": "arcanumlib:condition_type", "conditionType": "minecraft:random_chance" }
+{
+  "type": "arcanumlib:condition_type",
+  "conditionType": "minecraft:random_chance"
+}
 ```
+
+#### 13.4 `not` — Negation
+- `*selector`: <ConditionSelector> the child selector to negate, see [13. Condition Selectors](#13-condition-selectors-8).
+
 ```json
-{ "type": "arcanumlib:not", "selector": { "type": "arcanumlib:index", "index": 99 } }
+{
+  "type": "arcanumlib:not",
+  "selector": {
+    "type": "arcanumlib:index",
+    "index": 99
+  }
+}
 ```
+
+#### 13.5 `any_of` — Any of them matches
+- `*selectors`: <json array> a list of child selectors (each a <ConditionSelector>); matches when any of them matches.
+
 ```json
 {
   "type": "arcanumlib:any_of",
   "selectors": [
-    { "type": "arcanumlib:index", "index": 0 },
-    { "type": "arcanumlib:condition_type", "conditionType": "minecraft:random_chance" }
+    {
+      "type": "arcanumlib:index",
+      "index": 0
+    },
+    {
+      "type": "arcanumlib:condition_type",
+      "conditionType": "minecraft:random_chance"
+    }
   ]
 }
 ```
+
+#### 13.6 `all_of` — All of them match
+- `*selectors`: <json array> a list of child selectors (each a <ConditionSelector>); matches only when all of them match.
+
 ```json
 {
   "type": "arcanumlib:all_of",
   "selectors": [
-    { "type": "arcanumlib:any" },
-    { "type": "arcanumlib:not", "selector": { "type": "arcanumlib:index", "index": 99 } }
+    {
+      "type": "arcanumlib:any"
+    },
+    {
+      "type": "arcanumlib:not",
+      "selector": {
+        "type": "arcanumlib:index",
+        "index": 99
+      }
+    }
   ]
 }
 ```
+
+#### 13.7 `match` — Match by the keys of a template json (same semantics as `match` on the function side)
+- `*condition`: <json object> the template json is kept **as written**, and only the keys you actually wrote are compared.
+- `strict`: <boolean> defaults to `false`; when enabled the candidate must match the template **exactly**.
+
 ```json
 {
   "type": "arcanumlib:match",
-  "condition": { "condition": "minecraft:random_chance", "chance": 1.0 }
+  "condition": {
+    "condition": "minecraft:random_chance",
+    "chance": 1.0
+  }
 }
 ```
+
+#### 13.8 `custom` — Handed to the listeners of `CustomConditionSelectorEvent`
+- `*custom_id`: <String> the id handed to the condition-level custom event listener.
+
 ```json
-{ "type": "arcanumlib:custom", "custom_id": "my_condition_hook" }
+{
+  "type": "arcanumlib:custom",
+  "custom_id": "my_condition_hook"
+}
 ```
 
 ---
-
 ## 14. Condition-Level Operators (2)
 
 Written inside `modify_condition.ops`. Registry: `arcanumlib:condition_operator`.
 
-| id | Fields | Description |
-|---|---|---|
-| `remove_condition` | — | Delete the current condition |
-| `replace_condition` | `condition` | Replace the current condition with a new one (one independent instance per site) |
+**Entries**:
 
+- [14.1 `remove_condition`](#141-remove_condition--delete-the-current-condition) — Delete the current condition
+- [14.2 `replace_condition`](#142-replace_condition--replace-the-current-condition-with-a-new-one-one-independent-instance-per-site) — Replace the current condition with a new one (one independent instance per site)
+
+#### 14.1 `remove_condition` — Delete the current condition
+- No parameters.
+
+| `replace_condition` | `condition` | Replace the current condition with a new one (one independent instance per site) |
 ```json
-{ "type": "arcanumlib:remove_condition" }
+{
+  "type": "arcanumlib:remove_condition"
+}
 ```
+
+#### 14.2 `replace_condition` — Replace the current condition with a new one (one independent instance per site)
+- `*condition`: <json object> a vanilla predicate used to replace the current condition (one independent instance per site).
+
 ```json
 {
   "type": "arcanumlib:replace_condition",
-  "condition": { "condition": "minecraft:random_chance", "chance": 0.25 }
+  "condition": {
+    "condition": "minecraft:random_chance",
+    "chance": 0.25
+  }
 }
 ```
 
@@ -840,7 +1634,7 @@ All of them are listened for on `NeoForge.EVENT_BUS`.
 | `EntryCustomOpEvent` | When executing `entry_custom` | `{"type":"arcanumlib:entry_custom","custom_id":"..."}` |
 | `LootInjectorApplyEvent` | **Before** each injector is applied | — (the whole injector can be replaced, or the application can be cancelled) |
 
-> **All 8 `custom` events carry `getRegistries()`** (not `LootInjectorApplyEvent`: it replaces a whole injector and has no use for it).
+> **All 9 events carry `getRegistries()`** (including `LootInjectorApplyEvent`).
 > Use it to read registries or do codec round-trips; it is the same `registries` that a custom selector's `test(...)` or a custom op's `apply(...)` receives:
 >
 > ```java
@@ -859,7 +1653,7 @@ public final class MyLootHooks {
         }
 
         // Example: match only "singleton entries that carry no conditions at all"
-        // need registries? use event.getRegistries() (all 8 custom events have it, see the note above)
+        // need registries? use event.getRegistries() (every event has it, see the note above)
         event.setResult(event.getEntry() instanceof LootPoolSingletonContainer
                 && event.getEntry().conditions.isEmpty());
     }
@@ -966,7 +1760,10 @@ public record IsShiny(String marker) implements EntrySelector {
 ```
 
 ```json
-{ "type": "mymod:is_shiny", "marker": "x" }
+{
+  "type": "mymod:is_shiny",
+  "marker": "x"
+}
 ```
 
 **Three hard requirements when implementing a custom op**:
@@ -985,14 +1782,17 @@ public record IsShiny(String marker) implements EntrySelector {
 
 ---
 
-## 17. Cookbook: Common Tasks
+## 17. Recipes: Common Tasks
 
 ### 17.1 Add an "Extra Drop Pool" to a Table
 
 ```json
 {
   "priority": 1000,
-  "tableSelector": { "type": "arcanumlib:id", "id": "minecraft:chests/simple_dungeon" },
+  "tableSelector": {
+    "type": "arcanumlib:id",
+    "id": "minecraft:chests/simple_dungeon"
+  },
   "ops": [
     {
       "type": "arcanumlib:add_pool",
@@ -1004,7 +1804,12 @@ public record IsShiny(String marker) implements EntrySelector {
             "type": "minecraft:item",
             "name": "minecraft:diamond",
             "weight": 1,
-            "conditions": [{ "condition": "minecraft:random_chance", "chance": 0.05 }]
+            "conditions": [
+              {
+                "condition": "minecraft:random_chance",
+                "chance": 0.05
+              }
+            ]
           }
         ]
       }
@@ -1017,17 +1822,31 @@ public record IsShiny(String marker) implements EntrySelector {
 
 ```json
 {
-  "tableSelector": { "type": "arcanumlib:id", "id": "minecraft:chests/simple_dungeon" },
+  "tableSelector": {
+    "type": "arcanumlib:id",
+    "id": "minecraft:chests/simple_dungeon"
+  },
   "ops": [
     {
       "type": "arcanumlib:modify_pool",
-      "poolSelector": { "type": "arcanumlib:any" },
+      "poolSelector": {
+        "type": "arcanumlib:any"
+      },
       "ops": [
         {
           "type": "arcanumlib:modify_entry",
-          "entrySelector": { "type": "arcanumlib:item", "item": "minecraft:string" },
+          "entrySelector": {
+            "type": "arcanumlib:item",
+            "item": "minecraft:string"
+          },
           "ops": [
-            { "type": "arcanumlib:replace_entry", "entry": { "type": "minecraft:item", "name": "minecraft:leather" } }
+            {
+              "type": "arcanumlib:replace_entry",
+              "entry": {
+                "type": "minecraft:item",
+                "name": "minecraft:leather"
+              }
+            }
           ]
         }
       ]
@@ -1043,12 +1862,22 @@ public record IsShiny(String marker) implements EntrySelector {
   "ops": [
     {
       "type": "arcanumlib:modify_pool",
-      "poolSelector": { "type": "arcanumlib:any" },
+      "poolSelector": {
+        "type": "arcanumlib:any"
+      },
       "ops": [
         {
           "type": "arcanumlib:modify_entry",
-          "entrySelector": { "type": "arcanumlib:weight_share", "min": 0.0, "max": 0.01 },
-          "ops": [{ "type": "arcanumlib:remove_entry" }]
+          "entrySelector": {
+            "type": "arcanumlib:weight_share",
+            "min": 0.0,
+            "max": 0.01
+          },
+          "ops": [
+            {
+              "type": "arcanumlib:remove_entry"
+            }
+          ]
         }
       ]
     }
@@ -1063,13 +1892,22 @@ public record IsShiny(String marker) implements EntrySelector {
   "ops": [
     {
       "type": "arcanumlib:modify_pool",
-      "poolSelector": { "type": "arcanumlib:any" },
+      "poolSelector": {
+        "type": "arcanumlib:any"
+      },
       "ops": [
         {
           "type": "arcanumlib:modify_entry",
-          "entrySelector": { "type": "arcanumlib:any" },
+          "entrySelector": {
+            "type": "arcanumlib:any"
+          },
           "ops": [
-            { "type": "arcanumlib:remove_function", "functionTypes": ["minecraft:enchanted_count_increase"] }
+            {
+              "type": "arcanumlib:remove_function",
+              "functionTypes": [
+                "minecraft:enchanted_count_increase"
+              ]
+            }
           ]
         }
       ]
@@ -1087,22 +1925,33 @@ public record IsShiny(String marker) implements EntrySelector {
   "ops": [
     {
       "type": "arcanumlib:modify_pool",
-      "poolSelector": { "type": "arcanumlib:any" },
+      "poolSelector": {
+        "type": "arcanumlib:any"
+      },
       "ops": [
         {
           "type": "arcanumlib:modify_entry",
-          "entrySelector": { "type": "arcanumlib:any" },
+          "entrySelector": {
+            "type": "arcanumlib:any"
+          },
           "ops": [
             {
               "type": "arcanumlib:modify_function",
               "functionSelector": {
                 "type": "arcanumlib:match",
-                "function": { "function": "minecraft:set_count", "count": 3.0 }
+                "function": {
+                  "function": "minecraft:set_count",
+                  "count": 3.0
+                }
               },
               "ops": [
                 {
                   "type": "arcanumlib:replace_function",
-                  "function": { "function": "minecraft:set_count", "count": 5.0, "add": true }
+                  "function": {
+                    "function": "minecraft:set_count",
+                    "count": 5.0,
+                    "add": true
+                  }
                 }
               ]
             }
@@ -1121,20 +1970,34 @@ public record IsShiny(String marker) implements EntrySelector {
   "ops": [
     {
       "type": "arcanumlib:modify_pool",
-      "poolSelector": { "type": "arcanumlib:any" },
+      "poolSelector": {
+        "type": "arcanumlib:any"
+      },
       "ops": [
         {
           "type": "arcanumlib:modify_entry",
-          "entrySelector": { "type": "arcanumlib:any" },
+          "entrySelector": {
+            "type": "arcanumlib:any"
+          },
           "ops": [
             {
               "type": "arcanumlib:modify_function",
-              "functionSelector": { "type": "arcanumlib:has_condition", "conditionType": "minecraft:random_chance" },
+              "functionSelector": {
+                "type": "arcanumlib:has_condition",
+                "conditionType": "minecraft:random_chance"
+              },
               "ops": [
                 {
                   "type": "arcanumlib:modify_condition",
-                  "conditionSelector": { "type": "arcanumlib:condition_type", "conditionType": "minecraft:random_chance" },
-                  "ops": [{ "type": "arcanumlib:remove_condition" }]
+                  "conditionSelector": {
+                    "type": "arcanumlib:condition_type",
+                    "conditionType": "minecraft:random_chance"
+                  },
+                  "ops": [
+                    {
+                      "type": "arcanumlib:remove_condition"
+                    }
+                  ]
                 }
               ]
             }
@@ -1153,12 +2016,21 @@ public record IsShiny(String marker) implements EntrySelector {
   "ops": [
     {
       "type": "arcanumlib:modify_pool",
-      "poolSelector": { "type": "arcanumlib:name", "name": "my_pool" },
+      "poolSelector": {
+        "type": "arcanumlib:name",
+        "name": "my_pool"
+      },
       "ops": [
         {
           "type": "arcanumlib:modify_condition",
-          "conditionSelector": { "type": "arcanumlib:any" },
-          "ops": [{ "type": "arcanumlib:remove_condition" }]
+          "conditionSelector": {
+            "type": "arcanumlib:any"
+          },
+          "ops": [
+            {
+              "type": "arcanumlib:remove_condition"
+            }
+          ]
         }
       ]
     }
@@ -1250,7 +2122,7 @@ public final class MyDatagen {
 
 | Family | id | Optional fields |
 |---|---|---|
-| Table (12) | `all` / `id` / `namespace` / `path_prefix` / `entity_tag` / `block_tag` / `entity_type` / `block_type` / `not` / `any_of` / `all_of` / `custom` | `id`, `namespace`, `prefix`, `tag`, `entity`, `block`, `condition`, `conditions`, `custom_id` |
+| Table (13) | `all` / `id` / `namespace` / `path_prefix` / `entity_tag` / `block_tag` / `entity_type` / `block_type` / `not` / `any_of` / `all_of` / `has_pool` / `custom` | `id`, `namespace`, `prefix`, `tag`, `entity`, `block`, `condition`, `conditions`, `pool`, `custom_id` |
 | Pool (9) | `any` / `index` / `name` / `has_entry` / `total_weight` / `not` / `any_of` / `all_of` / `custom` | `index`, `name`, `entrySelector`, `min`, `max`, `condition`, `conditions`, `custom_id` |
 | Entry (15) | `any` / `index` / `item` / `tag` / `item_with_tag` / `entry_type` / `weight_in_range` / `weight_share` / `has_condition` / `has_function` / `has_child` / `not` / `any_of` / `all_of` / `custom` | `index`, `item`, `tag`, `entryType`, `min`, `max`, `conditionType`, `functionType`, `entrySelector`, `condition`, `conditions`, `custom_id` |
 | Function (9) | `any` / `index` / `function_type` / `has_condition` / `not` / `any_of` / `all_of` / `match` / `custom` | `index`, `functionType`, `conditionType`, `selector`, `selectors`, `function`, `strict`, `custom_id` |
@@ -1288,26 +2160,25 @@ These two ids are exactly what you write in `remove_function.functionTypes` / `r
 
 ## 20. Semantic Boundaries and Pitfalls
 
-1. **Strict json parsing**: `//` comments and trailing commas both fail to parse (see the top of this document).
-2. **Weights use a static measure**: `total_weight` / `weight_in_range` / `weight_share` exclude `quality × luck`,
+1. **Weights use a static measure**: `total_weight` / `weight_in_range` / `weight_share` exclude `quality × luck`,
    do not filter by entry conditions, and `alternatives` sums every branch. **Do not use them to reproduce the exact probability of a given roll**;
    they are suited to coarse screening such as "pick the small pools / pick the rare entries".
-3. **Unnamed pools never match `name`**: most vanilla pools have no name.
-4. **`tag` and `item_with_tag` are not the same thing**: the former matches **`minecraft:tag` entries**, the latter matches
+2. **Unnamed pools never match `name`**: most vanilla pools have no name.
+3. **`tag` and `item_with_tag` are not the same thing**: the former matches **`minecraft:tag` entries**, the latter matches
    `minecraft:item` entries and checks whether their item belongs to the tag. Vanilla tables are almost entirely the latter.
-5. **Composite entries have no `weight` / `quality` / `functions`**: `set_weight`, `set_quality`,
+4. **Composite entries have no `weight` / `quality` / `functions`**: `set_weight`, `set_quality`,
    `set_*function` and `remove_function` skip `alternatives`/`sequence`/`group`;
    `conditions`, on the other hand, exist on every entry.
-6. **When rolling, `alternatives` only walks the first branch whose condition passes**: so when you add conditions to
+5. **When rolling, `alternatives` only walks the first branch whose condition passes**: so when you add conditions to
    its children, or judge with `has_child`, you must be aware that only one branch is actually effective at runtime.
-7. **Order is undefined for equal priorities**: please give multiple injectors on the same table different priorities.
-8. **`match` templates are not validated**: a misspelled key fails silently.
-9. **`replace_*` performs a deep copy**: every replacement site re-decodes its own independent instance, so later changes never bleed into each other;
+6. **Order is undefined for equal priorities**: please give multiple injectors on the same table different priorities.
+7. **`match` templates are not validated**: a misspelled key fails silently.
+8. **`replace_*` performs a deep copy**: every replacement site re-decodes its own independent instance, so later changes never bleed into each other;
    the cost is one codec round trip under `RegistryOps` (which only happens during the apply stage, not while rolling).
-10. **A negative number in `set_weight` / `set_quality` means "do not change"**: this keeps the legacy semantics, so old json can be moved over directly;
+9. **A negative number in `set_weight` / `set_quality` means "do not change"**: this keeps the legacy semantics, so old json can be moved over directly;
     if you really want to set 0, write 0.
-11. **`LootTable` has no `conditions`**: so there is no table-level `set_condition` / `add_condition` / `remove_condition`.
-12. **Nothing in vanilla ever calls `LootTable.freeze()`**: but we modify AT-opened fields directly, which bypasses its
+10. **`LootTable` has no `conditions`**: so there is no table-level `set_condition` / `add_condition` / `remove_condition`.
+11. **Nothing in vanilla ever calls `LootTable.freeze()`**: but we modify AT-opened fields directly, which bypasses its
     `checkFrozen()` guard. If anything ever freezes a shared table in the future, injection will break its immutability assumption.
 
 ---
@@ -1328,7 +2199,10 @@ Example usage (attached to some entry):
 ```json
 {
   "type": "arcanumlib:modify_entry",
-  "entrySelector": { "type": "arcanumlib:item", "item": "minecraft:gunpowder" },
+  "entrySelector": {
+    "type": "arcanumlib:item",
+    "item": "minecraft:gunpowder"
+  },
   "ops": [
     {
       "type": "arcanumlib:add_condition",
@@ -1336,7 +2210,12 @@ Example usage (attached to some entry):
         {
           "condition": "arcanumlib:chance_modifiers",
           "base_chance": 0.5,
-          "chance_modifiers": [{ "type": "arcanumlib:difficulty_factor", "hard": 1.5 }]
+          "chance_modifiers": [
+            {
+              "type": "arcanumlib:difficulty_factor",
+              "hard": 1.5
+            }
+          ]
         }
       ]
     }

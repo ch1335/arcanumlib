@@ -34,6 +34,11 @@ public final class LootInjectorApplier {
         APPLIED.clear();
     }
 
+    /** 已经至少被一个注入器作用过的表（按实例身份，reload 后重新计）。 */
+    public static Set<LootTable> appliedTables() {
+        return Set.copyOf(APPLIED.keySet());
+    }
+
     public static void applyAll(MinecraftServer server) {
         List<LootInjector> injectors = parse(server);
 
@@ -72,7 +77,7 @@ public final class LootInjectorApplier {
                     continue;
                 }
 
-                Optional<LootInjector> effective = LootInjectorApplyEvent.post(injector, holder.key().location(), table);
+                Optional<LootInjector> effective = LootInjectorApplyEvent.post(injector, holder.key().location(), table, registries);
                 if (effective.isEmpty()) {
                     continue;
                 }

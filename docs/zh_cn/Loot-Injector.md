@@ -7,20 +7,15 @@
 - 数据包目录：`data/<命名空间>/loot_injecter/<注入器 id>.json`
 - 命名空间**不限于** `arcanumlib`：自己开一个 `data/<你的modid>/loot_injecter/` 就能写自己的注入器，用的是同一套类型。
 
-> **json 语法限制（重要）**：加载走的是原版 `SimpleJsonResourceReloadListener`，它内部调
-> `GsonHelper.fromJson(gson, reader, JsonElement.class, false)`——**严格模式**。
-> 所以 **不允许 `//` 注释、不允许尾随逗号**，本 wiki 的示例全部是严格合法的 json。
-> （写注释的需求请放到 `_comment` 之类的普通字段里，未知字段会被忽略。）
-
 ---
 
 ## 目录
 
-1. [它是怎么跑起来的](#1-它是怎么跑起来的)
+1. [它是怎么运行的](#1-它是怎么运行的)
 2. [嵌套作用域模型](#2-嵌套作用域模型)
 3. [执行语义（必读）](#3-执行语义必读)
 4. [顶层字段](#4-顶层字段)
-5. [表选择器（12）](#5-表选择器12)
+5. [表选择器（13）](#5-表选择器13)
 6. [表级操作（7）](#6-表级操作7)
 7. [池选择器（9）](#7-池选择器9)
 8. [池级操作（12）](#8-池级操作12)
@@ -32,23 +27,23 @@
 14. [条件级操作（2）](#14-条件级操作2)
 15. [自定义钩子（9 个事件）](#15-自定义钩子9-个事件)
 16. [给模组的扩展点](#16-给模组的扩展点)
-17. [常见任务菜谱](#17-常见任务菜谱)
+17. [常见任务配方](#17-常见任务配方)
 18. [用数据生成写注入器](#18-用数据生成写注入器)
 19. [速查表](#19-速查表)
-20. [语义边界与坑](#20-语义边界与坑)
+20. [语义边界与注意事项](#20-语义边界与注意事项)
 21. [本模组提供的战利品条件](#21-本模组提供的战利品条件)
 
 ---
 
-## 1. 它是怎么跑起来的
+## 1. 它是怎么运行的
 
-**应用时机**：服务端启动完成、以及每次数据包 reload（`/reload`）之后**各跑一次**，把全部注入器扫一遍并作用到战利品表上。
+**应用时机**：服务端启动完成、以及每次数据包 reload（`/reload`）之后**各执行一次**，把全部注入器扫一遍并作用到战利品表上。
 
-- **不是**每次掷骰子时跑，所以就算写几百个注入器也不会影响掉落结算的性能；
+- **不是**在每次掷骰子时运行，所以就算写几百个注入器也不会影响掉落结算的性能；
 - 每个注入器对**同一张表**只会应用一次（内部按 注入器 id × 表 去重，`/reload` 会自动重来一遍）；
 - 应用顺序由 `priority` 决定（越小越先），同 `priority` 的注入器解析结果来自一个**无序** Map，所以**同一张表上的两个注入器不要依赖 priority 相同的先后关系**——要确定性就给不同的 priority。
 
-启动日志里会出现一行汇总，用来确认跑通（数字是示例）：
+启动日志里会出现一行汇总，用来确认运行正常（数字是示例）：
 
 ```
 Loot injection: 26 injectors, 1183 loot tables, 4521 applications in 36.5538 ms
@@ -124,7 +119,7 @@ Loot injection: 26 injectors, 1183 loot tables, 4521 applications in 36.5538 ms
 
 ### 3.3 条件的"归属"
 
-| 想改的东西 | 写在哪一级 |
+| 想要改的目标 | 写在哪一级 |
 |---|---|
 | 表自身的 `functions` | 表级（`LootTable` **没有** `conditions`，所以表级没有 `set_condition`） |
 | 池自身的 `conditions` / `functions` | 池级 |
@@ -152,80 +147,205 @@ Loot injection: 26 injectors, 1183 loot tables, 4521 applications in 36.5538 ms
 ```json
 {
   "priority": 1000,
-  "tableSelector": { "type": "arcanumlib:id", "id": "minecraft:chests/simple_dungeon" },
+  "tableSelector": {
+    "type": "arcanumlib:id",
+    "id": "minecraft:chests/simple_dungeon"
+  },
   "ops": []
 }
 ```
 
 ---
 
-## 5. 表选择器（12）
+## 5. 表选择器（13）
 
 决定"这个注入器要不要作用到某张表"。注册表：`arcanumlib:table_selector`。
 
-| id | 字段 | 说明 |
-|---|---|---|
-| `all` | — | 所有表 |
-| `id` | `id` | 表 id 精确匹配 |
-| `namespace` | `namespace` | 命名空间匹配 |
-| `path_prefix` | `prefix` | 路径前缀匹配 |
-| `entity_tag` | `tag` | 实体标签；表 id 等于该标签下任一实体的默认战利品表 |
-| `block_tag` | `tag` | 方块标签；表 id 等于该标签下任一方块的表 |
-| `entity_type` | `entity` | 实体类型；表 id 等于它的默认战利品表（不展开标签） |
-| `block_type` | `block` | 方块；表 id 等于它的战利品表（不展开标签；没有战利品表的方块永不命中） |
-| `not` | `condition` | 取反 |
-| `any_of` | `conditions` | 任一满足 |
-| `all_of` | `conditions` | 全部满足 |
-| `custom` | `custom_id` | 判断交给 `CustomTableSelectorEvent` 的监听者 |
+**条目**：
+
+- [5.1 `all`](#51-all--所有表) — 所有表
+- [5.2 `id`](#52-id--表-id-精确匹配) — 表 id 精确匹配
+- [5.3 `namespace`](#53-namespace--命名空间匹配) — 命名空间匹配
+- [5.4 `path_prefix`](#54-path_prefix--路径前缀匹配) — 路径前缀匹配
+- [5.5 `entity_tag`](#55-entity_tag--实体标签) — 实体标签
+- [5.6 `block_tag`](#56-block_tag--方块标签) — 方块标签
+- [5.7 `entity_type`](#57-entity_type--实体类型) — 实体类型
+- [5.8 `block_type`](#58-block_type--方块) — 方块
+- [5.9 `not`](#59-not--取反) — 取反
+- [5.10 `any_of`](#510-any_of--任一满足) — 任一满足
+- [5.11 `all_of`](#511-all_of--全部满足) — 全部满足
+- [5.12 `has_pool`](#512-has_pool--表里任意池满足给定的池选择器) — 表里任意池满足给定的池选择器
+- [5.13 `custom`](#513-custom--自定义判定交给-customtableselectorevent) — 自定义（判定交给 `CustomTableSelectorEvent`）
+
+#### 5.1 `all` — 所有表
+
+- 无参数。
 
 ```json
-{ "type": "arcanumlib:all" }
-```
-```json
-{ "type": "arcanumlib:id", "id": "minecraft:chests/simple_dungeon" }
-```
-```json
-{ "type": "arcanumlib:namespace", "namespace": "minecraft" }
-```
-```json
-{ "type": "arcanumlib:path_prefix", "prefix": "chests/" }
-```
-```json
-{ "type": "arcanumlib:entity_tag", "tag": "minecraft:zombies" }
-```
-```json
-{ "type": "arcanumlib:block_tag", "tag": "minecraft:logs" }
+{
+  "type": "arcanumlib:all"
+}
 ```
 
+#### 5.2 `id` — 表 id 精确匹配
+
+- `*id`：<ResourceLocation> 目标战利品表资源位置，如 `minecraft:entities/zombie`。
+
 ```json
-{ "type": "arcanumlib:entity_type", "entity": "minecraft:zombie" }
+{
+  "type": "arcanumlib:id",
+  "id": "minecraft:entities/zombie"
+}
 ```
+
+#### 5.3 `namespace` — 命名空间匹配
+
+- `*namespace`：<String> 命名空间，如 `minecraft`。
+
 ```json
-{ "type": "arcanumlib:block_type", "block": "minecraft:stone" }
+{
+  "type": "arcanumlib:namespace",
+  "namespace": "minecraft"
+}
 ```
+
+#### 5.4 `path_prefix` — 路径前缀匹配
+
+- `*prefix`：<String> 路径前缀，如 `entities/`。
+
 ```json
-{ "type": "arcanumlib:not", "condition": { "type": "arcanumlib:id", "id": "minecraft:chests/end_city_treasure" } }
+{
+  "type": "arcanumlib:path_prefix",
+  "prefix": "entities/"
+}
 ```
+
+#### 5.5 `entity_tag` — 实体标签
+
+- `*tag`：<TagKey<EntityType<?>>> 实体标签，如 `minecraft:zombies`；表 id 等于该标签下任一实体的默认战利品表。
+
+```json
+{
+  "type": "arcanumlib:entity_tag",
+  "tag": "minecraft:zombies"
+}
+```
+
+#### 5.6 `block_tag` — 方块标签
+
+- `*tag`：<TagKey<Block>> 方块标签，如 `minecraft:logs`；表 id 等于该标签下任一方块的表。
+
+```json
+{
+  "type": "arcanumlib:block_tag",
+  "tag": "minecraft:logs"
+}
+```
+
+#### 5.7 `entity_type` — 实体类型
+
+- `*entity`：<EntityType<?>> 实体类型，如 `minecraft:zombie`；不展开标签。
+
+```json
+{
+  "type": "arcanumlib:entity_type",
+  "entity": "minecraft:zombie"
+}
+```
+
+#### 5.8 `block_type` — 方块
+
+- `*block`：<Block> 方块，如 `minecraft:diamond_ore`；不展开标签，没有战利品表的方块永不命中。
+
+```json
+{
+  "type": "arcanumlib:block_type",
+  "block": "minecraft:diamond_ore"
+}
+```
+
+#### 5.9 `not` — 取反
+
+- `*condition`：<TableSelector> 被取反的子选择器，见 [5. 表选择器](#5-表选择器13)。
+
+```json
+{
+  "type": "arcanumlib:not",
+  "condition": {
+    "type": "arcanumlib:id",
+    "id": "minecraft:entities/zombie"
+  }
+}
+```
+
+#### 5.10 `any_of` — 任一满足
+
+- `*conditions`：<json数组> 子选择器列表（每项为 <TableSelector>），任一满足即匹配。
+
 ```json
 {
   "type": "arcanumlib:any_of",
   "conditions": [
-    { "type": "arcanumlib:id", "id": "minecraft:chests/village/village_temple" },
-    { "type": "arcanumlib:id", "id": "minecraft:chests/village/village_toolsmith" }
+    {
+      "type": "arcanumlib:namespace",
+      "namespace": "minecraft"
+    },
+    {
+      "type": "arcanumlib:path_prefix",
+      "prefix": "chests/"
+    }
   ]
 }
 ```
+
+#### 5.11 `all_of` — 全部满足
+
+- `*conditions`：<json数组> 子选择器列表（每项为 <TableSelector>），全部满足才匹配。
+
 ```json
 {
   "type": "arcanumlib:all_of",
   "conditions": [
-    { "type": "arcanumlib:namespace", "namespace": "minecraft" },
-    { "type": "arcanumlib:path_prefix", "prefix": "chests/" }
+    {
+      "type": "arcanumlib:id",
+      "id": "minecraft:entities/zombie"
+    },
+    {
+      "type": "arcanumlib:has_pool",
+      "pool": {
+        "type": "arcanumlib:index",
+        "index": 0
+      }
+    }
   ]
 }
 ```
+
+#### 5.12 `has_pool` — 表里任意池满足给定的池选择器
+
+- `*pool`：<PoolSelector> 用来逐个判定表内每个池的池选择器，见 [7. 池选择器](#7-池选择器9)。
+
 ```json
-{ "type": "arcanumlib:custom", "custom_id": "my_table_hook" }
+{
+  "type": "arcanumlib:has_pool",
+  "pool": {
+    "type": "arcanumlib:index",
+    "index": 0
+  }
+}
+```
+
+字段 `pool` 是一个**池选择器**。
+
+#### 5.13 `custom` — 自定义（判定交给 `CustomTableSelectorEvent`）
+
+- `*custom_id`：<String> 交给 `CustomTableSelectorEvent` 监听者的自定义 id。
+
+```json
+{
+  "type": "arcanumlib:custom",
+  "custom_id": "mymod:my_check"
+}
 ```
 
 ---
@@ -234,15 +354,19 @@ Loot injection: 26 injectors, 1183 loot tables, 4521 applications in 36.5538 ms
 
 写在顶层 `ops` 里。注册表：`arcanumlib:table_operator`。
 
-| id | 字段 | 说明 |
-|---|---|---|
-| `add_pool` | `pool` | 往表里**追加**一个池（原版 json 池格式） |
-| `modify_pool` | `poolSelector`、`ops` | 作用域：对每个命中的池跑子 ops |
-| `modify_function` | `functionSelector`、`ops` | 作用域：对表函数列表里命中的函数跑子 ops |
-| `set_function` | `functions` | **替换**表自身的函数列表 |
-| `add_function` | `functions` | **追加**到表自身的函数列表 |
-| `remove_function` | `functionTypes` | 按函数类型 id 摘掉表自身的函数 |
-| `table_custom` | `custom_id` | 交给 `TableCustomOpEvent` 的监听者 |
+**条目**：
+
+- [6.1 `add_pool`](#61-add_pool--往表里追加一个池原版-json-池格式) — 往表里**追加**一个池（原版 json 池格式）
+- [6.2 `modify_pool`](#62-modify_pool--作用域对每个命中的池应用子-ops) — 作用域：对每个命中的池应用子 ops
+- [6.3 `modify_function`](#63-modify_function--作用域对表函数列表里命中的函数应用子-ops) — 作用域：对表函数列表里命中的函数应用子 ops
+- [6.4 `set_function`](#64-set_function--替换表自身的函数列表) — **替换**表自身的函数列表
+- [6.5 `add_function`](#65-add_function--追加到表自身的函数列表) — **追加**到表自身的函数列表
+- [6.6 `remove_function`](#66-remove_function--按函数类型-id-移除表自身的函数) — 按函数类型 id 移除表自身的函数
+- [6.7 `table_custom`](#67-table_custom--交给-tablecustomopevent-的监听者) — 交给 `TableCustomOpEvent` 的监听者
+
+#### 6.1 `add_pool` — 往表里**追加**一个池（原版 json 池格式）
+
+- `*pool`：<json对象> 原版随机池（`rolls` / `bonus_rolls` / `entries` 等），整池追加到表上。
 
 ```json
 {
@@ -252,51 +376,124 @@ Loot injection: 26 injectors, 1183 loot tables, 4521 applications in 36.5538 ms
     "bonus_rolls": 0.0,
     "name": "my_extra_pool",
     "entries": [
-      { "type": "minecraft:item", "name": "minecraft:diamond", "weight": 1, "functions": [] }
+      {
+        "type": "minecraft:item",
+        "name": "minecraft:diamond",
+        "weight": 1,
+        "functions": []
+      }
     ]
   }
 }
 ```
+
+#### 6.2 `modify_pool` — 作用域：对每个命中的池应用子 ops
+
+- `*poolSelector`：<PoolSelector> 选出要改的池，见 [7. 池选择器](#7-池选择器9)。
+- `*ops`：<json数组> 池级操作列表（每项为 `PoolOperator`），见 [8. 池级操作](#8-池级操作12)。
+
 ```json
 {
   "type": "arcanumlib:modify_pool",
-  "poolSelector": { "type": "arcanumlib:name", "name": "my_extra_pool" },
+  "poolSelector": {
+    "type": "arcanumlib:name",
+    "name": "my_extra_pool"
+  },
   "ops": [
-    { "type": "arcanumlib:remove_pool" },
-    { "type": "arcanumlib:add_entry", "entry": { "type": "minecraft:item", "name": "minecraft:emerald" } }
+    {
+      "type": "arcanumlib:remove_pool"
+    },
+    {
+      "type": "arcanumlib:add_entry",
+      "entry": {
+        "type": "minecraft:item",
+        "name": "minecraft:emerald"
+      }
+    }
   ]
 }
 ```
+
+#### 6.3 `modify_function` — 作用域：对表函数列表里命中的函数应用子 ops
+
+- `*functionSelector`：<FunctionSelector> 选出要改的函数，见 [11. 函数选择器](#11-函数选择器9)。
+- `*ops`：<json数组> 函数级操作列表（每项为 `FunctionOperator`），见 [12. 函数级操作](#12-函数级操作3)。
+
 ```json
 {
   "type": "arcanumlib:modify_function",
-  "functionSelector": { "type": "arcanumlib:function_type", "functionType": "minecraft:set_count" },
+  "functionSelector": {
+    "type": "arcanumlib:function_type",
+    "functionType": "minecraft:set_count"
+  },
   "ops": [
-    { "type": "arcanumlib:replace_function", "function": { "function": "minecraft:set_count", "count": 3.0 } }
+    {
+      "type": "arcanumlib:replace_function",
+      "function": {
+        "function": "minecraft:set_count",
+        "count": 3.0
+      }
+    }
   ]
 }
 ```
+
+#### 6.4 `set_function` — **替换**表自身的函数列表
+
+- `*functions`：<json数组> 原版物品修饰器列表（如 `minecraft:set_count`）；**覆盖**表上现有列表。
+
 ```json
 {
   "type": "arcanumlib:set_function",
   "functions": [
-    { "function": "minecraft:set_count", "count": 2.0, "add": true }
+    {
+      "function": "minecraft:set_count",
+      "count": 2.0,
+      "add": true
+    }
   ]
 }
 ```
+
+#### 6.5 `add_function` — **追加**到表自身的函数列表
+
+- `*functions`：<json数组> 原版物品修饰器列表（如 `minecraft:set_count`）；**追加**到表上现有列表。
+
 ```json
 {
   "type": "arcanumlib:add_function",
   "functions": [
-    { "function": "minecraft:set_count", "count": 1.0, "add": true }
+    {
+      "function": "minecraft:set_count",
+      "count": 1.0,
+      "add": true
+    }
   ]
 }
 ```
+
+#### 6.6 `remove_function` — 按函数类型 id 移除表自身的函数
+
+- `*functionTypes`：<json数组> 要移除的原版函数类型 id 列表，如 `["minecraft:set_count"]`。
+
 ```json
-{ "type": "arcanumlib:remove_function", "functionTypes": ["minecraft:set_count"] }
+{
+  "type": "arcanumlib:remove_function",
+  "functionTypes": [
+    "minecraft:set_count"
+  ]
+}
 ```
+
+#### 6.7 `table_custom` — 交给 `TableCustomOpEvent` 的监听者
+
+- `*custom_id`：<String> 交给 `TableCustomOpEvent` 监听者的 id。
+
 ```json
-{ "type": "arcanumlib:table_custom", "custom_id": "my_table_hook" }
+{
+  "type": "arcanumlib:table_custom",
+  "custom_id": "my_table_hook"
+}
 ```
 
 ---
@@ -305,261 +502,584 @@ Loot injection: 26 injectors, 1183 loot tables, 4521 applications in 36.5538 ms
 
 写在 `modify_pool.poolSelector` 里。注册表：`arcanumlib:pool_selector`。
 
-| id | 字段 | 说明 |
-|---|---|---|
-| `any` | — | 所有池（**默认值**） |
-| `index` | `index` | 池下标（从 0 开始） |
-| `name` | `name` | 池名；**无名池永远不匹配** |
-| `has_entry` | `entrySelector` | 池里**任意**条目满足该条目选择器 |
-| `total_weight` | `min`、`max` | 池的总权重落在闭区间内 |
-| `not` | `condition` | 取反 |
-| `any_of` | `conditions` | 任一满足 |
-| `all_of` | `conditions` | 全部满足 |
-| `custom` | `custom_id` | 交给 `CustomPoolSelectorEvent` 的监听者 |
+**条目**：
+
+- [7.1 `any`](#71-any--所有池默认值) — 所有池（**默认值**）
+- [7.2 `index`](#72-index--池下标从-0-开始) — 池下标（从 0 开始）
+- [7.3 `name`](#73-name--池名无名池永远不匹配) — 池名；**无名池永远不匹配**
+- [7.4 `has_entry`](#74-has_entry--池里任意条目满足该条目选择器) — 池里**任意**条目满足该条目选择器
+- [7.5 `total_weight`](#75-total_weight--池的总权重落在闭区间内) — 池的总权重落在闭区间内
+- [7.6 `not`](#76-not--取反) — 取反
+- [7.7 `any_of`](#77-any_of--任一满足) — 任一满足
+- [7.8 `all_of`](#78-all_of--全部满足) — 全部满足
+- [7.9 `custom`](#79-custom--交给-custompoolselectorevent-的监听者) — 交给 `CustomPoolSelectorEvent` 的监听者
+
+#### 7.1 `any` — 所有池（**默认值**）
+
+- 无参数。
 
 ```json
-{ "type": "arcanumlib:any" }
+{
+  "type": "arcanumlib:any"
+}
 ```
+
+#### 7.2 `index` — 池下标（从 0 开始）
+
+- `*index`：<int> 池在表里的下标，从 0 开始。
+
 ```json
-{ "type": "arcanumlib:index", "index": 0 }
+{
+  "type": "arcanumlib:index",
+  "index": 0
+}
 ```
+
+#### 7.3 `name` — 池名；**无名池永远不匹配**
+
+- `*name`：<String> 池名；无名池永远不匹配。
+
 ```json
-{ "type": "arcanumlib:name", "name": "main" }
+{
+  "type": "arcanumlib:name",
+  "name": "main"
+}
 ```
+
+#### 7.4 `has_entry` — 池里**任意**条目满足该条目选择器
+
+- `*entrySelector`：<EntrySelector> 用来判定池内条目的选择器，见 [9. 条目选择器](#9-条目选择器15)。
+
 ```json
 {
   "type": "arcanumlib:has_entry",
-  "entrySelector": { "type": "arcanumlib:item", "item": "minecraft:gunpowder" }
+  "entrySelector": {
+    "type": "arcanumlib:item",
+    "item": "minecraft:gunpowder"
+  }
 }
 ```
+
+#### 7.5 `total_weight` — 池的总权重落在闭区间内
+
+- `min`：<int> 权重下限（默认 0）。
+- `max`：<int> 权重上限（默认 Integer.MAX_VALUE）。
+
 ```json
-{ "type": "arcanumlib:total_weight", "min": 2, "max": 20 }
+{
+  "type": "arcanumlib:total_weight",
+  "min": 2,
+  "max": 20
+}
 ```
+
+#### 7.6 `not` — 取反
+
+- `*condition`：<PoolSelector> 被取反的子选择器，见 [7. 池选择器](#7-池选择器9)。
+
 ```json
-{ "type": "arcanumlib:not", "condition": { "type": "arcanumlib:index", "index": 99 } }
+{
+  "type": "arcanumlib:not",
+  "condition": {
+    "type": "arcanumlib:index",
+    "index": 99
+  }
+}
 ```
+
+#### 7.7 `any_of` — 任一满足
+
+- `*conditions`：<json数组> 子选择器列表（每项为 <PoolSelector>），任一满足即匹配。
+
 ```json
 {
   "type": "arcanumlib:any_of",
   "conditions": [
-    { "type": "arcanumlib:index", "index": 0 },
-    { "type": "arcanumlib:index", "index": 1 }
+    {
+      "type": "arcanumlib:index",
+      "index": 0
+    },
+    {
+      "type": "arcanumlib:index",
+      "index": 1
+    }
   ]
 }
 ```
+
+#### 7.8 `all_of` — 全部满足
+
+- `*conditions`：<json数组> 子选择器列表（每项为 <PoolSelector>），全部满足才匹配。
+
 ```json
 {
   "type": "arcanumlib:all_of",
   "conditions": [
-    { "type": "arcanumlib:any" },
-    { "type": "arcanumlib:not", "condition": { "type": "arcanumlib:index", "index": 99 } }
+    {
+      "type": "arcanumlib:any"
+    },
+    {
+      "type": "arcanumlib:not",
+      "condition": {
+        "type": "arcanumlib:index",
+        "index": 99
+      }
+    }
   ]
 }
 ```
+
+#### 7.9 `custom` — 交给 `CustomPoolSelectorEvent` 的监听者
+
+- `*custom_id`：<String> 交给池级自定义事件监听者的 id。
+
 ```json
-{ "type": "arcanumlib:custom", "custom_id": "my_pool_hook" }
+{
+  "type": "arcanumlib:custom",
+  "custom_id": "my_pool_hook"
+}
 ```
 
 **总权重的口径**（`arcanumlib:total_weight`，以及条目级的 `weight_in_range` / `weight_share`）：
-
 - 只算**静态基础权重**：`weight` 字段，等价于原版 `getWeight(luck = 0)`（含 `max(..., 0)` 夹取）；
 - **不含** `quality × 幸运`——选择器拿不到 `LootContext`；
 - **不按条目条件过滤**——原版掷骰时是经 `expand(context)` 展开的；
 - 复合条目（`alternatives`/`sequence`/`group`）自身没有 `weight`，**递归累加其子树**；其中 `alternatives` 原版只走第一个条件通过的分支，这里把所有分支都算上，属**静态上界**。
-
 ---
-
 ## 8. 池级操作（12）
 
 写在 `modify_pool.ops` 里。注册表：`arcanumlib:pool_operator`。
 
-| id | 字段 | 说明 |
-|---|---|---|
-| `remove_pool` | — | 删掉**当前池** |
-| `add_entry` | `entry` | 往当前池追加一个条目 |
-| `modify_entry` | `entrySelector`、`ops` | 作用域：对当前池里命中的条目跑子 ops |
-| `modify_function` | `functionSelector`、`ops` | 作用域：对当前池的函数列表 |
-| `modify_condition` | `conditionSelector`、`ops` | 作用域：对当前池自身的条件 |
-| `set_condition` | `conditions` | 替换池自身的条件列表 |
-| `add_condition` | `conditions` | 追加到池自身的条件列表 |
-| `remove_condition` | `conditionTypes` | 按条件类型 id 摘掉池自身的条件 |
-| `set_function` | `functions` | 替换池自身的函数列表 |
-| `add_function` | `functions` | 追加到池自身的函数列表 |
-| `remove_function` | `functionTypes` | 按函数类型 id 摘掉池自身的函数 |
-| `pool_custom` | `custom_id` | 交给 `PoolCustomOpEvent` 的监听者 |
+**条目**：
+
+- [8.1 `remove_pool`](#81-remove_pool--删掉当前池) — 删掉**当前池**
+- [8.2 `add_entry`](#82-add_entry--往当前池追加一个条目) — 往当前池追加一个条目
+- [8.3 `modify_entry`](#83-modify_entry--作用域对当前池里命中的条目应用子-ops) — 作用域：对当前池里命中的条目应用子 ops
+- [8.4 `modify_function`](#84-modify_function--作用域对当前池的函数列表) — 作用域：对当前池的函数列表
+- [8.5 `modify_condition`](#85-modify_condition--作用域对当前池自身的条件) — 作用域：对当前池自身的条件
+- [8.6 `set_condition`](#86-set_condition--替换池自身的条件列表) — 替换池自身的条件列表
+- [8.7 `add_condition`](#87-add_condition--追加到池自身的条件列表) — 追加到池自身的条件列表
+- [8.8 `remove_condition`](#88-remove_condition--按条件类型-id-移除池自身的条件) — 按条件类型 id 移除池自身的条件
+- [8.9 `set_function`](#89-set_function--替换池自身的函数列表) — 替换池自身的函数列表
+- [8.10 `add_function`](#810-add_function--追加到池自身的函数列表) — 追加到池自身的函数列表
+- [8.11 `remove_function`](#811-remove_function--按函数类型-id-移除池自身的函数) — 按函数类型 id 移除池自身的函数
+- [8.12 `pool_custom`](#812-pool_custom--交给-poolcustomopevent-的监听者) — 交给 `PoolCustomOpEvent` 的监听者
+
+#### 8.1 `remove_pool` — 删掉**当前池**
+- 无参数。
 
 ```json
-{ "type": "arcanumlib:remove_pool" }
+{
+  "type": "arcanumlib:remove_pool"
+}
 ```
+
+#### 8.2 `add_entry` — 往当前池追加一个条目
+- `*entry`：<json对象> 原版抽取项（`minecraft:item` / `minecraft:tag` 等）。
+
 ```json
-{ "type": "arcanumlib:add_entry", "entry": { "type": "minecraft:item", "name": "minecraft:iron_ingot" } }
+{
+  "type": "arcanumlib:add_entry",
+  "entry": {
+    "type": "minecraft:item",
+    "name": "minecraft:iron_ingot"
+  }
+}
 ```
+
+#### 8.3 `modify_entry` — 作用域：对当前池里命中的条目应用子 ops
+- `*entrySelector`：<EntrySelector> 选出要改的条目，见 [9. 条目选择器](#9-条目选择器15)。
+- `*ops`：<json数组> 条目级操作列表，见 [10. 条目级操作](#10-条目级操作13)。
+
 ```json
 {
   "type": "arcanumlib:modify_entry",
-  "entrySelector": { "type": "arcanumlib:weight_share", "min": 0.7, "max": 0.8 },
+  "entrySelector": {
+    "type": "arcanumlib:weight_share",
+    "min": 0.7,
+    "max": 0.8
+  },
   "ops": [
-    { "type": "arcanumlib:set_function", "functions": [{ "function": "minecraft:set_count", "count": 5.0 }] }
+    {
+      "type": "arcanumlib:set_function",
+      "functions": [
+        {
+          "function": "minecraft:set_count",
+          "count": 5.0
+        }
+      ]
+    }
   ]
 }
 ```
+
+#### 8.4 `modify_function` — 作用域：对当前池的函数列表
+- `*functionSelector`：<FunctionSelector> 选出要改的函数，见 [11. 函数选择器](#11-函数选择器9)。
+- `*ops`：<json数组> 函数级操作列表，见 [12. 函数级操作](#12-函数级操作3)。
+
 ```json
 {
   "type": "arcanumlib:modify_function",
-  "functionSelector": { "type": "arcanumlib:any" },
+  "functionSelector": {
+    "type": "arcanumlib:any"
+  },
   "ops": [
-    { "type": "arcanumlib:remove_function" }
+    {
+      "type": "arcanumlib:remove_function"
+    }
   ]
 }
 ```
+
+#### 8.5 `modify_condition` — 作用域：对当前池自身的条件
+- `*conditionSelector`：<ConditionSelector> 选出要改的条件，见 [13. 条件选择器](#13-条件选择器8)。
+- `*ops`：<json数组> 条件级操作列表，见 [14. 条件级操作](#14-条件级操作2)。
+
 ```json
 {
   "type": "arcanumlib:modify_condition",
-  "conditionSelector": { "type": "arcanumlib:condition_type", "conditionType": "minecraft:random_chance" },
-  "ops": [{ "type": "arcanumlib:remove_condition" }]
+  "conditionSelector": {
+    "type": "arcanumlib:condition_type",
+    "conditionType": "minecraft:random_chance"
+  },
+  "ops": [
+    {
+      "type": "arcanumlib:remove_condition"
+    }
+  ]
 }
 ```
+
+#### 8.6 `set_condition` — 替换池自身的条件列表
+- `*conditions`：<json数组> 原版谓词列表（每项为 `minecraft:` 谓词）。
+
 ```json
 {
   "type": "arcanumlib:set_condition",
-  "conditions": [{ "condition": "minecraft:random_chance", "chance": 1.0 }]
+  "conditions": [
+    {
+      "condition": "minecraft:random_chance",
+      "chance": 1.0
+    }
+  ]
 }
 ```
+
+#### 8.7 `add_condition` — 追加到池自身的条件列表
+- `*conditions`：<json数组> 原版谓词列表（每项为 `minecraft:` 谓词）。
+
 ```json
 {
   "type": "arcanumlib:add_condition",
-  "conditions": [{ "condition": "minecraft:random_chance", "chance": 0.5 }]
+  "conditions": [
+    {
+      "condition": "minecraft:random_chance",
+      "chance": 0.5
+    }
+  ]
 }
 ```
+
+#### 8.8 `remove_condition` — 按条件类型 id 移除池自身的条件
+- `*conditionTypes`：<json数组> 原版条件类型 id 列表，如 `["minecraft:random_chance"]`。
+
 ```json
-{ "type": "arcanumlib:remove_condition", "conditionTypes": ["minecraft:random_chance"] }
+{
+  "type": "arcanumlib:remove_condition",
+  "conditionTypes": [
+    "minecraft:random_chance"
+  ]
+}
 ```
+
+#### 8.9 `set_function` — 替换池自身的函数列表
+- `*functions`：<json数组> 原版物品修饰器列表（如 `minecraft:set_count`）。
+
 ```json
 {
   "type": "arcanumlib:set_function",
-  "functions": [{ "function": "minecraft:set_count", "count": 2.0, "add": true }]
+  "functions": [
+    {
+      "function": "minecraft:set_count",
+      "count": 2.0,
+      "add": true
+    }
+  ]
 }
 ```
+
+#### 8.10 `add_function` — 追加到池自身的函数列表
+- `*functions`：<json数组> 原版物品修饰器列表（如 `minecraft:set_count`）。
+
 ```json
 {
   "type": "arcanumlib:add_function",
-  "functions": [{ "function": "minecraft:set_count", "count": 1.0, "add": true }]
+  "functions": [
+    {
+      "function": "minecraft:set_count",
+      "count": 1.0,
+      "add": true
+    }
+  ]
 }
 ```
+
+#### 8.11 `remove_function` — 按函数类型 id 移除池自身的函数
+- `*functionTypes`：<json数组> 原版函数类型 id 列表，如 `["minecraft:set_count"]`。
+
 ```json
-{ "type": "arcanumlib:remove_function", "functionTypes": ["minecraft:set_count"] }
+{
+  "type": "arcanumlib:remove_function",
+  "functionTypes": [
+    "minecraft:set_count"
+  ]
+}
 ```
+
+#### 8.12 `pool_custom` — 交给 `PoolCustomOpEvent` 的监听者
+- `*custom_id`：<String> 交给池级自定义事件监听者的 id。
+
 ```json
-{ "type": "arcanumlib:pool_custom", "custom_id": "my_pool_hook" }
+{
+  "type": "arcanumlib:pool_custom",
+  "custom_id": "my_pool_hook"
+}
 ```
 
 ---
-
 ## 9. 条目选择器（15）
 
 写在 `modify_entry.entrySelector` 里。注册表：`arcanumlib:entry_selector`。
 
-| id | 字段 | 说明 |
-|---|---|---|
-| `any` | — | 所有条目（**默认值**） |
-| `index` | `index` | 条目在池里的下标 |
-| `item` | `item` | 物品 id 精确匹配（只对 `minecraft:item` 条目有意义） |
-| `tag` | `tag` | 匹配 `minecraft:tag` **条目**：标签本身等于给定标签 |
-| `item_with_tag` | `tag` | 匹配 `minecraft:item` 条目：它的**物品**属于给定标签（注意与 `tag` 的区别） |
-| `entry_type` | `entryType` | 条目类型，如 `minecraft:item`、`minecraft:alternatives` |
-| `weight_in_range` | `min`、`max` | 条目（复合条目按子树）权重落在闭区间内 |
-| `weight_share` | `min`、`max` | 条目权重占所属池总权重的比例落在 `[0, 1]` 闭区间内 |
-| `has_condition` | `conditionType` | 条目身上挂着某种条件 |
-| `has_function` | `functionType` | 条目身上挂着某种函数 |
-| `has_child` | `entrySelector` | 复合条目的**直接子项**里有满足的（不递归） |
-| `not` | `condition` | 取反 |
-| `any_of` | `conditions` | 任一满足 |
-| `all_of` | `conditions` | 全部满足 |
-| `custom` | `custom_id` | 交给 `CustomEntrySelectorEvent` 的监听者 |
+**条目**：
+
+- [9.1 `any`](#91-any--所有条目默认值) — 所有条目（**默认值**）
+- [9.2 `index`](#92-index--条目在池里的下标) — 条目在池里的下标
+- [9.3 `item`](#93-item--物品-id-精确匹配只对-minecraftitem-条目有意义) — 物品 id 精确匹配（只对 `minecraft:item` 条目有意义）
+- [9.4 `tag`](#94-tag--匹配-minecrafttag-条目标签本身等于给定标签) — 匹配 `minecraft:tag` **条目**：标签本身等于给定标签
+- [9.5 `item_with_tag`](#95-item_with_tag--匹配-minecraftitem-条目它的物品属于给定标签注意与-tag-的区别) — 匹配 `minecraft:item` 条目：它的**物品**属于给定标签（注意与 `tag` 的区别）
+- [9.6 `entry_type`](#96-entry_type--条目类型如-minecraftitemminecraftalternatives) — 条目类型，如 `minecraft:item`、`minecraft:alternatives`
+- [9.7 `weight_in_range`](#97-weight_in_range--条目复合条目按子树权重落在闭区间内) — 条目（复合条目按子树）权重落在闭区间内
+- [9.8 `weight_share`](#98-weight_share--条目权重占所属池总权重的比例落在-0-1-闭区间内) — 条目权重占所属池总权重的比例落在 `[0, 1]` 闭区间内
+- [9.9 `has_condition`](#99-has_condition--条目身上挂着某种条件) — 条目身上挂着某种条件
+- [9.10 `has_function`](#910-has_function--条目身上挂着某种函数) — 条目身上挂着某种函数
+- [9.11 `has_child`](#911-has_child--复合条目的直接子项里有满足的不递归) — 复合条目的**直接子项**里有满足的（不递归）
+- [9.12 `not`](#912-not--取反) — 取反
+- [9.13 `any_of`](#913-any_of--任一满足) — 任一满足
+- [9.14 `all_of`](#914-all_of--全部满足) — 全部满足
+- [9.15 `custom`](#915-custom--交给-customentryselectorevent-的监听者) — 交给 `CustomEntrySelectorEvent` 的监听者
+
+#### 9.1 `any` — 所有条目（**默认值**）
+- 无参数。
 
 ```json
-{ "type": "arcanumlib:any" }
+{
+  "type": "arcanumlib:any"
+}
 ```
+
+#### 9.2 `index` — 条目在池里的下标
+- `*index`：<int> 条目在池内的下标，从 0 开始。
+
 ```json
-{ "type": "arcanumlib:index", "index": 0 }
+{
+  "type": "arcanumlib:index",
+  "index": 0
+}
 ```
+
+#### 9.3 `item` — 物品 id 精确匹配（只对 `minecraft:item` 条目有意义）
+- `*item`：<ResourceLocation> 物品 id，如 `minecraft:diamond`。
+
 ```json
-{ "type": "arcanumlib:item", "item": "minecraft:gunpowder" }
+{
+  "type": "arcanumlib:item",
+  "item": "minecraft:gunpowder"
+}
 ```
+
+#### 9.4 `tag` — 匹配 `minecraft:tag` **条目**：标签本身等于给定标签
+- `*tag`：<TagKey<Item>> 物品标签；匹配 `minecraft:tag` **条目**，比的是标签本身。
+
 ```json
-{ "type": "arcanumlib:tag", "tag": "minecraft:coals" }
+{
+  "type": "arcanumlib:tag",
+  "tag": "minecraft:coals"
+}
 ```
+
+#### 9.5 `item_with_tag` — 匹配 `minecraft:item` 条目：它的**物品**属于给定标签（注意与 `tag` 的区别）
+- `*tag`：<TagKey<Item>> 物品标签；匹配写死具体物品的条目，按标签判断它的物品是否被收录。
+
 ```json
-{ "type": "arcanumlib:item_with_tag", "tag": "minecraft:coals" }
+{
+  "type": "arcanumlib:item_with_tag",
+  "tag": "minecraft:coals"
+}
 ```
+
+#### 9.6 `entry_type` — 条目类型，如 `minecraft:item`、`minecraft:alternatives`
+- `*entryType`：<ResourceLocation> 条目类型 id，如 `minecraft:item`。
+
 ```json
-{ "type": "arcanumlib:entry_type", "entryType": "minecraft:alternatives" }
+{
+  "type": "arcanumlib:entry_type",
+  "entryType": "minecraft:alternatives"
+}
 ```
+
+#### 9.7 `weight_in_range` — 条目（复合条目按子树）权重落在闭区间内
+- `min`：<int> 权重下限（默认 0）。
+- `max`：<int> 权重上限（默认 Integer.MAX_VALUE）。
+
 ```json
-{ "type": "arcanumlib:weight_in_range", "min": 1, "max": 1 }
+{
+  "type": "arcanumlib:weight_in_range",
+  "min": 1,
+  "max": 1
+}
 ```
+
+#### 9.8 `weight_share` — 条目权重占所属池总权重的比例落在 `[0, 1]` 闭区间内
+- `min`：<float> 占比下限（0~1）。
+- `max`：<float> 占比上限（0~1）。
+
 ```json
-{ "type": "arcanumlib:weight_share", "min": 0.05, "max": 0.2 }
+{
+  "type": "arcanumlib:weight_share",
+  "min": 0.05,
+  "max": 0.2
+}
 ```
+
+#### 9.9 `has_condition` — 条目身上挂着某种条件
+- `*conditionType`：<ResourceLocation> 原版条件类型 id，如 `minecraft:random_chance`。
+
 ```json
-{ "type": "arcanumlib:has_condition", "conditionType": "minecraft:random_chance" }
+{
+  "type": "arcanumlib:has_condition",
+  "conditionType": "minecraft:random_chance"
+}
 ```
+
+#### 9.10 `has_function` — 条目身上挂着某种函数
+- `*functionType`：<ResourceLocation> 原版函数类型 id，如 `minecraft:set_count`。
+
 ```json
-{ "type": "arcanumlib:has_function", "functionType": "minecraft:set_count" }
+{
+  "type": "arcanumlib:has_function",
+  "functionType": "minecraft:set_count"
+}
 ```
+
+#### 9.11 `has_child` — 复合条目的**直接子项**里有满足的（不递归）
+- `*entrySelector`：<EntrySelector> 用来判定**直接子项**的选择器，见 [9. 条目选择器](#9-条目选择器15)。
+
 ```json
-{ "type": "arcanumlib:has_child", "entrySelector": { "type": "arcanumlib:item", "item": "minecraft:iron_ingot" } }
+{
+  "type": "arcanumlib:has_child",
+  "entrySelector": {
+    "type": "arcanumlib:item",
+    "item": "minecraft:iron_ingot"
+  }
+}
 ```
+
+#### 9.12 `not` — 取反
+- `*condition`：<EntrySelector> 被取反的子选择器，见 [9. 条目选择器](#9-条目选择器15)。
+
 ```json
-{ "type": "arcanumlib:not", "condition": { "type": "arcanumlib:item", "item": "minecraft:golden_apple" } }
+{
+  "type": "arcanumlib:not",
+  "condition": {
+    "type": "arcanumlib:item",
+    "item": "minecraft:golden_apple"
+  }
+}
 ```
+
+#### 9.13 `any_of` — 任一满足
+- `*conditions`：<json数组> 子选择器列表（每项为 <EntrySelector>），任一满足即匹配。
+
 ```json
 {
   "type": "arcanumlib:any_of",
   "conditions": [
-    { "type": "arcanumlib:item", "item": "minecraft:golden_apple" },
-    { "type": "arcanumlib:item", "item": "minecraft:gunpowder" }
+    {
+      "type": "arcanumlib:item",
+      "item": "minecraft:golden_apple"
+    },
+    {
+      "type": "arcanumlib:item",
+      "item": "minecraft:gunpowder"
+    }
   ]
 }
 ```
+
+#### 9.14 `all_of` — 全部满足
+- `*conditions`：<json数组> 子选择器列表（每项为 <EntrySelector>），全部满足才匹配。
+
 ```json
 {
   "type": "arcanumlib:all_of",
   "conditions": [
-    { "type": "arcanumlib:entry_type", "entryType": "minecraft:item" },
-    { "type": "arcanumlib:weight_in_range", "min": 1, "max": 1 }
+    {
+      "type": "arcanumlib:entry_type",
+      "entryType": "minecraft:item"
+    },
+    {
+      "type": "arcanumlib:weight_in_range",
+      "min": 1,
+      "max": 1
+    }
   ]
 }
 ```
+
+#### 9.15 `custom` — 交给 `CustomEntrySelectorEvent` 的监听者
+- `*custom_id`：<String> 交给条目级自定义事件监听者的 id。
+
 ```json
-{ "type": "arcanumlib:custom", "custom_id": "my_entry_hook" }
+{
+  "type": "arcanumlib:custom",
+  "custom_id": "my_entry_hook"
+}
 ```
 
 ---
-
 ## 10. 条目级操作（13）
 
 写在 `modify_entry.ops` 里。注册表：`arcanumlib:entry_operator`。
 
-| id | 字段 | 说明 |
-|---|---|---|
-| `remove_entry` | — | 删掉当前条目 |
-| `replace_entry` | `entry` | 把当前条目换成新条目（每处一份独立实例） |
-| `set_weight` | `weight` | 设权重；**负数视为不改**；复合条目没有权重，跳过 |
-| `set_quality` | `quality` | 设品质；**负数视为不改**；复合条目没有品质，跳过 |
-| `modify_function` | `functionSelector`、`ops` | 作用域：对当前条目的函数列表 |
-| `modify_condition` | `conditionSelector`、`ops` | 作用域：对当前条目自身的条件 |
-| `set_condition` | `conditions` | 替换当前条目的条件列表 |
-| `add_condition` | `conditions` | 追加到当前条目的条件列表 |
-| `remove_condition` | `conditionTypes` | 按类型 id 摘掉当前条目的条件 |
-| `set_function` | `functions` | 替换当前条目的函数列表（复合条目跳过） |
-| `add_function` | `functions` | 追加到当前条目的函数列表（复合条目跳过） |
-| `remove_function` | `functionTypes` | 按类型 id 摘掉当前条目的函数（复合条目跳过） |
-| `entry_custom` | `custom_id` | 交给 `EntryCustomOpEvent` 的监听者 |
+**条目**：
+
+- [10.1 `remove_entry`](#101-remove_entry--删掉当前条目) — 删掉当前条目
+- [10.2 `replace_entry`](#102-replace_entry--把当前条目换成新条目每处一份独立实例) — 把当前条目换成新条目（每处一份独立实例）
+- [10.3 `set_weight`](#103-set_weight--设权重负数视为不改复合条目没有权重跳过) — 设权重；**负数视为不改**；复合条目没有权重，跳过
+- [10.4 `set_quality`](#104-set_quality--设品质负数视为不改复合条目没有品质跳过) — 设品质；**负数视为不改**；复合条目没有品质，跳过
+- [10.5 `modify_function`](#105-modify_function--作用域对当前条目的函数列表) — 作用域：对当前条目的函数列表
+- [10.6 `modify_condition`](#106-modify_condition--作用域对当前条目自身的条件) — 作用域：对当前条目自身的条件
+- [10.7 `set_condition`](#107-set_condition--替换当前条目的条件列表) — 替换当前条目的条件列表
+- [10.8 `add_condition`](#108-add_condition--追加到当前条目的条件列表) — 追加到当前条目的条件列表
+- [10.9 `remove_condition`](#109-remove_condition--按类型-id-移除当前条目的条件) — 按类型 id 移除当前条目的条件
+- [10.10 `set_function`](#1010-set_function--替换当前条目的函数列表复合条目跳过) — 替换当前条目的函数列表（复合条目跳过）
+- [10.11 `add_function`](#1011-add_function--追加到当前条目的函数列表复合条目跳过) — 追加到当前条目的函数列表（复合条目跳过）
+- [10.12 `remove_function`](#1012-remove_function--按类型-id-移除当前条目的函数复合条目跳过) — 按类型 id 移除当前条目的函数（复合条目跳过）
+- [10.13 `entry_custom`](#1013-entry_custom--交给-entrycustomopevent-的监听者) — 交给 `EntryCustomOpEvent` 的监听者
+
+#### 10.1 `remove_entry` — 删掉当前条目
+- 无参数。
 
 ```json
-{ "type": "arcanumlib:remove_entry" }
+{
+  "type": "arcanumlib:remove_entry"
+}
 ```
+
+#### 10.2 `replace_entry` — 把当前条目换成新条目（每处一份独立实例）
+- `*entry`：<json对象> 原版抽取项，用来替换当前条目（每处一份独立实例）。
+
 ```json
 {
   "type": "arcanumlib:replace_entry",
@@ -567,257 +1087,531 @@ Loot injection: 26 injectors, 1183 loot tables, 4521 applications in 36.5538 ms
     "type": "minecraft:item",
     "name": "minecraft:leather",
     "functions": [
-      { "function": "minecraft:enchanted_count_increase", "enchantment": "minecraft:looting", "count": { "type": "minecraft:uniform", "min": 0.0, "max": 1.0 } }
+      {
+        "function": "minecraft:enchanted_count_increase",
+        "enchantment": "minecraft:looting",
+        "count": {
+          "type": "minecraft:uniform",
+          "min": 0.0,
+          "max": 1.0
+        }
+      }
     ]
   }
 }
 ```
+
+#### 10.3 `set_weight` — 设权重；**负数视为不改**；复合条目没有权重，跳过
+- `*weight`：<int> 目标权重；**负数表示"不改"**（沿用旧版语义，方便直接搬旧 json）。
+
 ```json
-{ "type": "arcanumlib:set_weight", "weight": 20 }
+{
+  "type": "arcanumlib:set_weight",
+  "weight": 20
+}
 ```
+
+#### 10.4 `set_quality` — 设品质；**负数视为不改**；复合条目没有品质，跳过
+- `*quality`：<int> 目标品质；**负数表示"不改"**（沿用旧版语义）。
+
 ```json
-{ "type": "arcanumlib:set_quality", "quality": 1 }
+{
+  "type": "arcanumlib:set_quality",
+  "quality": 1
+}
 ```
+
+#### 10.5 `modify_function` — 作用域：对当前条目的函数列表
+- `*functionSelector`：<FunctionSelector> 选出要改的函数，见 [11. 函数选择器](#11-函数选择器9)。
+- `*ops`：<json数组> 函数级操作列表，见 [12. 函数级操作](#12-函数级操作3)。
+
 ```json
 {
   "type": "arcanumlib:modify_function",
-  "functionSelector": { "type": "arcanumlib:match", "function": { "function": "minecraft:set_count", "count": 3.0 } },
-  "ops": [{ "type": "arcanumlib:remove_function" }]
-}
-```
-```json
-{
-  "type": "arcanumlib:modify_condition",
-  "conditionSelector": { "type": "arcanumlib:index", "index": 0 },
+  "functionSelector": {
+    "type": "arcanumlib:match",
+    "function": {
+      "function": "minecraft:set_count",
+      "count": 3.0
+    }
+  },
   "ops": [
-    { "type": "arcanumlib:replace_condition", "condition": { "condition": "minecraft:random_chance", "chance": 1.0 } }
+    {
+      "type": "arcanumlib:remove_function"
+    }
   ]
 }
 ```
+
+#### 10.6 `modify_condition` — 作用域：对当前条目自身的条件
+- `*conditionSelector`：<ConditionSelector> 选出要改的条件，见 [13. 条件选择器](#13-条件选择器8)。
+- `*ops`：<json数组> 条件级操作列表，见 [14. 条件级操作](#14-条件级操作2)。
+
+```json
+{
+  "type": "arcanumlib:modify_condition",
+  "conditionSelector": {
+    "type": "arcanumlib:index",
+    "index": 0
+  },
+  "ops": [
+    {
+      "type": "arcanumlib:replace_condition",
+      "condition": {
+        "condition": "minecraft:random_chance",
+        "chance": 1.0
+      }
+    }
+  ]
+}
+```
+
+#### 10.7 `set_condition` — 替换当前条目的条件列表
+- `*conditions`：<json数组> 原版谓词列表（每项为 `minecraft:` 谓词）；**覆盖**条目现有列表。
+
 ```json
 {
   "type": "arcanumlib:set_condition",
-  "conditions": [{ "condition": "minecraft:random_chance", "chance": 1.0 }]
+  "conditions": [
+    {
+      "condition": "minecraft:random_chance",
+      "chance": 1.0
+    }
+  ]
 }
 ```
+
+#### 10.8 `add_condition` — 追加到当前条目的条件列表
+- `*conditions`：<json数组> 原版谓词列表（每项为 `minecraft:` 谓词）；**追加**到条目现有列表。
+
 ```json
 {
   "type": "arcanumlib:add_condition",
-  "conditions": [{ "condition": "minecraft:random_chance", "chance": 0.5 }]
+  "conditions": [
+    {
+      "condition": "minecraft:random_chance",
+      "chance": 0.5
+    }
+  ]
 }
 ```
+
+#### 10.9 `remove_condition` — 按类型 id 移除当前条目的条件
+- `*conditionTypes`：<json数组> 原版条件类型 id 列表，如 `["minecraft:random_chance"]`。
+
 ```json
-{ "type": "arcanumlib:remove_condition", "conditionTypes": ["minecraft:random_chance"] }
+{
+  "type": "arcanumlib:remove_condition",
+  "conditionTypes": [
+    "minecraft:random_chance"
+  ]
+}
 ```
+
+#### 10.10 `set_function` — 替换当前条目的函数列表（复合条目跳过）
+- `*functions`：<json数组> 原版物品修饰器列表（如 `minecraft:set_count`）；**覆盖**条目现有列表。
+
 ```json
 {
   "type": "arcanumlib:set_function",
-  "functions": [{ "function": "minecraft:set_count", "count": 2.0 }]
+  "functions": [
+    {
+      "function": "minecraft:set_count",
+      "count": 2.0
+    }
+  ]
 }
 ```
+
+#### 10.11 `add_function` — 追加到当前条目的函数列表（复合条目跳过）
+- `*functions`：<json数组> 原版物品修饰器列表（如 `minecraft:set_count`）；**追加**到条目现有列表。
+
 ```json
 {
   "type": "arcanumlib:add_function",
-  "functions": [{ "function": "minecraft:set_count", "count": 1.0, "add": true }]
+  "functions": [
+    {
+      "function": "minecraft:set_count",
+      "count": 1.0,
+      "add": true
+    }
+  ]
 }
 ```
+
+#### 10.12 `remove_function` — 按类型 id 移除当前条目的函数（复合条目跳过）
+- `*functionTypes`：<json数组> 原版函数类型 id 列表，如 `["minecraft:set_count"]`。
+
 ```json
-{ "type": "arcanumlib:remove_function", "functionTypes": ["minecraft:set_count"] }
+{
+  "type": "arcanumlib:remove_function",
+  "functionTypes": [
+    "minecraft:set_count"
+  ]
+}
 ```
+
+#### 10.13 `entry_custom` — 交给 `EntryCustomOpEvent` 的监听者
+- `*custom_id`：<String> 交给条目级自定义事件监听者的 id。
+
 ```json
-{ "type": "arcanumlib:entry_custom", "custom_id": "my_entry_hook" }
+{
+  "type": "arcanumlib:entry_custom",
+  "custom_id": "my_entry_hook"
+}
 ```
 
 ---
-
 ## 11. 函数选择器（9）
 
 写在 `modify_function.functionSelector` 里。注册表：`arcanumlib:function_selector`。
 
-| id | 字段 | 说明 |
-|---|---|---|
-| `any` | — | 所有函数（**默认值**） |
-| `index` | `index` | 函数在列表里的下标 |
-| `function_type` | `functionType` | 按函数类型 id，如 `minecraft:set_count` |
-| `has_condition` | `conditionType` | 该函数**自带**的条件里有这种类型 |
-| `not` | `selector` | 取反 |
-| `any_of` | `selectors` | 任一满足 |
-| `all_of` | `selectors` | 全部满足 |
-| `match` | `function`、`strict` | 按**模板 json 的 key** 匹配（见下） |
-| `custom` | `custom_id` | 交给 `CustomFunctionSelectorEvent` 的监听者 |
+**条目**：
+
+- [11.1 `any`](#111-any--所有函数默认值) — 所有函数（**默认值**）
+- [11.2 `index`](#112-index--函数在列表里的下标) — 函数在列表里的下标
+- [11.3 `function_type`](#113-function_type--按函数类型-id如-minecraftset_count) — 按函数类型 id，如 `minecraft:set_count`
+- [11.4 `has_condition`](#114-has_condition--该函数自带的条件里有这种类型) — 该函数**自带**的条件里有这种类型
+- [11.5 `not`](#115-not--取反) — 取反
+- [11.6 `any_of`](#116-any_of--任一满足) — 任一满足
+- [11.7 `all_of`](#117-all_of--全部满足) — 全部满足
+- [11.8 `match`](#118-match--按模板-json-的-key-匹配见下) — 按**模板 json 的 key** 匹配（见下）
+- [11.9 `custom`](#119-custom--交给-customfunctionselectorevent-的监听者) — 交给 `CustomFunctionSelectorEvent` 的监听者
+
+#### 11.1 `any` — 所有函数（**默认值**）
+- 无参数。
 
 ```json
-{ "type": "arcanumlib:any" }
+{
+  "type": "arcanumlib:any"
+}
 ```
+
+#### 11.2 `index` — 函数在列表里的下标
+- `*index`：<int> 函数在列表里的下标，从 0 开始。
+
 ```json
-{ "type": "arcanumlib:index", "index": 0 }
+{
+  "type": "arcanumlib:index",
+  "index": 0
+}
 ```
+
+#### 11.3 `function_type` — 按函数类型 id，如 `minecraft:set_count`
+- `*functionType`：<ResourceLocation> 原版函数类型 id，如 `minecraft:set_count`。
+
 ```json
-{ "type": "arcanumlib:function_type", "functionType": "minecraft:set_count" }
+{
+  "type": "arcanumlib:function_type",
+  "functionType": "minecraft:set_count"
+}
 ```
+
+#### 11.4 `has_condition` — 该函数**自带**的条件里有这种类型
+- `*conditionType`：<ResourceLocation> 原版条件类型 id，如 `minecraft:random_chance`；函数自带这类条件时命中。
+
 ```json
-{ "type": "arcanumlib:has_condition", "conditionType": "minecraft:random_chance" }
+{
+  "type": "arcanumlib:has_condition",
+  "conditionType": "minecraft:random_chance"
+}
 ```
+
+#### 11.5 `not` — 取反
+- `*selector`：<FunctionSelector> 被取反的子选择器，见 [11. 函数选择器](#11-函数选择器9)。
+
 ```json
-{ "type": "arcanumlib:not", "selector": { "type": "arcanumlib:index", "index": 99 } }
+{
+  "type": "arcanumlib:not",
+  "selector": {
+    "type": "arcanumlib:index",
+    "index": 99
+  }
+}
 ```
+
+#### 11.6 `any_of` — 任一满足
+- `*selectors`：<json数组> 子选择器列表（每项为 <FunctionSelector>），任一满足即匹配。
+
 ```json
 {
   "type": "arcanumlib:any_of",
   "selectors": [
-    { "type": "arcanumlib:index", "index": 0 },
-    { "type": "arcanumlib:function_type", "functionType": "minecraft:set_count" }
+    {
+      "type": "arcanumlib:index",
+      "index": 0
+    },
+    {
+      "type": "arcanumlib:function_type",
+      "functionType": "minecraft:set_count"
+    }
   ]
 }
 ```
+
+#### 11.7 `all_of` — 全部满足
+- `*selectors`：<json数组> 子选择器列表（每项为 <FunctionSelector>），全部满足才匹配。
+
 ```json
 {
   "type": "arcanumlib:all_of",
   "selectors": [
-    { "type": "arcanumlib:function_type", "functionType": "minecraft:set_count" },
-    { "type": "arcanumlib:not", "selector": { "type": "arcanumlib:index", "index": 99 } }
+    {
+      "type": "arcanumlib:function_type",
+      "functionType": "minecraft:set_count"
+    },
+    {
+      "type": "arcanumlib:not",
+      "selector": {
+        "type": "arcanumlib:index",
+        "index": 99
+      }
+    }
   ]
 }
 ```
+
+#### 11.8 `match` — 按**模板 json 的 key** 匹配（见下）
+- `*function`：<json对象> 模板 json **原样保留**，只比对写出来的 key。
+- `strict`：<boolean> 默认 `false`；开启后要求与模板**完全一致**（按序列化后的 json 相等比较）。
+
 ```json
 {
   "type": "arcanumlib:match",
-  "function": { "function": "minecraft:set_count", "count": 3.0 }
+  "function": {
+    "function": "minecraft:set_count",
+    "count": 3.0
+  }
 }
 ```
+
+#### 11.9 `custom` — 交给 `CustomFunctionSelectorEvent` 的监听者
+- `*custom_id`：<String> 交给函数级自定义事件监听者的 id。
+
 ```json
 {
-  "type": "arcanumlib:match",
-  "strict": true,
-  "function": { "function": "minecraft:set_count", "count": 2.0, "add": false }
+  "type": "arcanumlib:custom",
+  "custom_id": "my_function_hook"
 }
-```
-```json
-{ "type": "arcanumlib:custom", "custom_id": "my_function_hook" }
 ```
 
 ### 关于 `match`
-
 语义对齐原版的 `DataComponentIngredient` 组件匹配：
-
 - 模板保留**原始 json**，所以**只比对写出来的 key**——没写的 key 不参与，codec 的默认值不会污染结果（这是它比"先反序列化成函数再比"更有用的关键）；
 - `strict` 默认 `false`：模板里每个 key 都要在候选里存在且值一致（子集匹配）；
 - `strict: true`：要求与候选**完全一致**（按序列化后的 json 相等比较）；
 - 数组按**有序参数**看待：要求长度一致、逐元素匹配；
 - 数字按值比较（`3` 与 `3.0` 视为相等）；
 - 模板里的类型 key（函数是 `"function"`，条件是 `"condition"`）**必须存在**，否则永远不匹配。
-
 典型用途：**按参数区分同类型的函数**。例如一个条目同时有 `set_count(2)` 和 `set_count(+3)`，`function_type` 会把两个一起选中，而 `match` 能只挑其中一个。
-
 > 注意：`match` 的模板**不会被校验**。key 写错（例如 `coun`）不会报错，只是永远匹配不上。
-
 ---
-
 ## 12. 函数级操作（3）
 
 写在 `modify_function.ops` 里。注册表：`arcanumlib:function_operator`。
 
-| id | 字段 | 说明 |
-|---|---|---|
-| `remove_function` | — | 删掉当前函数 |
-| `replace_function` | `function` | 把当前函数换成新函数（每处一份独立实例） |
-| `modify_condition` | `conditionSelector`、`ops` | 作用域：钻进**当前函数自带的条件**；非条件型函数（如 `set_count`）没有条件，跳过 |
+**条目**：
+
+- [12.1 `remove_function`](#121-remove_function--删掉当前函数) — 删掉当前函数
+- [12.2 `replace_function`](#122-replace_function--把当前函数换成新函数每处一份独立实例) — 把当前函数换成新函数（每处一份独立实例）
+- [12.3 `modify_condition`](#123-modify_condition--作用域钻进当前函数自带的条件非条件型函数如-set_count没有条件跳过) — 作用域：钻进**当前函数自带的条件**；非条件型函数（如 `set_count`）没有条件，跳过
+
+#### 12.1 `remove_function` — 删掉当前函数
+- 无参数。
 
 ```json
-{ "type": "arcanumlib:remove_function" }
+{
+  "type": "arcanumlib:remove_function"
+}
 ```
+
+#### 12.2 `replace_function` — 把当前函数换成新函数（每处一份独立实例）
+- `*function`：<json对象> 原版物品修饰器，用来替换当前函数（每处一份独立实例）。
+
 ```json
 {
   "type": "arcanumlib:replace_function",
-  "function": { "function": "minecraft:set_count", "count": 7.0, "add": true }
+  "function": {
+    "function": "minecraft:set_count",
+    "count": 7.0,
+    "add": true
+  }
 }
 ```
+
+#### 12.3 `modify_condition` — 作用域：钻进**当前函数自带的条件**；非条件型函数（如 `set_count`）没有条件，跳过
+- `*conditionSelector`：<ConditionSelector> 选出要改的条件，见 [13. 条件选择器](#13-条件选择器8)。
+- `*ops`：<json数组> 条件级操作列表，见 [14. 条件级操作](#14-条件级操作2)。
+
 ```json
 {
   "type": "arcanumlib:modify_condition",
-  "conditionSelector": { "type": "arcanumlib:condition_type", "conditionType": "minecraft:random_chance" },
-  "ops": [{ "type": "arcanumlib:remove_condition" }]
+  "conditionSelector": {
+    "type": "arcanumlib:condition_type",
+    "conditionType": "minecraft:random_chance"
+  },
+  "ops": [
+    {
+      "type": "arcanumlib:remove_condition"
+    }
+  ]
 }
 ```
 
 > 通用的"改参数"（例如把 `count` 从 5 改成 10）**没有**通用实现：各函数的参数字段都是各自私有的。
 > 需要时用 `remove_function` + `add_function` 组合，或者写一个 `function_custom` 级别的自定义 op（见第 16 节）。
-
 ---
-
 ## 13. 条件选择器（8）
 
 写在 `modify_condition.conditionSelector` 里。注册表：`arcanumlib:condition_selector`。
 
-| id | 字段 | 说明 |
-|---|---|---|
-| `any` | — | 所有条件（**默认值**） |
-| `index` | `index` | 条件下的下标 |
-| `condition_type` | `conditionType` | 按条件类型 id，如 `minecraft:random_chance` |
-| `not` | `selector` | 取反 |
-| `any_of` | `selectors` | 任一满足 |
-| `all_of` | `selectors` | 全部满足 |
-| `match` | `condition`、`strict` | 按模板 json 的 key 匹配（语义同函数侧的 `match`） |
-| `custom` | `custom_id` | 交给 `CustomConditionSelectorEvent` 的监听者 |
+**条目**：
+
+- [13.1 `any`](#131-any--所有条件默认值) — 所有条件（**默认值**）
+- [13.2 `index`](#132-index--条件下的下标) — 条件下的下标
+- [13.3 `condition_type`](#133-condition_type--按条件类型-id如-minecraftrandom_chance) — 按条件类型 id，如 `minecraft:random_chance`
+- [13.4 `not`](#134-not--取反) — 取反
+- [13.5 `any_of`](#135-any_of--任一满足) — 任一满足
+- [13.6 `all_of`](#136-all_of--全部满足) — 全部满足
+- [13.7 `match`](#137-match--按模板-json-的-key-匹配语义同函数侧的-match) — 按模板 json 的 key 匹配（语义同函数侧的 `match`）
+- [13.8 `custom`](#138-custom--交给-customconditionselectorevent-的监听者) — 交给 `CustomConditionSelectorEvent` 的监听者
+
+#### 13.1 `any` — 所有条件（**默认值**）
+- 无参数。
 
 ```json
-{ "type": "arcanumlib:any" }
+{
+  "type": "arcanumlib:any"
+}
 ```
+
+#### 13.2 `index` — 条件下的下标
+- `*index`：<int> 条件在列表里的下标，从 0 开始。
+
 ```json
-{ "type": "arcanumlib:index", "index": 0 }
+{
+  "type": "arcanumlib:index",
+  "index": 0
+}
 ```
+
+#### 13.3 `condition_type` — 按条件类型 id，如 `minecraft:random_chance`
+- `*conditionType`：<ResourceLocation> 原版条件类型 id，如 `minecraft:random_chance`。
+
 ```json
-{ "type": "arcanumlib:condition_type", "conditionType": "minecraft:random_chance" }
+{
+  "type": "arcanumlib:condition_type",
+  "conditionType": "minecraft:random_chance"
+}
 ```
+
+#### 13.4 `not` — 取反
+- `*selector`：<ConditionSelector> 被取反的子选择器，见 [13. 条件选择器](#13-条件选择器8)。
+
 ```json
-{ "type": "arcanumlib:not", "selector": { "type": "arcanumlib:index", "index": 99 } }
+{
+  "type": "arcanumlib:not",
+  "selector": {
+    "type": "arcanumlib:index",
+    "index": 99
+  }
+}
 ```
+
+#### 13.5 `any_of` — 任一满足
+- `*selectors`：<json数组> 子选择器列表（每项为 <ConditionSelector>），任一满足即匹配。
+
 ```json
 {
   "type": "arcanumlib:any_of",
   "selectors": [
-    { "type": "arcanumlib:index", "index": 0 },
-    { "type": "arcanumlib:condition_type", "conditionType": "minecraft:random_chance" }
+    {
+      "type": "arcanumlib:index",
+      "index": 0
+    },
+    {
+      "type": "arcanumlib:condition_type",
+      "conditionType": "minecraft:random_chance"
+    }
   ]
 }
 ```
+
+#### 13.6 `all_of` — 全部满足
+- `*selectors`：<json数组> 子选择器列表（每项为 <ConditionSelector>），全部满足才匹配。
+
 ```json
 {
   "type": "arcanumlib:all_of",
   "selectors": [
-    { "type": "arcanumlib:any" },
-    { "type": "arcanumlib:not", "selector": { "type": "arcanumlib:index", "index": 99 } }
+    {
+      "type": "arcanumlib:any"
+    },
+    {
+      "type": "arcanumlib:not",
+      "selector": {
+        "type": "arcanumlib:index",
+        "index": 99
+      }
+    }
   ]
 }
 ```
+
+#### 13.7 `match` — 按模板 json 的 key 匹配（语义同函数侧的 `match`）
+- `*condition`：<json对象> 模板 json **原样保留**，只比对写出来的 key。
+- `strict`：<boolean> 默认 `false`；开启后要求与模板**完全一致**。
+
 ```json
 {
   "type": "arcanumlib:match",
-  "condition": { "condition": "minecraft:random_chance", "chance": 1.0 }
+  "condition": {
+    "condition": "minecraft:random_chance",
+    "chance": 1.0
+  }
 }
 ```
+
+#### 13.8 `custom` — 交给 `CustomConditionSelectorEvent` 的监听者
+- `*custom_id`：<String> 交给条件级自定义事件监听者的 id。
+
 ```json
-{ "type": "arcanumlib:custom", "custom_id": "my_condition_hook" }
+{
+  "type": "arcanumlib:custom",
+  "custom_id": "my_condition_hook"
+}
 ```
 
 ---
-
 ## 14. 条件级操作（2）
 
 写在 `modify_condition.ops` 里。注册表：`arcanumlib:condition_operator`。
 
-| id | 字段 | 说明 |
-|---|---|---|
-| `remove_condition` | — | 删掉当前条件 |
-| `replace_condition` | `condition` | 把当前条件换成新条件（每处一份独立实例） |
+**条目**：
 
+- [14.1 `remove_condition`](#141-remove_condition--删掉当前条件) — 删掉当前条件
+- [14.2 `replace_condition`](#142-replace_condition--把当前条件换成新条件每处一份独立实例) — 把当前条件换成新条件（每处一份独立实例）
+
+#### 14.1 `remove_condition` — 删掉当前条件
+- 无参数。
+
+| `replace_condition` | `condition` | 把当前条件换成新条件（每处一份独立实例） |
 ```json
-{ "type": "arcanumlib:remove_condition" }
+{
+  "type": "arcanumlib:remove_condition"
+}
 ```
+
+#### 14.2 `replace_condition` — 把当前条件换成新条件（每处一份独立实例）
+- `*condition`：<json对象> 原版谓词，用来替换当前条件（每处一份独立实例）。
+
 ```json
 {
   "type": "arcanumlib:replace_condition",
-  "condition": { "condition": "minecraft:random_chance", "chance": 0.25 }
+  "condition": {
+    "condition": "minecraft:random_chance",
+    "chance": 0.25
+  }
 }
 ```
 
@@ -840,7 +1634,7 @@ Loot injection: 26 injectors, 1183 loot tables, 4521 applications in 36.5538 ms
 | `EntryCustomOpEvent` | 执行 `entry_custom` 时 | `{"type":"arcanumlib:entry_custom","custom_id":"..."}` |
 | `LootInjectorApplyEvent` | 每个注入器被**应用之前** | —（可整条替换，也可取消） |
 
-> **8 个 `custom` 事件都带 `getRegistries()`**（`LootInjectorApplyEvent` 不带：它替换整条注入器，用不到）。
+> **9 个事件都带 `getRegistries()`**（含 `LootInjectorApplyEvent`）。
 > 需要读注册表 / 做 codec 往返时用它，与自定义选择器 `test(...)`、自定义 op `apply(...)` 收到的 `registries` 是同一个：
 >
 > ```java
@@ -859,7 +1653,7 @@ public final class MyLootHooks {
         }
 
         // 例：只命中"没挂任何条件的单例条目"
-        // 需要注册表时用 event.getRegistries()（8 个 custom 事件都有，见上表下方说明）
+        // 需要注册表时用 event.getRegistries()（所有事件都有，见上表下方说明）
         event.setResult(event.getEntry() instanceof LootPoolSingletonContainer
                 && event.getEntry().conditions.isEmpty());
     }
@@ -966,7 +1760,10 @@ public record IsShiny(String marker) implements EntrySelector {
 ```
 
 ```json
-{ "type": "mymod:is_shiny", "marker": "x" }
+{
+  "type": "mymod:is_shiny",
+  "marker": "x"
+}
 ```
 
 **实现自定义 op 时的三条硬性要求**：
@@ -985,14 +1782,17 @@ public record IsShiny(String marker) implements EntrySelector {
 
 ---
 
-## 17. 常见任务菜谱
+## 17. 常见任务配方
 
 ### 17.1 给某张表追加一个"额外掉落池"
 
 ```json
 {
   "priority": 1000,
-  "tableSelector": { "type": "arcanumlib:id", "id": "minecraft:chests/simple_dungeon" },
+  "tableSelector": {
+    "type": "arcanumlib:id",
+    "id": "minecraft:chests/simple_dungeon"
+  },
   "ops": [
     {
       "type": "arcanumlib:add_pool",
@@ -1004,7 +1804,12 @@ public record IsShiny(String marker) implements EntrySelector {
             "type": "minecraft:item",
             "name": "minecraft:diamond",
             "weight": 1,
-            "conditions": [{ "condition": "minecraft:random_chance", "chance": 0.05 }]
+            "conditions": [
+              {
+                "condition": "minecraft:random_chance",
+                "chance": 0.05
+              }
+            ]
           }
         ]
       }
@@ -1017,17 +1822,31 @@ public record IsShiny(String marker) implements EntrySelector {
 
 ```json
 {
-  "tableSelector": { "type": "arcanumlib:id", "id": "minecraft:chests/simple_dungeon" },
+  "tableSelector": {
+    "type": "arcanumlib:id",
+    "id": "minecraft:chests/simple_dungeon"
+  },
   "ops": [
     {
       "type": "arcanumlib:modify_pool",
-      "poolSelector": { "type": "arcanumlib:any" },
+      "poolSelector": {
+        "type": "arcanumlib:any"
+      },
       "ops": [
         {
           "type": "arcanumlib:modify_entry",
-          "entrySelector": { "type": "arcanumlib:item", "item": "minecraft:string" },
+          "entrySelector": {
+            "type": "arcanumlib:item",
+            "item": "minecraft:string"
+          },
           "ops": [
-            { "type": "arcanumlib:replace_entry", "entry": { "type": "minecraft:item", "name": "minecraft:leather" } }
+            {
+              "type": "arcanumlib:replace_entry",
+              "entry": {
+                "type": "minecraft:item",
+                "name": "minecraft:leather"
+              }
+            }
           ]
         }
       ]
@@ -1043,12 +1862,22 @@ public record IsShiny(String marker) implements EntrySelector {
   "ops": [
     {
       "type": "arcanumlib:modify_pool",
-      "poolSelector": { "type": "arcanumlib:any" },
+      "poolSelector": {
+        "type": "arcanumlib:any"
+      },
       "ops": [
         {
           "type": "arcanumlib:modify_entry",
-          "entrySelector": { "type": "arcanumlib:weight_share", "min": 0.0, "max": 0.01 },
-          "ops": [{ "type": "arcanumlib:remove_entry" }]
+          "entrySelector": {
+            "type": "arcanumlib:weight_share",
+            "min": 0.0,
+            "max": 0.01
+          },
+          "ops": [
+            {
+              "type": "arcanumlib:remove_entry"
+            }
+          ]
         }
       ]
     }
@@ -1063,13 +1892,22 @@ public record IsShiny(String marker) implements EntrySelector {
   "ops": [
     {
       "type": "arcanumlib:modify_pool",
-      "poolSelector": { "type": "arcanumlib:any" },
+      "poolSelector": {
+        "type": "arcanumlib:any"
+      },
       "ops": [
         {
           "type": "arcanumlib:modify_entry",
-          "entrySelector": { "type": "arcanumlib:any" },
+          "entrySelector": {
+            "type": "arcanumlib:any"
+          },
           "ops": [
-            { "type": "arcanumlib:remove_function", "functionTypes": ["minecraft:enchanted_count_increase"] }
+            {
+              "type": "arcanumlib:remove_function",
+              "functionTypes": [
+                "minecraft:enchanted_count_increase"
+              ]
+            }
           ]
         }
       ]
@@ -1087,22 +1925,33 @@ public record IsShiny(String marker) implements EntrySelector {
   "ops": [
     {
       "type": "arcanumlib:modify_pool",
-      "poolSelector": { "type": "arcanumlib:any" },
+      "poolSelector": {
+        "type": "arcanumlib:any"
+      },
       "ops": [
         {
           "type": "arcanumlib:modify_entry",
-          "entrySelector": { "type": "arcanumlib:any" },
+          "entrySelector": {
+            "type": "arcanumlib:any"
+          },
           "ops": [
             {
               "type": "arcanumlib:modify_function",
               "functionSelector": {
                 "type": "arcanumlib:match",
-                "function": { "function": "minecraft:set_count", "count": 3.0 }
+                "function": {
+                  "function": "minecraft:set_count",
+                  "count": 3.0
+                }
               },
               "ops": [
                 {
                   "type": "arcanumlib:replace_function",
-                  "function": { "function": "minecraft:set_count", "count": 5.0, "add": true }
+                  "function": {
+                    "function": "minecraft:set_count",
+                    "count": 5.0,
+                    "add": true
+                  }
                 }
               ]
             }
@@ -1114,27 +1963,41 @@ public record IsShiny(String marker) implements EntrySelector {
 }
 ```
 
-### 17.6 摘掉"某个函数自带的恒假条件"（其它写法都做不到）
+### 17.6 移除"某个函数自带的恒假条件"（其它写法均无法实现）
 
 ```json
 {
   "ops": [
     {
       "type": "arcanumlib:modify_pool",
-      "poolSelector": { "type": "arcanumlib:any" },
+      "poolSelector": {
+        "type": "arcanumlib:any"
+      },
       "ops": [
         {
           "type": "arcanumlib:modify_entry",
-          "entrySelector": { "type": "arcanumlib:any" },
+          "entrySelector": {
+            "type": "arcanumlib:any"
+          },
           "ops": [
             {
               "type": "arcanumlib:modify_function",
-              "functionSelector": { "type": "arcanumlib:has_condition", "conditionType": "minecraft:random_chance" },
+              "functionSelector": {
+                "type": "arcanumlib:has_condition",
+                "conditionType": "minecraft:random_chance"
+              },
               "ops": [
                 {
                   "type": "arcanumlib:modify_condition",
-                  "conditionSelector": { "type": "arcanumlib:condition_type", "conditionType": "minecraft:random_chance" },
-                  "ops": [{ "type": "arcanumlib:remove_condition" }]
+                  "conditionSelector": {
+                    "type": "arcanumlib:condition_type",
+                    "conditionType": "minecraft:random_chance"
+                  },
+                  "ops": [
+                    {
+                      "type": "arcanumlib:remove_condition"
+                    }
+                  ]
                 }
               ]
             }
@@ -1146,19 +2009,28 @@ public record IsShiny(String marker) implements EntrySelector {
 }
 ```
 
-### 17.7 让"某个池"必然掉落（摘掉池自身的概率门）
+### 17.7 让"某个池"必然掉落（移除池自身的概率门）
 
 ```json
 {
   "ops": [
     {
       "type": "arcanumlib:modify_pool",
-      "poolSelector": { "type": "arcanumlib:name", "name": "my_pool" },
+      "poolSelector": {
+        "type": "arcanumlib:name",
+        "name": "my_pool"
+      },
       "ops": [
         {
           "type": "arcanumlib:modify_condition",
-          "conditionSelector": { "type": "arcanumlib:any" },
-          "ops": [{ "type": "arcanumlib:remove_condition" }]
+          "conditionSelector": {
+            "type": "arcanumlib:any"
+          },
+          "ops": [
+            {
+              "type": "arcanumlib:remove_condition"
+            }
+          ]
         }
       ]
     }
@@ -1229,7 +2101,7 @@ public final class MyDatagen {
 }
 ```
 
-> **附魔引用的坑**：`enchanted_count_increase` 这类函数带 `Holder<Enchantment>`，datagen 阶段附魔注册表里查不到，
+> **附魔引用注意事项**：`enchanted_count_increase` 这类函数带 `Holder<Enchantment>`，datagen 阶段附魔注册表里查不到，
 > 带它的注入器只能**手写 json**（或者用 `event.getLookupProvider()` 里已有的引用）。
 
 ---
@@ -1250,7 +2122,7 @@ public final class MyDatagen {
 
 | 族 | id | 可选字段 |
 |---|---|---|
-| 表（12） | `all` / `id` / `namespace` / `path_prefix` / `entity_tag` / `block_tag` / `entity_type` / `block_type` / `not` / `any_of` / `all_of` / `custom` | `id`、`namespace`、`prefix`、`tag`、`entity`、`block`、`condition`、`conditions`、`custom_id` |
+| 表（13） | `all` / `id` / `namespace` / `path_prefix` / `entity_tag` / `block_tag` / `entity_type` / `block_type` / `not` / `any_of` / `all_of` / `has_pool` / `custom` | `id`、`namespace`、`prefix`、`tag`、`entity`、`block`、`condition`、`conditions`、`custom_id` |
 | 池（9） | `any` / `index` / `name` / `has_entry` / `total_weight` / `not` / `any_of` / `all_of` / `custom` | `index`、`name`、`entrySelector`、`min`、`max`、`condition`、`conditions`、`custom_id` |
 | 条目（15） | `any` / `index` / `item` / `tag` / `item_with_tag` / `entry_type` / `weight_in_range` / `weight_share` / `has_condition` / `has_function` / `has_child` / `not` / `any_of` / `all_of` / `custom` | `index`、`item`、`tag`、`entryType`、`min`、`max`、`conditionType`、`functionType`、`entrySelector`、`condition`、`conditions`、`custom_id` |
 | 函数（9） | `any` / `index` / `function_type` / `has_condition` / `not` / `any_of` / `all_of` / `match` / `custom` | `index`、`functionType`、`conditionType`、`selector`、`selectors`、`function`、`strict`、`custom_id` |
@@ -1286,28 +2158,27 @@ public final class MyDatagen {
 
 ---
 
-## 20. 语义边界与坑
+## 20. 语义边界与注意事项
 
-1. **json 严格解析**：`//` 注释和尾随逗号都会解析失败（见文首）。
-2. **权重是静态口径**：`total_weight` / `weight_in_range` / `weight_share` 不含 `quality × 幸运`、
+1. **权重是静态口径**：`total_weight` / `weight_in_range` / `weight_share` 不含 `quality × 幸运`、
    不按条目条件过滤、`alternatives` 把所有分支都累加。**不要用它们精确复现某次掷骰的概率**，
    它们适合做"挑小池 / 挑稀有条目"这类粗筛。
-3. **无名池匹配不到 `name`**：原版大多数池没有名字。
-4. **`tag` 与 `item_with_tag` 不是一回事**：前者匹配 `minecraft:tag` **条目**，后者匹配
+2. **无名池匹配不到 `name`**：原版大多数池没有名字。
+3. **`tag` 与 `item_with_tag` 不是一回事**：前者匹配 `minecraft:tag` **条目**，后者匹配
    `minecraft:item` 条目并检查它的物品是否属于标签。原版表里几乎全是后者。
-5. **复合条目没有 `weight` / `quality` / `functions`**：`set_weight`、`set_quality`、
+4. **复合条目没有 `weight` / `quality` / `functions`**：`set_weight`、`set_quality`、
    `set_*function`、`remove_function` 遇到 `alternatives`/`sequence`/`group` 会跳过；
    `conditions` 则所有条目都有。
-6. **`alternatives` 掷骰只走第一个条件通过的分支**：所以你往它的子项上加条件、或者用
+5. **`alternatives` 掷骰只走第一个条件通过的分支**：所以你往它的子项上加条件、或者用
    `has_child` 判断时，要意识到运行时只有一个分支真正生效。
-7. **同一 priority 的顺序不确定**：同一张表上的多个注入器请给不同 priority。
-8. **`match` 模板不校验**：key 写错会静默失效。
-9. **`replace_*` 是深拷贝**：每处替换都会重新解码一份独立实例，所以后续改动不会串味；
+6. **同一 priority 的顺序不确定**：同一张表上的多个注入器请给不同 priority。
+7. **`match` 模板不校验**：key 写错会静默失效。
+8. **`replace_*` 是深拷贝**：每处替换都会重新解码一份独立实例，所以后续改动不会串味；
    代价是需要在 `RegistryOps` 下做一次 codec 往返（只发生在应用阶段，不是掷骰时）。
-10. **`set_weight` / `set_quality` 的负数表示"不改"**：这是沿用旧版语义，方便直接搬旧 json；
+9. **`set_weight` / `set_quality` 的负数表示"不改"**：这是沿用旧版语义，方便直接搬旧 json；
     想真的设成 0 就写 0。
-11. **`LootTable` 没有 `conditions`**：所以表级没有 `set_condition` / `add_condition` / `remove_condition`。
-12. **原版没有任何地方调用 `LootTable.freeze()`**：但我们是直接改 AT 开的字段、会绕过它的
+10. **`LootTable` 没有 `conditions`**：所以表级没有 `set_condition` / `add_condition` / `remove_condition`。
+11. **原版没有任何地方调用 `LootTable.freeze()`**：但我们是直接改 AT 开的字段、会绕过它的
     `checkFrozen()` 守卫。将来若有谁冻结了共享表，注入会破坏它的不可变假设。
 
 ---
@@ -1328,7 +2199,10 @@ public final class MyDatagen {
 ```json
 {
   "type": "arcanumlib:modify_entry",
-  "entrySelector": { "type": "arcanumlib:item", "item": "minecraft:gunpowder" },
+  "entrySelector": {
+    "type": "arcanumlib:item",
+    "item": "minecraft:gunpowder"
+  },
   "ops": [
     {
       "type": "arcanumlib:add_condition",
@@ -1336,7 +2210,12 @@ public final class MyDatagen {
         {
           "condition": "arcanumlib:chance_modifiers",
           "base_chance": 0.5,
-          "chance_modifiers": [{ "type": "arcanumlib:difficulty_factor", "hard": 1.5 }]
+          "chance_modifiers": [
+            {
+              "type": "arcanumlib:difficulty_factor",
+              "hard": 1.5
+            }
+          ]
         }
       ]
     }

@@ -44,7 +44,7 @@ cd wiki && git add -A && git commit -m "docs: sync" && git push
 - 拒绝写入**不像 wiki 检出**的目录（remote 里没有 `.wiki` 且目录非空就报错），防止误覆盖；
 - 列出"不是 `.md`、在 wiki 上必然 404"的链接目标（目前是空的，因为英文文档之间只互相链接）。
 
-> **两个实测踩过的坑，改这个脚本时别踩回去**：
+> **两个实测遇到的问题，改这个脚本时注意**：
 > 1. 脚本必须保持**纯 ASCII**：Windows PowerShell 5.1 会把**无 BOM 的 UTF-8 文件按 ANSI/GBK 读**，
 >    中文注释会让它直接语法报错（已实测）。中文说明放这份 README 里就好。
 > 2. 默认源目录是 `en_us/`，不是脚本所在的 `docs/`——否则会把这份 README 当成待发布的页面拷过去。
@@ -56,5 +56,5 @@ cd wiki && git add -A && git commit -m "docs: sync" && git push
 | 读者 | 建议入口 |
 |---|---|
 | 模组作者（用它当依赖库 / 扩展它） | `Loot-Injector.md` 的「给模组的扩展点」与「用数据生成写注入器」 |
-| 整合包作者（只想改掉落） | `Loot-Injector.md` 的「常见任务菜谱」与「速查表」 |
+| 整合包作者（只想改掉落） | `Loot-Injector.md` 的「常见任务配方」与「速查表」 |
 | 想给自己的模组挂概率 / 属性 | `Loot-Conditions.md`、`Attributes.md` |

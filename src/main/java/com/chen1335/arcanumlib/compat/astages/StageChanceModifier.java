@@ -12,10 +12,9 @@ import java.util.List;
 import java.util.Optional;
 
 /**
- * 阶段加工器：命中阶段就依次过 {@code success} 链，否则依次过 {@code fail} 链；两条链各自是一串普通加工器。
- *
- * <p>依赖 AStages（软依赖）：没装时等同"未命中"，只会走 {@code fail}。
- */
+* 阶段加工器：命中阶段过 {@code success} 链，否则过 {@code fail} 链（两条链都是普通加工器列表）。
+* 软依赖 AStages：没装时等同"未命中"，只走 fail。
+*/
 public record StageChanceModifier(StagePattern stage, Optional<String> desc, boolean checkServerStages,
                                   List<ChanceModifier> success, List<ChanceModifier> fail) implements ChanceModifier {
 

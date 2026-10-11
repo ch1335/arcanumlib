@@ -26,12 +26,10 @@ import java.util.function.Function;
 
 /**
  * 概率加工器：把当前概率变成新概率，按列表顺序依次应用。概率从 1.0 起算，「乘 0.1」即 10%。
- * 种类走 {@link ChanceModifierTypes} 注册表；类型必须用 MapCodec，Codec.dispatch 传方法引用会歧义。
+ * 类型走 {@link ChanceModifierTypes} 注册表（必须用 MapCodec，Codec.dispatch 传方法引用会歧义）。
  *
- * <p>接口对其它模组开放：实现它，再用
- * {@code DeferredRegister.create(ChanceModifierTypes.REGISTRY_KEY, 你的 modid)} 注册即可。两条约定：
- * {@link #apply} 必须是【无状态纯函数】（同一个条件实例会被多次掷骰复用，别在里面存可变状态），
- * {@link #getType} 必须返回注册时给的那个 holder。
+ * <p>对其它模组开放：实现它 + {@code DeferredRegister.create(ChanceModifierTypes.REGISTRY_KEY, 你的 modid)} 注册。
+ * 两条约定：{@link #apply} 必须无状态（同一实例会被多次掷骰复用）；{@link #getType} 返回注册时的 holder。
  */
 public interface ChanceModifier {
 
@@ -43,7 +41,7 @@ public interface ChanceModifier {
 
     double apply(double chance, LootContext context);
 
-    /** 概率加 / 乘一个值（加可为负，用来折减）。operation 缺省 multiply，与其它带 operation 的加工器一致。 */
+    /** 概率加 / 乘一个值（加可为负，用来折减）；operation 必填。 */
     record Apply(Operation operation, double value) implements ChanceModifier {
         public static Apply add(double value) {
             return new Apply(Operation.ADD, value);
@@ -54,7 +52,7 @@ public interface ChanceModifier {
         }
 
         public static final MapCodec<Apply> CODEC = RecordCodecBuilder.mapCodec(instance -> instance.group(
-                Operation.CODEC.optionalFieldOf("operation", Operation.MULTIPLY).forGetter(Apply::operation),
+                Operation.CODEC.fieldOf("operation").forGetter(Apply::operation),
                 Codec.DOUBLE.fieldOf("value").forGetter(Apply::value)).apply(instance, Apply::new));
 
         @Override
@@ -135,7 +133,7 @@ public interface ChanceModifier {
                             Optional<Double> normal,
                             Optional<Double> hard) implements ChanceModifier {
         public static final MapCodec<DifficultyFactor> CODEC = RecordCodecBuilder.mapCodec(instance -> instance.group(
-                Operation.CODEC.optionalFieldOf("operation", Operation.MULTIPLY).forGetter(DifficultyFactor::operation),
+                Operation.CODEC.fieldOf("operation").forGetter(DifficultyFactor::operation),
                 Codec.DOUBLE.optionalFieldOf("peaceful").forGetter(DifficultyFactor::peaceful),
                 Codec.DOUBLE.optionalFieldOf("easy").forGetter(DifficultyFactor::easy),
                 Codec.DOUBLE.optionalFieldOf("normal").forGetter(DifficultyFactor::normal),
@@ -189,7 +187,7 @@ public interface ChanceModifier {
 
         public static final MapCodec<ToolEnchantmentLevel> CODEC = RecordCodecBuilder.mapCodec(instance -> instance.group(
                 ResourceKey.codec(Registries.ENCHANTMENT).fieldOf("enchantment").forGetter(ToolEnchantmentLevel::enchantment),
-                Operation.CODEC.optionalFieldOf("operation", Operation.MULTIPLY).forGetter(ToolEnchantmentLevel::operation),
+                Operation.CODEC.fieldOf("operation").forGetter(ToolEnchantmentLevel::operation),
                 Codec.DOUBLE.optionalFieldOf("per_level", 0.05D).forGetter(ToolEnchantmentLevel::perLevel)
         ).apply(instance, ToolEnchantmentLevel::new));
 
@@ -237,7 +235,7 @@ public interface ChanceModifier {
         public static final MapCodec<EntityAttribute> CODEC = RecordCodecBuilder.mapCodec(instance -> instance.group(
                 BuiltInRegistries.ATTRIBUTE.holderByNameCodec().fieldOf("attribute").forGetter(EntityAttribute::attribute),
                 EntitySource.CODEC.optionalFieldOf("entity", EntitySource.ATTACKING_ENTITY).forGetter(EntityAttribute::source),
-                Operation.CODEC.optionalFieldOf("operation", Operation.MULTIPLY).forGetter(EntityAttribute::operation),
+                Operation.CODEC.fieldOf("operation").forGetter(EntityAttribute::operation),
                 Codec.DOUBLE.optionalFieldOf("per_point", 0.05D).forGetter(EntityAttribute::perPoint)
         ).apply(instance, EntityAttribute::new));
 
@@ -333,7 +331,7 @@ public interface ChanceModifier {
         /** 概率 + 档位值。 */
         ADD("add"),
         /** 概率 × 档位值。 */
-        MULTIPLY("multiply");
+        MULTIPLY("mul");
 
         public static final Codec<Operation> CODEC = StringRepresentable.fromEnum(Operation::values);
 

@@ -62,14 +62,10 @@ import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 
 /**
- * loot 模块的综合数据生成测试，跑 {@code gradlew runData} 输出到
- * {@code src/generated/resources/data/arcanumlib/loot_injecter/}。
- *
- * <p>格式是三层嵌套作用域：顶层 ops 作用于表，{@code modify_pool} 的子 ops 作用于每个命中的池，
- * {@code modify_entry} 的子 ops 作用于每个命中的条目。条件只写在作用域上。
- *
- * <p>25 个 op 每种至少有一条 json；空 ops 的作用域就是纯选择器探针（只求值、不改表）。
- */
+* loot 模块综合数据生成测试：{@code gradlew runData} 输出到 src/generated/resources/data/arcanumlib/loot_injecter/。
+* 三层嵌套作用域：顶层 ops 作用于表、{@code modify_pool} 的子 ops 作用于命中的池、{@code modify_entry} 的子 ops 作用于条目；
+* 条件只写在作用域上。25 个 op 每种至少一条 json，空 ops 的作用域就是纯选择器探针（只求值、不改表）。
+*/
 public class TestLootInjectorProvider extends LootInjectorTemplate {
 
     private static final String TEST_POOL_NAME = "arcanumlib_test_pool";
@@ -114,6 +110,7 @@ public class TestLootInjectorProvider extends LootInjectorTemplate {
         list.add(hasStageInjector());
         list.add(stageModifierInjector());
         list.add(predicateModifierInjector());
+        list.add(hasPoolSelectorProbe());
         list.addAll(customInjectors());
         return List.copyOf(list);
     }
@@ -278,11 +275,8 @@ public class TestLootInjectorProvider extends LootInjectorTemplate {
                         new EntryOperator.RemoveCondition(List.of(mc("random_chance"))),
                         new EntryOperator.RemoveFunction(List.of(mc("set_count")))))));
 
-        // 函数与条件作用域：四种组合各得到不同结果，任何一步失效都能看出来
-        //   arcanumlib_test_fn 初始 2 个红石（set_count(2)；另一个 +3 被恒假条件挡住）
-        //   → 删掉下标 0 的 set_count → 只剩被挡住的 +3 → 1 个
-        //   → 再钻进那个函数自身的条件、摘掉恒假门 → 1 + 3 = 4 个
-        //   两个都生效 4 / 只删函数 1 / 只摘条件 5 / 都没生效 2
+        // 函数与条件作用域：初始 2 个红石（set_count(2)，另一个 +3 被恒假条件挡住），删掉 set_count(2) 只剩 +3，再摘掉那层条件 +3 才生效。
+        // 四种组合互不重叠：两个都生效 4 / 只删函数 1 / 只摘条件 5 / 都没生效 2。
         list.add(raw("test_function_scope", dungeon, 1120,
                 modifyPool(new PoolSelector.ByName("arcanumlib_test_fn"), modifyEntry(new EntrySelector.Any(),
                         new EntryOperator.ModifyFunction(new FunctionSelector.ByIndex(0),
@@ -300,11 +294,8 @@ public class TestLootInjectorProvider extends LootInjectorTemplate {
                 modifyPool(new PoolSelector.ByName("arcanumlib_test_poolcond"),
                         new PoolOperator.ModifyCondition(new ConditionSelector.Any(),
                                 List.of(new ConditionOperator.RemoveCondition())))));
-        // match 选择器（对齐 DataComponentIngredient 的模板匹配）：模板只写关心的 key
-        //   arcanumlib_test_match 初始 5 个荧石粉（set_count(2) + set_count(+3)）
-        //   → 非严格模板 count=3.0 只命中那个 +3，删掉 → 2 个
-        //   → 严格模板 {count:2.0, add:false} 命中剩下的 set_count(2)，换成 set_count(7) → 7 个
-        //   两个都生效 7 / 只删 +3 是 2 / 只换是 10 / 都没生效 5，四种结果互不重叠
+        // match 选择器（对齐 DataComponentIngredient 的模板匹配，模板只写关心的 key）：初始 5 个荧石粉，非严格模板命中 +3、严格模板命中 set_count(2)。
+        // 四种结果互不重叠：两个都生效 7 / 只删 +3 是 2 / 只换是 10 / 都没生效 5。
         list.add(raw("test_match_selector", dungeon, 1130,
                 modifyPool(new PoolSelector.ByName("arcanumlib_test_match"), modifyEntry(new EntrySelector.Any(),
                         new EntryOperator.ModifyFunction(new FunctionSelector.Match(
@@ -375,10 +366,8 @@ public class TestLootInjectorProvider extends LootInjectorTemplate {
     }
 
     /**
-     * 池/条目选择器探针。
-     *
-     * <p>空 ops 的作用域只求值不改动，所以能把各选择器跑一遍；最后一条才是真改动（地牢箱子里火药 +1）。
-     */
+    * 池/条目选择器探针：空 ops 的作用域只求值不改动，能把各选择器跑一遍；最后一条才是真改动（地牢箱子里火药 +1）。
+    */
     private LootInjector selectorProbe() {
         List<TableOperator> ops = new ArrayList<>();
 
@@ -519,6 +508,17 @@ public class TestLootInjectorProvider extends LootInjectorTemplate {
                                                 List.of(LootItemKilledByPlayerCondition.killedByPlayer().build()),
                                                 List.of(ChanceModifier.Clamp.of(0.0D, 0.9D)),
                                                 List.of()))))
+                        .build()));
+    }
+    /** 表选择器探针：has_pool —— 表里任意池满足给定的池选择器即匹配（这里限定僵尸表 + 第 0 个池）。 */
+    private LootInjector hasPoolSelectorProbe() {
+        return raw("test_has_pool",
+                new TableSelector.AllOf(List.of(new TableSelector.ById(ZOMBIE_TABLE),
+                        new TableSelector.HasPool(new PoolSelector.ByIndex(0)))),
+                1000,
+                new TableOperator.AddPool(LootPool.lootPool()
+                        .setRolls(ConstantValue.exactly(1.0F))
+                        .add(LootItem.lootTableItem(Items.DIAMOND))
                         .build()));
     }
     private LootInjector raw(String path, TableSelector tableSelector, int priority, TableOperator... ops) {

@@ -1,6 +1,7 @@
 package com.chen1335.arcanumlib.modules.loot.lootInjector.event;
 
 import com.chen1335.arcanumlib.modules.loot.lootInjector.LootInjector;
+import net.minecraft.core.HolderLookup;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.level.storage.loot.LootTable;
 import net.neoforged.bus.api.Event;
@@ -15,13 +16,16 @@ import java.util.Optional;
  */
 public class LootInjectorApplyEvent extends Event implements ICancellableEvent {
     private final ResourceLocation tableId;
+    private final HolderLookup.Provider registries;
     private final LootTable table;
     private LootInjector injector;
 
-    public LootInjectorApplyEvent(LootInjector injector, ResourceLocation tableId, LootTable table) {
+    public LootInjectorApplyEvent(LootInjector injector, ResourceLocation tableId, LootTable table,
+                                     HolderLookup.Provider registries) {
         this.injector = injector;
         this.tableId = tableId;
         this.table = table;
+        this.registries = registries;
     }
 
     public ResourceLocation getTableId() {
@@ -34,6 +38,11 @@ public class LootInjectorApplyEvent extends Event implements ICancellableEvent {
     }
 
     /** 即将应用的注入器，id 来自 json 文件路径。 */
+    /** 解析注册表（附魔、属性等）用；与选择器 / 操作符收到的是同一个。 */
+    public HolderLookup.Provider getRegistries() {
+        return this.registries;
+    }
+
     public LootInjector getInjector() {
         return this.injector;
     }
@@ -44,8 +53,9 @@ public class LootInjectorApplyEvent extends Event implements ICancellableEvent {
     }
 
     /** @return 实际要应用的注入器；空表示被取消或没有可用的注入器。 */
-    public static Optional<LootInjector> post(LootInjector injector, ResourceLocation tableId, LootTable table) {
-        LootInjectorApplyEvent event = new LootInjectorApplyEvent(injector, tableId, table);
+    public static Optional<LootInjector> post(LootInjector injector, ResourceLocation tableId, LootTable table,
+                                               HolderLookup.Provider registries) {
+        LootInjectorApplyEvent event = new LootInjectorApplyEvent(injector, tableId, table, registries);
 
         if (NeoForge.EVENT_BUS.post(event).isCanceled()) {
             return Optional.empty();

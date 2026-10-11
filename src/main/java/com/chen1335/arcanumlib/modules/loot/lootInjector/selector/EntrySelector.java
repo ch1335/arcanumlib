@@ -94,11 +94,9 @@ public interface EntrySelector {
     }
 
     /**
-     * 匹配"物品本身属于某个标签"的物品条目。
-     *
-     * <p>和 {@link IsTag} 的区别：那个匹配的是 {@code minecraft:tag} 条目、比的是标签本身；
-     * 这个匹配写死具体物品的 {@code minecraft:item} 条目，按标签判断它的物品是否被收录。
-     */
+    * 匹配"物品本身属于某个标签"的物品条目。和 {@link IsTag} 的区别：那个匹配 {@code minecraft:tag} 条目、比标签本身；
+    * 这个匹配写死具体物品的 {@code minecraft:item} 条目、按标签判断其物品是否被收录。
+    */
     record IsItemWithTag(TagKey<Item> tag) implements EntrySelector {
         @Override
         public EntrySelectorType getType() {
@@ -128,9 +126,8 @@ public interface EntrySelector {
     }
 
     /**
-     * 条目权重是否落在闭区间 [min, max] 内。两个字段都可省略（min 默认 0、max 默认 Integer.MAX_VALUE）。
-     *
-     * <p>权重口径与 {@link PoolWeights} 一致：单例条目取它的 weight（按 0 夹下限），复合条目按子树累加。
+ * 条目权重是否落在闭区间 [min, max] 内。两个字段都可省略（min 默认 0、max 默认 Integer.MAX_VALUE）。
+ * <p>权重口径与 {@link PoolWeights} 一致：单例条目取它的 weight（按 0 夹下限），复合条目按子树累加。
      */
     record WeightInRange(int min, int max) implements EntrySelector {
         @Override
@@ -150,11 +147,9 @@ public interface EntrySelector {
     }
 
     /**
-     * 该条目在【所属池总权重】里占的比例是否落在闭区间 [min, max] 内（比例口径 0~1）。
-     *
-     * <p>分子取条目的静态权重（复合条目按子树累加），分母取池的静态总权重，口径与
-     * {@link PoolSelector.TotalWeightInRange} 完全一致——都不含 quality × 幸运、也不按条件过滤分支。
-     */
+    * 该条目在【所属池总权重】里占的比例是否落在闭区间 [min, max] 内（0~1）。口径与
+    * {@link PoolSelector.TotalWeightInRange} 一致：都不含 quality × 幸运、也不按条件过滤分支。
+    */
     record WeightShareInRange(float min, float max) implements EntrySelector {
         @Override
         public EntrySelectorType getType() {
