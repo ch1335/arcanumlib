@@ -20,7 +20,7 @@ without touching vanilla data and without fighting other mods over block/entity 
 2. [Nested Scope Model](#2-nested-scope-model)
 3. [Execution Semantics (Must Read)](#3-execution-semantics-must-read)
 4. [Top-Level Fields](#4-top-level-fields)
-5. [Table Selectors (10)](#5-table-selectors-10)
+5. [Table Selectors (12)](#5-table-selectors-12)
 6. [Table-Level Operators (7)](#6-table-level-operators-7)
 7. [Pool Selectors (9)](#7-pool-selectors-9)
 8. [Pool-Level Operators (12)](#8-pool-level-operators-12)
@@ -159,7 +159,7 @@ Every op that modifies a list **automatically recomputes the corresponding compo
 
 ---
 
-## 5. Table Selectors (10)
+## 5. Table Selectors (12)
 
 Decides "whether this injector should act on a given table". Registry: `arcanumlib:table_selector`.
 
@@ -171,6 +171,8 @@ Decides "whether this injector should act on a given table". Registry: `arcanuml
 | `path_prefix` | `prefix` | Match on the path prefix |
 | `entity_tag` | `tag` | Entity tag; the table id equals the default loot table of any entity in that tag |
 | `block_tag` | `tag` | Block tag; the table id equals the table of any block in that tag |
+| `entity_type` | `entity` | Entity type; the table id equals its default loot table (no tag expansion) |
+| `block_type` | `block` | Block; the table id equals its loot table (no tag expansion; blocks without a loot table never match) |
 | `not` | `condition` | Negation |
 | `any_of` | `conditions` | Any of them matches |
 | `all_of` | `conditions` | All of them match |
@@ -193,6 +195,13 @@ Decides "whether this injector should act on a given table". Registry: `arcanuml
 ```
 ```json
 { "type": "arcanumlib:block_tag", "tag": "minecraft:logs" }
+```
+
+```json
+{ "type": "arcanumlib:entity_type", "entity": "minecraft:zombie" }
+```
+```json
+{ "type": "arcanumlib:block_type", "block": "minecraft:stone" }
 ```
 ```json
 { "type": "arcanumlib:not", "condition": { "type": "arcanumlib:id", "id": "minecraft:chests/end_city_treasure" } }
@@ -1237,11 +1246,11 @@ public final class MyDatagen {
 | Function (3) | `remove_function`, `replace_function`, `modify_condition` |
 | Condition (2) | `remove_condition`, `replace_condition` |
 
-### All Selectors (51)
+### All Selectors (53)
 
 | Family | id | Optional fields |
 |---|---|---|
-| Table (10) | `all` / `id` / `namespace` / `path_prefix` / `entity_tag` / `block_tag` / `not` / `any_of` / `all_of` / `custom` | `id`, `namespace`, `prefix`, `tag`, `condition`, `conditions`, `custom_id` |
+| Table (12) | `all` / `id` / `namespace` / `path_prefix` / `entity_tag` / `block_tag` / `entity_type` / `block_type` / `not` / `any_of` / `all_of` / `custom` | `id`, `namespace`, `prefix`, `tag`, `entity`, `block`, `condition`, `conditions`, `custom_id` |
 | Pool (9) | `any` / `index` / `name` / `has_entry` / `total_weight` / `not` / `any_of` / `all_of` / `custom` | `index`, `name`, `entrySelector`, `min`, `max`, `condition`, `conditions`, `custom_id` |
 | Entry (15) | `any` / `index` / `item` / `tag` / `item_with_tag` / `entry_type` / `weight_in_range` / `weight_share` / `has_condition` / `has_function` / `has_child` / `not` / `any_of` / `all_of` / `custom` | `index`, `item`, `tag`, `entryType`, `min`, `max`, `conditionType`, `functionType`, `entrySelector`, `condition`, `conditions`, `custom_id` |
 | Function (9) | `any` / `index` / `function_type` / `has_condition` / `not` / `any_of` / `all_of` / `match` / `custom` | `index`, `functionType`, `conditionType`, `selector`, `selectors`, `function`, `strict`, `custom_id` |
@@ -1351,4 +1360,4 @@ To test "does this entry carry this condition?", use the entry selector
 | Events | `modules/loot/lootInjector/event/` |
 | Datagen base class and template | `modules/loot/lootInjector/data/{LootInjectorProvider,LootInjectorTemplate}.java` |
 | Access transformer | `src/main/resources/META-INF/accesstransformer.cfg` |
-| Official test data (all 37 ops and 50 of the 51 selectors have a json example; the `tableSelector` default `all` never shows up in generated output because it is the default) | `src/generated/resources/data/arcanumlib/loot_injecter/` |
+| Official test data (all 37 ops and 52 of the 53 selectors have a json example; the `tableSelector` default `all` never shows up in generated output because it is the default) | `src/generated/resources/data/arcanumlib/loot_injecter/` |

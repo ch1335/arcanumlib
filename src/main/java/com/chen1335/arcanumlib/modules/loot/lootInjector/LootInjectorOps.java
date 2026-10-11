@@ -216,6 +216,11 @@ public final class LootInjectorOps {
             TABLE_SELECTOR_TYPES.register("entity_tag", () -> new TableSelectorType(TableSelector.EntityTagTable.CODEC));
     public static final DeferredHolder<TableSelectorType, TableSelectorType> TABLE_BLOCK_TAG =
             TABLE_SELECTOR_TYPES.register("block_tag", () -> new TableSelectorType(TableSelector.BlockTagTable.CODEC));
+    /** 按实体类型 / 方块类型直接匹配，不走标签（对照 entity_tag / block_tag）。 */
+    public static final DeferredHolder<TableSelectorType, TableSelectorType> TABLE_ENTITY_TYPE =
+            TABLE_SELECTOR_TYPES.register("entity_type", () -> new TableSelectorType(TableSelector.ByEntityType.CODEC));
+    public static final DeferredHolder<TableSelectorType, TableSelectorType> TABLE_BLOCK_TYPE =
+            TABLE_SELECTOR_TYPES.register("block_type", () -> new TableSelectorType(TableSelector.ByBlockType.CODEC));
     public static final DeferredHolder<TableSelectorType, TableSelectorType> TABLE_NOT =
             TABLE_SELECTOR_TYPES.register("not", () -> new TableSelectorType(TableSelector.Not.CODEC));
     public static final DeferredHolder<TableSelectorType, TableSelectorType> TABLE_ANY_OF =

@@ -28,6 +28,7 @@ import net.minecraft.tags.EntityTypeTags;
 import net.minecraft.tags.ItemTags;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.ai.attributes.Attributes;
+import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.item.Items;
 import net.minecraft.world.item.enchantment.Enchantments;
 import net.minecraft.world.level.ItemLike;
@@ -339,7 +340,7 @@ public class TestLootInjectorProvider extends LootInjectorTemplate {
                                         SetItemCountFunction.setCount(ConstantValue.exactly(5.0F), true).build())))));
     }
 
-    /** 表选择器剩余子类型：Namespace / PathPrefix / Not / AnyOf / AllOf。 */
+    /** 表选择器剩余子类型：Namespace / PathPrefix / Not / AnyOf / AllOf / ByEntityType / ByBlockType。 */
     private List<LootInjector> tableSelectorInjectors() {
         return List.of(
                 raw("test_chests_except_end_city", new TableSelector.AllOf(List.of(
@@ -347,6 +348,9 @@ public class TestLootInjectorProvider extends LootInjectorTemplate {
                         new TableSelector.PathPrefix("chests/"),
                         new TableSelector.Not(new TableSelector.ById(BuiltInLootTables.END_CITY_TREASURE.location())))),
                         1000, addPool(Items.EMERALD, 0.05D)),
+                // 按类型直接匹配：僵尸自己的默认表 / 石头自己的表（对照按标签的两种）
+                raw("test_entity_type", new TableSelector.ByEntityType(EntityType.ZOMBIE), 1000, addPool(Items.ROTTEN_FLESH, 0.1D)),
+                raw("test_block_type", new TableSelector.ByBlockType(Blocks.STONE), 1000, addPool(Items.COBBLESTONE, 0.1D)),
 
                 raw("test_two_village_chests", new TableSelector.AnyOf(List.of(
                         new TableSelector.ById(BuiltInLootTables.VILLAGE_TEMPLE.location()),

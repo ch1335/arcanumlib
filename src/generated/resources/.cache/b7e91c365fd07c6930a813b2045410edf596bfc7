@@ -1,6 +1,7 @@
-// 1.21.1	2026-10-11T03:56:12.556561	ArcanumLib Test Loot Injectors
+// 1.21.1	2026-10-11T16:53:45.6005969	ArcanumLib Test Loot Injectors
 c88df361a5cafaee0cdc0939e49bab103db8a9a2 data/arcanumlib/loot_injecter/test_all_tables.json
 93fa65ce25b487e1986d1f10e62dc884dd382ed3 data/arcanumlib/loot_injecter/test_apply_event.json
+19eebdeb7d6319cad53ce169881eea46f1ddbd9a data/arcanumlib/loot_injecter/test_block_type.json
 bbc2b599b422953c903a44d66fac874db191d1cb data/arcanumlib/loot_injecter/test_chests_except_end_city.json
 e4c025cac86f6c1da0a5acee22d247db729d904f data/arcanumlib/loot_injecter/test_custom.json
 bfc4341bdbe52bfe69ba16913cf4084731b305ec data/arcanumlib/loot_injecter/test_dungeon_add.json
@@ -11,6 +12,7 @@ e4f08015593427479f07d199ffcbf64c912ef0fa data/arcanumlib/loot_injecter/test_dung
 88cbdbee013d14e547c6d9bc469835bb4e251461 data/arcanumlib/loot_injecter/test_dungeon_share.json
 094d50ef1e6654f3e3325af199a2e0c45b3db005 data/arcanumlib/loot_injecter/test_dungeon_tune.json
 b6be8fc0d0778eb759528b1b6058ac180897d99a data/arcanumlib/loot_injecter/test_dungeon_weight.json
+31cba56ffc50b642b14a1489ec3c07033edcc785 data/arcanumlib/loot_injecter/test_entity_type.json
 03b89a72cc6d1ad15952a4ee9a8520d5d8f31170 data/arcanumlib/loot_injecter/test_function_scope.json
 890500a36698a14782e536378e0ccba5c25262dc data/arcanumlib/loot_injecter/test_logs_remove_pool.json
 109ebec070be6215fd12515670d97f6ff84eda70 data/arcanumlib/loot_injecter/test_match_selector.json

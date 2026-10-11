@@ -125,6 +125,41 @@ public interface TableSelector {
             return TagTableCache.blockTables(this.tag).contains(id);
         }
     }
+    /** 按实体类型精确匹配它自己的默认战斗利品表（对照按标签的 {@link EntityTagTable}），不做标签展开。 */
+    record ByEntityType(EntityType<?> entity) implements TableSelector {
+        @Override
+        public TableSelectorType getType() {
+            return LootInjectorOps.TABLE_ENTITY_TYPE.get();
+        }
+
+        public static final MapCodec<ByEntityType> CODEC = RecordCodecBuilder.mapCodec(instance -> instance.group(
+                BuiltInRegistries.ENTITY_TYPE.byNameCodec().fieldOf("entity").forGetter(ByEntityType::entity))
+                .apply(instance, ByEntityType::new));
+
+        @Override
+        public boolean test(ResourceLocation id, LootTable table, HolderLookup.Provider registries) {
+            return this.entity.getDefaultLootTable().location().equals(id);
+        }
+    }
+
+    /** 按方块精确匹配它自己的战利品表（对照按标签的 {@link BlockTagTable}）；没有战利品表的方块永远不命中。 */
+    record ByBlockType(Block block) implements TableSelector {
+        @Override
+        public TableSelectorType getType() {
+            return LootInjectorOps.TABLE_BLOCK_TYPE.get();
+        }
+
+        public static final MapCodec<ByBlockType> CODEC = RecordCodecBuilder.mapCodec(instance -> instance.group(
+                BuiltInRegistries.BLOCK.byNameCodec().fieldOf("block").forGetter(ByBlockType::block))
+                .apply(instance, ByBlockType::new));
+
+        @Override
+        public boolean test(ResourceLocation id, LootTable table, HolderLookup.Provider registries) {
+            ResourceKey<LootTable> lootTable = this.block.getLootTable();
+
+            return lootTable != null && lootTable.location().equals(id);
+        }
+    }
 
     /** 取反。 */
     record Not(TableSelector child) implements TableSelector {

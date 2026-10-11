@@ -20,7 +20,7 @@
 2. [嵌套作用域模型](#2-嵌套作用域模型)
 3. [执行语义（必读）](#3-执行语义必读)
 4. [顶层字段](#4-顶层字段)
-5. [表选择器（10）](#5-表选择器10)
+5. [表选择器（12）](#5-表选择器12)
 6. [表级操作（7）](#6-表级操作7)
 7. [池选择器（9）](#7-池选择器9)
 8. [池级操作（12）](#8-池级操作12)
@@ -159,7 +159,7 @@ Loot injection: 26 injectors, 1183 loot tables, 4521 applications in 36.5538 ms
 
 ---
 
-## 5. 表选择器（10）
+## 5. 表选择器（12）
 
 决定"这个注入器要不要作用到某张表"。注册表：`arcanumlib:table_selector`。
 
@@ -171,6 +171,8 @@ Loot injection: 26 injectors, 1183 loot tables, 4521 applications in 36.5538 ms
 | `path_prefix` | `prefix` | 路径前缀匹配 |
 | `entity_tag` | `tag` | 实体标签；表 id 等于该标签下任一实体的默认战利品表 |
 | `block_tag` | `tag` | 方块标签；表 id 等于该标签下任一方块的表 |
+| `entity_type` | `entity` | 实体类型；表 id 等于它的默认战利品表（不展开标签） |
+| `block_type` | `block` | 方块；表 id 等于它的战利品表（不展开标签；没有战利品表的方块永不命中） |
 | `not` | `condition` | 取反 |
 | `any_of` | `conditions` | 任一满足 |
 | `all_of` | `conditions` | 全部满足 |
@@ -193,6 +195,13 @@ Loot injection: 26 injectors, 1183 loot tables, 4521 applications in 36.5538 ms
 ```
 ```json
 { "type": "arcanumlib:block_tag", "tag": "minecraft:logs" }
+```
+
+```json
+{ "type": "arcanumlib:entity_type", "entity": "minecraft:zombie" }
+```
+```json
+{ "type": "arcanumlib:block_type", "block": "minecraft:stone" }
 ```
 ```json
 { "type": "arcanumlib:not", "condition": { "type": "arcanumlib:id", "id": "minecraft:chests/end_city_treasure" } }
@@ -1237,11 +1246,11 @@ public final class MyDatagen {
 | 函数（3） | `remove_function`、`replace_function`、`modify_condition` |
 | 条件（2） | `remove_condition`、`replace_condition` |
 
-### 全部选择器（51）
+### 全部选择器（53）
 
 | 族 | id | 可选字段 |
 |---|---|---|
-| 表（10） | `all` / `id` / `namespace` / `path_prefix` / `entity_tag` / `block_tag` / `not` / `any_of` / `all_of` / `custom` | `id`、`namespace`、`prefix`、`tag`、`condition`、`conditions`、`custom_id` |
+| 表（12） | `all` / `id` / `namespace` / `path_prefix` / `entity_tag` / `block_tag` / `entity_type` / `block_type` / `not` / `any_of` / `all_of` / `custom` | `id`、`namespace`、`prefix`、`tag`、`entity`、`block`、`condition`、`conditions`、`custom_id` |
 | 池（9） | `any` / `index` / `name` / `has_entry` / `total_weight` / `not` / `any_of` / `all_of` / `custom` | `index`、`name`、`entrySelector`、`min`、`max`、`condition`、`conditions`、`custom_id` |
 | 条目（15） | `any` / `index` / `item` / `tag` / `item_with_tag` / `entry_type` / `weight_in_range` / `weight_share` / `has_condition` / `has_function` / `has_child` / `not` / `any_of` / `all_of` / `custom` | `index`、`item`、`tag`、`entryType`、`min`、`max`、`conditionType`、`functionType`、`entrySelector`、`condition`、`conditions`、`custom_id` |
 | 函数（9） | `any` / `index` / `function_type` / `has_condition` / `not` / `any_of` / `all_of` / `match` / `custom` | `index`、`functionType`、`conditionType`、`selector`、`selectors`、`function`、`strict`、`custom_id` |
@@ -1351,4 +1360,4 @@ public final class MyDatagen {
 | 事件 | `modules/loot/lootInjector/event/` |
 | datagen 基类与模板 | `modules/loot/lootInjector/data/{LootInjectorProvider,LootInjectorTemplate}.java` |
 | 访问转换器 | `src/main/resources/META-INF/accesstransformer.cfg` |
-| 官方测试数据（37 个 op 与 50 个选择器都有 json 示例；`tableSelector` 的默认值 `all` 因为是默认值不会出现在生成物里） | `src/generated/resources/data/arcanumlib/loot_injecter/` |
+| 官方测试数据（37 个 op 与 52 个选择器都有 json 示例；`tableSelector` 的默认值 `all` 因为是默认值不会出现在生成物里） | `src/generated/resources/data/arcanumlib/loot_injecter/` |
