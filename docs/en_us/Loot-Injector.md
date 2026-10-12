@@ -30,6 +30,7 @@ without touching vanilla data and without fighting other mods over block/entity 
 17. [Recipes: Common Tasks](#17-recipes-common-tasks)
 18. [Writing Injectors with Datagen](#18-writing-injectors-with-datagen)
 19. [Semantic Boundaries and Pitfalls](#19-semantic-boundaries-and-pitfalls)
+20. [KubeJS Integration](#20-kubejs-integration)
 21. [Loot Conditions Provided by This Mod](#21-loot-conditions-provided-by-this-mod)
 
 ---
@@ -2271,3 +2272,138 @@ To test "does this entry carry this condition?", use the entry selector
 - A selector over a composite's children **only sees that one level**: go deeper by nesting `modify_child`; the order of `alternatives` children **is** the priority (that is what `move_child` changes).
 
 - When you change a composite's children, the pre-composed container inside it (`composedChildren`) has to be recomputed too; replacing only the `children` field will not affect drops. This mod handles it in `CompositeEntryBaseMixin`; third-party code that touches children itself must do the same.
+
+---
+
+## 20. KubeJS Integration
+
+With KubeJS installed, this mod registers the script event group **`ArcanumLibEvents`** and the read-only binding **`ArcanumLib`**; without KubeJS none of that code is even loaded.
+
+### 20.1 Events
+
+| Event | When it fires | What the script gets | Result |
+|---|---|---|---|
+| `lootInjectorApply` | Before each injector is applied to a table | `injectorId` / `tableId` / `table` / `injector` | `event.cancel()` cancels this application |
+| `tableCustom` | When `table_custom` runs | `id` / `data` / `table` | - |
+| `poolCustom` | When `pool_custom` runs | `id` / `data` / `table` / `poolIndex` / `pool` | - |
+| `entryCustom` | When `entry_custom` runs | `id` / `data` / `pool` / `entries` / `index` | - |
+| `customTableSelector` | When a table selector `custom` is tested | `id` / `data` / `tableId` / `table` | `true` / `false` |
+| `customPoolSelector` | When a pool selector `custom` is tested | `id` / `data` / `index` / `pool` | `true` / `false` |
+| `customEntrySelector` | When an entry selector `custom` is tested | `id` / `data` / `index` / `entry` / `pool` | `true` / `false` |
+| `customFunctionSelector` | When a function selector `custom` is tested | `id` / `data` / `index` / `function` | `true` / `false` |
+| `customConditionSelector` | When a condition selector `custom` is tested | `id` / `data` / `index` / `condition` | `true` / `false` |
+
+- `entries` of `entryCustom` is a **mutable list**, so scripts can `set` / `remove` directly;
+- Result events can be answered in **three ways**: `return false`, `event.setResult(false)`, or `event.cancel()` (`cancel` means false); staying silent **keeps whatever Java-side listeners decided**;
+- All of these are listened to from server scripts (`ServerEvents` / `StartupEvents` and friends).
+- The three custom ops and all five custom selectors also carry **`data`** (`event.data`): the optional `CompoundTag` written in json (SNBT string or json object), empty when omitted;
+- **All nine events carry `registries`** (`event.registries`, the very same object the Java-side `getRegistries()` hands out): use it for codec round-trips or registry lookups; `lootInjectorApply` also gets `event.injector` (the injector itself).
+
+### 20.2 Bindings
+
+| Usage | Effect |
+|---|---|
+| `ArcanumLib.modId()` | `"arcanumlib"` |
+| `ArcanumLib.id("common_chests")` | Gives `arcanumlib:common_chests` |
+| `ArcanumLib.lootTable("minecraft:blocks/oak_leaves")` | Looks a table up by id; `null` when there is no server or no such table |
+| `ArcanumLib.lootTableIds()` | Every loaded loot table id (a list of strings) |
+
+### 20.3 Examples
+
+```js
+ArcanumLibEvents.lootInjectorApply(event => {
+  if (event.tableId.toString() === 'minecraft:blocks/oak_leaves') event.cancel()
+})
+
+ArcanumLibEvents.tableCustom(event => {
+  if (event.id === 'my_hook' && event.data.getInt('times') > 0) {
+    // change event.table directly
+  }
+})
+
+ArcanumLibEvents.customTableSelector(event => {
+  if (event.tableId.getPath().startsWith('chests/')) return true
+})
+
+ServerEvents.recipes(event => {
+  console.info(`loot tables: ${ArcanumLib.lootTableIds().length}`)
+})
+```
+
+### 20.4 Script factories
+
+Besides `ArcanumLib`, the mod registers **14 Helper bindings**; each is a class of static factory methods you can call straight from a script. Every method carries KubeJS `@Info` (what it does) and `@Param` (what each parameter means), so a hover in the IDE shows it.
+
+| Binding | What it provides | Methods |
+|---|---|---|
+| `TableOperatorHelper` | Table-level operators | 7 |
+| `PoolOperatorHelper` | Pool-level operators | 12 |
+| `EntryOperatorHelper` | Entry-level operators | 17 |
+| `FunctionOperatorHelper` | Function-level operators | 3 |
+| `ConditionOperatorHelper` | Condition-level operators | 2 |
+| `TableSelectorHelper` | Table selectors | 13 |
+| `PoolSelectorHelper` | Pool selectors | 9 |
+| `EntrySelectorHelper` | Entry selectors | 15 |
+| `FunctionSelectorHelper` | Function selectors | 9 |
+| `ConditionSelectorHelper` | Condition selectors | 8 |
+| `LootConditionHelper` | This mod's conditions plus every vanilla condition | 20 |
+| `LootFunctionHelper` | Every vanilla loot function | 42 |
+| `NumberProviderHelper` | Every vanilla number provider | 9 |
+| `LootEntryHelper` | This mod's entry plus every vanilla entry | 24 |
+
+The condition, function, number provider and entry helpers each also expose three generic fallbacks:
+
+- `of(json, registries)`: takes a piece of json and runs it through the matching vanilla codec;
+- `ofType(typeId, fields, registries)`: gives a type id plus the remaining fields, e.g. `ofType('minecraft:set_count', {count: 3}, event.registries)`;
+- `ids()`: every type id currently available in that category (including this mod's and other mods').
+
+### 20.5 Naming and overload rules
+
+- Operators and selectors are named after their **record name in lower camel case** (`addChild`, `modifyCondition`, ...) and their parameters mirror the json fields one for one;
+- Conditions, functions, number providers and entries use the **vanilla factory name** or the **lower camel case of the json type id** (`randomChance`, `matchTool`, `withLootTable`, ...), and `@Info` says which json type it maps to;
+- **Same name but a different parameter count** is a legal overload, so the vanilla name is kept (for example the two `setCount` and the two `setDamage`);
+- Only **same name and same parameter count** gets renamed apart, for example `copyDataFromNbt(NbtProvider)` and `copyDataFromEntity(LootContext.EntityTarget)`;
+- **Nullability** is marked with `@Nullable`: every parameter that is an `Optional<T>` in the record means "you may omit it";
+- Vanilla methods that merely **start a builder and do nothing on their own** either gained the needed parameters (such as `setAttributes(List<AttributeModifier>, boolean)`) or are not offered, so scripts never get an empty shell.
+
+### 20.6 Direct and config overloads
+
+Every `LootEntryHelper` factory comes in two versions: the direct one returns a **finished entry**, the config one takes an extra `Consumer` so you can put conditions, weight or functions on the vanilla builder, after which it builds for you.
+
+```js
+// direct
+PoolOperatorHelper.addEntry(LootEntryHelper.item('minecraft:diamond'))
+
+// config: setWeight / setQuality / when (condition) / apply (function)
+PoolOperatorHelper.addEntry(
+  LootEntryHelper.item('minecraft:diamond', builder => builder
+    .setWeight(3)
+    .when(LootConditionHelper.randomChance(NumberProviderHelper.constant(0.5)))
+    .apply(LootFunctionHelper.setCount(NumberProviderHelper.constant(4)))))
+```
+
+- `when` (attach a condition) exists on every entry; `setWeight` / `setQuality` / `apply` (attach a function) exist **only on leaf entries** - composite entries do not have them, exactly as in vanilla;
+- Composite entries take **finished child entries**, so scripts can nest them freely and can still put a condition on the whole group;
+- What these factories produce are **value objects**: entries, selectors and operators end up in injector json or are handed to Java-side APIs; to change a table inside an event callback, just touch `event.table` / `event.pool`.
+
+### 20.7 This mod's entry: all_of
+
+`LootEntryHelper.allOf(...)` maps to this mod's **`arcanumlib:all_of`** entry: **once it is picked, every child is produced**, which is what you want for several independent chance drops inside one pool.
+
+Vanilla `group` / `sequence` only flatten their children's weights into the candidate list and still pick one child per roll, so using them for several independent chances degenerates.
+
+```js
+PoolOperatorHelper.addEntry(
+  LootEntryHelper.allOf([
+    LootEntryHelper.item('minecraft:diamond', b => b.when(LootConditionHelper.randomChance(NumberProviderHelper.constant(0.1)))),
+    LootEntryHelper.item('minecraft:emerald', b => b.when(LootConditionHelper.randomChance(NumberProviderHelper.constant(0.3))))
+  ]))
+```
+
+### 20.8 Type wrappers
+
+`registerTypeWrappers` lets scripts write json or shorthand values directly instead of calling a factory for everything:
+
+- The five operator and five selector interfaces each registered their `CODEC`, so a parameter position accepts a json object such as `{type: 'item', item: 'minecraft:diamond'}` or `{type: 'set_weight', weight: 3}`;
+- `LootPoolEntryContainer` also got a wrapper: an item id string or an `ItemStack` turns into an `item` entry;
+- KubeJS already wraps `ResourceLocation` / `ItemStack` / `Item` / `NumberProvider` / `LootContext.EntityTarget` and friends, so this mod does not register those again.

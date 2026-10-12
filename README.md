@@ -30,6 +30,7 @@ ArcanumLib 把"改掉落"这件事拆成**三层可组合的能力**，让整合
 | **AStages 兼容** | `compat/astages/` | 阶段限制掉落：`has_stage` 条件、`stage` 加工器、`StagePattern` 匹配模式。AStages 缺失时自动不加载 |
 | **事件** | `events/` | `EnchantedLootEvent`：让外部代码改写附魔等级 |
 | **Mixin** | `mixins/` | 补原版做不到的地方，例如附魔 / 时运计数、以及 `CompositeEntryBaseMixin`（改复合条目的 children 时同步重算预先组合的容器） |
+| **KubeJS 联动** | `kubejs/` | 注册脚本事件组 `ArcanumLibEvents`（注入器应用前 + 三个自定义 op + 五个自定义选择器，共 9 个事件）与只读绑定 `ArcanumLib`（取表 / 列 id）|
 | **数据生成** | `test/` | datagen 示例：33 条测试注入器，覆盖每种选择器与操作，同时充当文档里的 json 范例 |
 
 ---
