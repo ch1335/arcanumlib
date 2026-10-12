@@ -10,7 +10,7 @@
 
 ## 这是什么
 
-ArcanumLib 把"改掉落"这件事拆成**三层可组合的能力**，让整合包作者不改代码、模组作者不重造轮子：
+ArcanumLib 把"改掉落"这件事拆成**三层可组合的能力**，可直接通过数据包或者代码配置：
 
 1. **数据包层** —— 写一条 json「**注入器**」，按 表 / 池 / 条目 / 函数 / 条件 五级**筛选**，再**增删改**它们的结构；
 2. **代码层** —— 注册自己的**选择器 / 操作 / 加工器**，或者用**事件**在运行时接管某一层；
@@ -37,36 +37,154 @@ ArcanumLib 把"改掉落"这件事拆成**三层可组合的能力**，让整合
 
 ---
 
-## 核心：一条注入器长什么样
+## 一个修改战利品的例子
+
+**作用**：往 `minecraft:blocks/oak_leaves` 的 `alternatives` 条目里插一个**最高优先级**的新分支 —— **25% 概率掉 1~3 个钻石**（分支上挂了 `minecraft:random_chance` 条件与 `minecraft:set_count` 函数）。同一个效果有三种等价写法：数据包 json、KubeJS 脚本、Java 代码。
+
+### 数据包
 
 `src/main/resources/data/<你的命名空间>/loot_injecter/*.json`：
 
+> 下面那些 `//` 只是为了便于理解：**JSON 本身不支持注释，复制到数据包时请删掉它们**。
+
+
 ```json
 {
+  // 优先级：同一张表上按它依次应用（数字越小越早）
   "priority": 1200,
-  "tableSelector": { "type": "arcanumlib:id", "id": "minecraft:blocks/oak_leaves" },
+
+  // 表选择器：arcanumlib:id 表示按表 id 精确命中
+  "tableSelector": {
+    "type": "arcanumlib:id",
+    "id": "minecraft:blocks/oak_leaves"
+  },
+
   "ops": [
-    { "type": "arcanumlib:modify_pool",
+    {
+      // 表级操作：对命中的每一个池，执行它自己的 ops
+      "type": "arcanumlib:modify_pool",
       "ops": [
-        { "type": "arcanumlib:modify_entry",
-          "entrySelector": { "type": "arcanumlib:entry_type", "entryType": "minecraft:alternatives" },
+        {
+          // 池级操作：只对「类型是 minecraft:alternatives 的条目」继续操作
+          "type": "arcanumlib:modify_entry",
+          "entrySelector": {
+            "type": "arcanumlib:entry_type",
+            "entryType": "minecraft:alternatives"
+          },
           "ops": [
-            { "type": "arcanumlib:add_child",
+            {
+              // 条目级操作：把下面的 entry 插到最高优先级（省略 index 就是追加到末尾）
+              "type": "arcanumlib:add_child",
               "index": 0,
-              "entry": { "type": "minecraft:item", "name": "minecraft:diamond" } }
-          ] }
-      ] }
+              "entry": {
+                // 要插入的条目本体：一颗钻石
+                "type": "minecraft:item",
+                "name": "minecraft:diamond",
+
+                // 原版条件：25% 概率才产出
+                "conditions": [
+                  { "condition": "minecraft:random_chance", "chance": 0.25 }
+                ],
+
+                // 原版函数：数量随机 1~3
+                "functions": [
+                  { "function": "minecraft:set_count",
+                    "count": { "type": "minecraft:uniform", "min": 1, "max": 3 } }
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    }
   ]
 }
 ```
 
-要点：
+### KubeJS
 
-- 五级选择器都能组合（`not` / `any_of` / `all_of`），并且**逐层收窄**；
-- 操作**只作用于当前这一层**，要往深处走就用 `modify_pool` / `modify_entry` / `modify_child` 继续嵌套；
-- 自定义入口 `custom_id`：写 `custom` / `table_custom` / `pool_custom` / `entry_custom`，就能在事件里用代码接管；
-- 每条注入器带 `priority`，同一张表上按优先级依次应用。
+脚本用**事件**注册同一条注入器；选择器与操作用 Helper 工厂造，条目上的条件与函数用 Builder 的 `.when(...)` / `.apply(...)` 挂：
 
+
+```js
+ArcanumLibEvents.registerLootInjector(event => {
+  // 先造要插入的条目：钻石
+  let diamond = LootEntryHelper.item('minecraft:diamond',
+    builder => builder
+      // 条件：25% 概率（when = 挂在条目上的条件）
+      .when(
+        LootConditionHelper.randomChance(
+          NumberProviderHelper.constant(0.25)
+        )
+      )
+      // 函数：数量随机 1~3（apply = 挂在条目上的函数）
+      .apply(
+        LootFunctionHelper.setCount(
+          NumberProviderHelper.uniform(
+            NumberProviderHelper.constant(1),
+            NumberProviderHelper.constant(3)
+          )
+        )
+      )
+  )
+
+  // 注册注入器：id / 选表 / 优先级 / 操作列表
+  event.register('mypack:oak_leaves_diamond',
+    // 选表：按 id 命中 minecraft:blocks/oak_leaves
+    TableSelectorHelper.byId('minecraft:blocks/oak_leaves'),
+    1200,
+    [
+      // 表级：对每一个池都做后面的操作
+      TableOperatorHelper.modifyPool(
+        // 池选择器：任意池
+        PoolSelectorHelper.any(),
+        [
+          // 池级：只处理类型为 alternatives 的条目
+          PoolOperatorHelper.modifyEntry(
+            EntrySelectorHelper.isType('minecraft:alternatives'),
+            [
+              // 条目级：插到最高优先级（index 0）
+              EntryOperatorHelper.addChild(diamond, 0)
+            ]
+          )
+        ]
+      )
+    ]
+  )
+})
+```
+
+### Java
+
+Java 侧监听同一个事件，条目用原版工厂造（条件 / 函数接在 Builder 上），操作与 json 一样逐层套：
+
+
+```java
+NeoForge.EVENT_BUS.addListener((LootInjectorRegisterEvent event) -> {
+    // 注册注入器：id / 选表 / 优先级 / 操作列表
+    event.register(ResourceLocation.fromNamespaceAndPath("mypack", "oak_leaves_diamond"),
+            // 选表：按 id 命中 minecraft:blocks/oak_leaves
+            new TableSelector.ById(ResourceLocation.withDefaultNamespace("blocks/oak_leaves")),
+            1200,
+            // 表级：对每一个池，只处理 alternatives 条目，在最高优先级插一条钻石条目
+            List.of(new TableOperator.ModifyPool(
+                    // 池选择器：任意池
+                    new PoolSelector.Any(),
+                    List.of(new PoolOperator.ModifyEntry(
+                            // 目标条目：类型为 minecraft:alternatives
+                            new EntrySelector.IsType(ResourceLocation.withDefaultNamespace("alternatives")),
+                            List.of(new EntryOperator.AddChild(
+                                    // 要插入的条目：钻石 + 25% 条件 + 数量 1~3
+                                    LootItem.lootTableItem(Items.DIAMOND)
+                                            .when(LootItemRandomChanceCondition.randomChance(0.25F))
+                                            .apply(SetItemCountFunction.setCount(UniformGenerator.between(1.0F, 3.0F)))
+                                            .build(),
+                                    0)))))));
+});
+```
+
+- 三份写法**等价**：同一个 id（`mypack:oak_leaves_diamond`）、同一个 `priority`（1200）、同一套操作，条目上同样挂着 `random_chance` 与 `set_count`；
+- 选择器与操作一共 5 族 / 41 个，Helper 与记录一一对应（见[注入器文档](docs/zh_cn/战利品表注入器.md) §20.9 的工厂拼法）。
 ---
 
 ## 指令

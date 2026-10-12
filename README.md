@@ -10,7 +10,7 @@
 
 ## What is this
 
-ArcanumLib splits "changing drops" into **three composable layers**, so pack authors never touch code and mod authors never rebuild the wheel:
+ArcanumLib splits "changing drops" into **three composable layers**, configurable straight from a datapack or from code:
 
 1. **Datapack layer** — write a json **injector** that **selects** at five levels (table / pool / entry / function / condition) and then **adds, removes or edits** their structure;
 2. **Code layer** — register your own **selectors / operators / modifiers**, or take over a layer at runtime with **events**;
@@ -37,36 +37,154 @@ ArcanumLib splits "changing drops" into **three composable layers**, so pack aut
 
 ---
 
-## The core: what one injector looks like
+## An example: changing loot
+
+**Effect**: insert a new **highest-priority** branch into the `alternatives` entry of `minecraft:blocks/oak_leaves` - a **25% chance to drop 1~3 diamonds** (the branch carries a `minecraft:random_chance` condition and a `minecraft:set_count` function). The same result has three equivalent forms: datapack json, a KubeJS script, and Java code.
+
+### Datapack
 
 `src/main/resources/data/<your namespace>/loot_injecter/*.json`:
 
+> The `//` lines below are only there to explain things: **json has no comments, so delete them before pasting into a datapack**.
+
+
 ```json
 {
+  // 优先级：同一张表上按它依次应用（数字越小越早）
   "priority": 1200,
-  "tableSelector": { "type": "arcanumlib:id", "id": "minecraft:blocks/oak_leaves" },
+
+  // 表选择器：arcanumlib:id 表示按表 id 精确命中
+  "tableSelector": {
+    "type": "arcanumlib:id",
+    "id": "minecraft:blocks/oak_leaves"
+  },
+
   "ops": [
-    { "type": "arcanumlib:modify_pool",
+    {
+      // 表级操作：对命中的每一个池，执行它自己的 ops
+      "type": "arcanumlib:modify_pool",
       "ops": [
-        { "type": "arcanumlib:modify_entry",
-          "entrySelector": { "type": "arcanumlib:entry_type", "entryType": "minecraft:alternatives" },
+        {
+          // 池级操作：只对「类型是 minecraft:alternatives 的条目」继续操作
+          "type": "arcanumlib:modify_entry",
+          "entrySelector": {
+            "type": "arcanumlib:entry_type",
+            "entryType": "minecraft:alternatives"
+          },
           "ops": [
-            { "type": "arcanumlib:add_child",
+            {
+              // 条目级操作：把下面的 entry 插到最高优先级（省略 index 就是追加到末尾）
+              "type": "arcanumlib:add_child",
               "index": 0,
-              "entry": { "type": "minecraft:item", "name": "minecraft:diamond" } }
-          ] }
-      ] }
+              "entry": {
+                // 要插入的条目本体：一颗钻石
+                "type": "minecraft:item",
+                "name": "minecraft:diamond",
+
+                // 原版条件：25% 概率才产出
+                "conditions": [
+                  { "condition": "minecraft:random_chance", "chance": 0.25 }
+                ],
+
+                // 原版函数：数量随机 1~3
+                "functions": [
+                  { "function": "minecraft:set_count",
+                    "count": { "type": "minecraft:uniform", "min": 1, "max": 3 } }
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    }
   ]
 }
 ```
 
-Key points:
+### KubeJS
 
-- All five selector levels compose (`not` / `any_of` / `all_of`) and **narrow down level by level**;
-- An operator **only touches its own level**; to go deeper, nest `modify_pool` / `modify_entry` / `modify_child`;
-- Custom hooks via `custom_id`: write `custom` / `table_custom` / `pool_custom` / `entry_custom` and take over from an event;
-- Every injector carries a `priority`; several injectors on one table are applied in that order.
+A script registers the same injector through an **event**; selectors and operators come from the Helper factories, and conditions / functions go on the entry with the builder's `.when(...)` / `.apply(...)`:
 
+
+```js
+ArcanumLibEvents.registerLootInjector(event => {
+  // 先造要插入的条目：钻石
+  let diamond = LootEntryHelper.item('minecraft:diamond',
+    builder => builder
+      // 条件：25% 概率（when = 挂在条目上的条件）
+      .when(
+        LootConditionHelper.randomChance(
+          NumberProviderHelper.constant(0.25)
+        )
+      )
+      // 函数：数量随机 1~3（apply = 挂在条目上的函数）
+      .apply(
+        LootFunctionHelper.setCount(
+          NumberProviderHelper.uniform(
+            NumberProviderHelper.constant(1),
+            NumberProviderHelper.constant(3)
+          )
+        )
+      )
+  )
+
+  // 注册注入器：id / 选表 / 优先级 / 操作列表
+  event.register('mypack:oak_leaves_diamond',
+    // 选表：按 id 命中 minecraft:blocks/oak_leaves
+    TableSelectorHelper.byId('minecraft:blocks/oak_leaves'),
+    1200,
+    [
+      // 表级：对每一个池都做后面的操作
+      TableOperatorHelper.modifyPool(
+        // 池选择器：任意池
+        PoolSelectorHelper.any(),
+        [
+          // 池级：只处理类型为 alternatives 的条目
+          PoolOperatorHelper.modifyEntry(
+            EntrySelectorHelper.isType('minecraft:alternatives'),
+            [
+              // 条目级：插到最高优先级（index 0）
+              EntryOperatorHelper.addChild(diamond, 0)
+            ]
+          )
+        ]
+      )
+    ]
+  )
+})
+```
+
+### Java
+
+The Java side listens to the same event, builds the entry with vanilla factories (conditions and functions go on the builder) and nests the operators exactly like the json:
+
+
+```java
+NeoForge.EVENT_BUS.addListener((LootInjectorRegisterEvent event) -> {
+    // 注册注入器：id / 选表 / 优先级 / 操作列表
+    event.register(ResourceLocation.fromNamespaceAndPath("mypack", "oak_leaves_diamond"),
+            // 选表：按 id 命中 minecraft:blocks/oak_leaves
+            new TableSelector.ById(ResourceLocation.withDefaultNamespace("blocks/oak_leaves")),
+            1200,
+            // 表级：对每一个池，只处理 alternatives 条目，在最高优先级插一条钻石条目
+            List.of(new TableOperator.ModifyPool(
+                    // 池选择器：任意池
+                    new PoolSelector.Any(),
+                    List.of(new PoolOperator.ModifyEntry(
+                            // 目标条目：类型为 minecraft:alternatives
+                            new EntrySelector.IsType(ResourceLocation.withDefaultNamespace("alternatives")),
+                            List.of(new EntryOperator.AddChild(
+                                    // 要插入的条目：钻石 + 25% 条件 + 数量 1~3
+                                    LootItem.lootTableItem(Items.DIAMOND)
+                                            .when(LootItemRandomChanceCondition.randomChance(0.25F))
+                                            .apply(SetItemCountFunction.setCount(UniformGenerator.between(1.0F, 3.0F)))
+                                            .build(),
+                                    0)))))));
+});
+```
+
+- The three forms are **equivalent**: same id (`mypack:oak_leaves_diamond`), same `priority` (1200), same operators, and the entry carries the same `random_chance` and `set_count`;
+- There are 5 selector families and 41 operators; Helpers map one to one onto the records (see the factory assembly in 20.9 of the [injector docs](docs/en_us/Loot-Injector.md)).
 ---
 
 ## Commands
