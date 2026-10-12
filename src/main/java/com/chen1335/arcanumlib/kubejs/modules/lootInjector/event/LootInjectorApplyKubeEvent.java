@@ -1,4 +1,4 @@
-package com.chen1335.arcanumlib.kubejs.event;
+package com.chen1335.arcanumlib.kubejs.modules.lootInjector.event;
 
 import dev.latvian.mods.kubejs.event.KubeEvent;
 import net.minecraft.resources.ResourceLocation;

@@ -1,35 +1,32 @@
-package com.chen1335.arcanumlib.kubejs.event;
+package com.chen1335.arcanumlib.kubejs.modules.lootInjector.event;
 
 import dev.latvian.mods.kubejs.event.KubeEvent;
 import net.minecraft.nbt.CompoundTag;
-import net.minecraft.world.level.storage.loot.LootPool;
+import net.minecraft.resources.ResourceLocation;
+import net.minecraft.world.level.storage.loot.LootTable;
 import net.minecraft.core.HolderLookup;
 
 /**
- * 脚本事件 {@code ArcanumLibEvents.customPoolSelector}：判定池选择器 {@code custom} 时触发。参数与 Java 侧 {@code CustomPoolSelectorEvent} 对齐。
+ * 脚本事件 {@code ArcanumLibEvents.customTableSelector}：判定表选择器 {@code custom} 时触发。参数与 Java 侧 {@code CustomTableSelectorEvent} 对齐。
  *
  * <p>参数与 Java 侧事件一一对应，包括 {@code registries}（求值时可用注册表访问）。
  */
-public class CustomPoolSelectorKubeEvent implements KubeEvent {
+public class CustomTableSelectorKubeEvent implements KubeEvent {
 
     private final String id;
     /** json 里可选的附加数据；没写就是空 tag（与 Java 侧同名事件一致）。 */
     private final CompoundTag data;
-    private final int index;
-    private final LootPool pool;
+    private final ResourceLocation tableId;
+    private final LootTable table;
     private final HolderLookup.Provider registries;
     private Boolean result;
 
-    public CustomPoolSelectorKubeEvent(String id, CompoundTag data, int index, LootPool pool, HolderLookup.Provider registries) {
+    public CustomTableSelectorKubeEvent(String id, CompoundTag data, ResourceLocation tableId, LootTable table, HolderLookup.Provider registries) {
         this.id = id;
         this.data = data;
-        this.index = index;
-        this.pool = pool;
+        this.tableId = tableId;
+        this.table = table;
         this.registries = registries;
-    }
-
-    public String getId() {
-        return this.id;
     }
 
     /** json 里可选的附加数据；没写就是空 tag。 */
@@ -37,12 +34,16 @@ public class CustomPoolSelectorKubeEvent implements KubeEvent {
         return this.data;
     }
 
-    public int getIndex() {
-        return this.index;
+    public String getId() {
+        return this.id;
     }
 
-    public LootPool getPool() {
-        return this.pool;
+    public ResourceLocation getTableId() {
+        return this.tableId;
+    }
+
+    public LootTable getTable() {
+        return this.table;
     }
 
     /** 求值时用的注册表访问，与 Java 侧事件收到的 registries 是同一个。 */

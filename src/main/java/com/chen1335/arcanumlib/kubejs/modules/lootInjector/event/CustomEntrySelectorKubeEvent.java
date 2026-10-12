@@ -1,30 +1,33 @@
-package com.chen1335.arcanumlib.kubejs.event;
+package com.chen1335.arcanumlib.kubejs.modules.lootInjector.event;
 
 import dev.latvian.mods.kubejs.event.KubeEvent;
 import net.minecraft.nbt.CompoundTag;
-import net.minecraft.world.level.storage.loot.functions.LootItemFunction;
+import net.minecraft.world.level.storage.loot.LootPool;
+import net.minecraft.world.level.storage.loot.entries.LootPoolEntryContainer;
 import net.minecraft.core.HolderLookup;
 
 /**
- * 脚本事件 {@code ArcanumLibEvents.customFunctionSelector}：判定函数选择器 {@code custom} 时触发。参数与 Java 侧 {@code CustomFunctionSelectorEvent} 对齐。
+ * 脚本事件 {@code ArcanumLibEvents.customEntrySelector}：判定条目选择器 {@code custom} 时触发。参数与 Java 侧 {@code CustomEntrySelectorEvent} 对齐。
  *
  * <p>参数与 Java 侧事件一一对应，包括 {@code registries}（求值时可用注册表访问）。
  */
-public class CustomFunctionSelectorKubeEvent implements KubeEvent {
+public class CustomEntrySelectorKubeEvent implements KubeEvent {
 
     private final String id;
     /** json 里可选的附加数据；没写就是空 tag（与 Java 侧同名事件一致）。 */
     private final CompoundTag data;
     private final int index;
-    private final LootItemFunction function;
+    private final LootPoolEntryContainer entry;
+    private final LootPool pool;
     private final HolderLookup.Provider registries;
     private Boolean result;
 
-    public CustomFunctionSelectorKubeEvent(String id, CompoundTag data, int index, LootItemFunction function, HolderLookup.Provider registries) {
+    public CustomEntrySelectorKubeEvent(String id, CompoundTag data, int index, LootPoolEntryContainer entry, LootPool pool, HolderLookup.Provider registries) {
         this.id = id;
         this.data = data;
         this.index = index;
-        this.function = function;
+        this.entry = entry;
+        this.pool = pool;
         this.registries = registries;
     }
 
@@ -41,8 +44,12 @@ public class CustomFunctionSelectorKubeEvent implements KubeEvent {
         return this.index;
     }
 
-    public LootItemFunction getFunction() {
-        return this.function;
+    public LootPoolEntryContainer getEntry() {
+        return this.entry;
+    }
+
+    public LootPool getPool() {
+        return this.pool;
     }
 
     /** 求值时用的注册表访问，与 Java 侧事件收到的 registries 是同一个。 */

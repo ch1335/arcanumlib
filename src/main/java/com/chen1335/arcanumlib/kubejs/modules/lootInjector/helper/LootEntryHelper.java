@@ -1,4 +1,4 @@
-package com.chen1335.arcanumlib.kubejs.helper;
+package com.chen1335.arcanumlib.kubejs.modules.lootInjector.helper;
 
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;

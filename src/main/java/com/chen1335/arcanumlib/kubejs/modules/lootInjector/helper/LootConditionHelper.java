@@ -1,4 +1,4 @@
-package com.chen1335.arcanumlib.kubejs.helper;
+package com.chen1335.arcanumlib.kubejs.modules.lootInjector.helper;
 
 import com.chen1335.arcanumlib.compat.astages.HasStageCondition;
 import com.chen1335.arcanumlib.compat.astages.StagePattern;

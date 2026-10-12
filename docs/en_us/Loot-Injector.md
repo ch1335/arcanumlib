@@ -2293,13 +2293,15 @@ With KubeJS installed, this mod registers the script event group **`ArcanumLibEv
 | `customEntrySelector` | When an entry selector `custom` is tested | `id` / `data` / `index` / `entry` / `pool` | `true` / `false` |
 | `customFunctionSelector` | When a function selector `custom` is tested | `id` / `data` / `index` / `function` | `true` / `false` |
 | `customConditionSelector` | When a condition selector `custom` is tested | `id` / `data` / `index` / `condition` | `true` / `false` |
+| `bonusLootCheck` | While deciding whether a table gets bonus loot | `lootContext` / `lootTableId` / `configAllowed` | `true` / `false` (it **outranks the config**) |
+| `modifyBonusLoot` | Right before the bonus loot boost happens | `lootContext` / `lootTableId` / `originalRatio` / `ratio` | `event.setRatio(...)` to change it; `event.cancel()` to skip it |
 
 - `entries` of `entryCustom` is a **mutable list**, so scripts can `set` / `remove` directly;
 - Result events can be answered in **three ways**: `return false`, `event.setResult(false)`, or `event.cancel()` (`cancel` means false); staying silent **keeps whatever Java-side listeners decided**;
 - All of these are listened to from server scripts (`ServerEvents` / `StartupEvents` and friends).
 - The three custom ops and all five custom selectors also carry **`data`** (`event.data`): the optional `CompoundTag` written in json (SNBT string or json object), empty when omitted;
 - `registerLootInjector` also gets `event.injectors` (every injector so far, datapack ones included) and `event.isDataPack(id)` (whether the id would override a datapack entry);
-- **All ten events carry `registries`** (`event.registries`, the very same object the Java-side `getRegistries()` hands out): use it for codec round-trips or registry lookups; `lootInjectorApply` also gets `event.injector` (the injector itself).
+- **Ten of the events carry `registries`** (all but `bonusLootCheck` / `modifyBonusLoot`) (`event.registries`, the very same object the Java-side `getRegistries()` hands out): use it for codec round-trips or registry lookups; `lootInjectorApply` also gets `event.injector` (the injector itself).
 
 ### 20.2 Bindings
 
@@ -2356,6 +2358,18 @@ ArcanumLibEvents.registerLootInjector(event => {
   )
 })
 
+
+ArcanumLibEvents.bonusLootCheck(event => {
+  // let block drops get the boost too; return true / false to outrank the config
+  if (event.lootTableId.getPath().startsWith('blocks/')) return true
+})
+
+ArcanumLibEvents.modifyBonusLoot(event => {
+  // double chest loot; event.cancel() would skip the boost entirely
+  if (event.lootTableId.getPath().startsWith('chests/')) {
+    event.setRatio(event.ratio * 2)
+  }
+})
 ServerEvents.recipes(event => {
   let ids = ArcanumLib.lootTableIds()
 
@@ -2513,3 +2527,16 @@ ArcanumLibEvents.registerLootInjector(event => {
 - Each Helper covers one layer: `TableSelectorHelper` / `PoolSelectorHelper` / `EntrySelectorHelper` pick the targets, `TableOperatorHelper` / `PoolOperatorHelper` / `EntryOperatorHelper` describe the changes;
 - Entries, conditions, functions and number providers come from `LootEntryHelper` / `LootConditionHelper` / `LootFunctionHelper` / `NumberProviderHelper`;
 - What the factories return are plain Java objects, so you can bind them to variables, reuse them and combine them; json and factories **can be mixed** - for example a json operator next to a factory-built entry inside the same `ops` array.
+
+### 20.10 The two bonus loot events
+
+Bonus loot (the `arcanumlib:bonus_loot` attribute) comes with two script events of its own; the mechanic itself is described in the Bonus Loot section of [Attributes](Attributes.md).
+
+| Event | When it fires | What the script gets | How to answer |
+|---|---|---|---|
+| `bonusLootCheck` | While deciding whether a table gets the boost | `lootContext` / `lootTableId` / `configAllowed` | `return true` / `return false`, or `event.allow()` / `event.deny()`; **say nothing to keep the config** |
+| `modifyBonusLoot` | Right before the boost (the first roll is done) | `lootContext` / `lootTableId` / `originalRatio` / `ratio` | `event.setRatio(n)` to change it; `event.cancel()` to skip it |
+
+- `bonusLootCheck` **outranks the config**: it can let a table in that the config does not list, and keep a listed table out;
+- In `modifyBonusLoot` the `ratio` is the multiplier (`1.0` means one extra roll); setting it to 0 or less means no boost, and anything above 20 is clamped to 20;
+- Both carry `lootContext`, so registries can be reached through the entity or the level in it.

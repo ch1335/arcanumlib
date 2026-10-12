@@ -45,7 +45,9 @@
   "attribute.name.arcanumlib.fortune": "时运",
   "attribute.name.arcanumlib.fortune.desc": "提高时运附魔的等效等级",
   "attribute.name.arcanumlib.looting": "抢夺",
-  "attribute.name.arcanumlib.looting.desc": "提高抢夺附魔的等效等级"
+  "attribute.name.arcanumlib.looting.desc": "提高抢夺附魔的等效等级",
+  "attribute.name.arcanumlib.bonus_loot": "额外战利品",
+  "attribute.name.arcanumlib.bonus_loot.desc": "实体掉落与箱子战利品有概率额外产出"
 ,
   "arcanumlib.command.export.success": "ArcanumLib：已导出 %1$s 张已修改 + %2$s 张原始战利品表到 %3$s",
   "arcanumlib.command.export.failed": "ArcanumLib：导出失败 —— %1$s",

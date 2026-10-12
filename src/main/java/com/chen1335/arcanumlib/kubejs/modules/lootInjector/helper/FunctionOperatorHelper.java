@@ -1,14 +1,8 @@
-package com.chen1335.arcanumlib.kubejs.helper;
+package com.chen1335.arcanumlib.kubejs.modules.lootInjector.helper;
 
 import dev.latvian.mods.kubejs.typings.Info;
-import dev.latvian.mods.kubejs.typings.Info;
-import dev.latvian.mods.kubejs.typings.Info;
-import dev.latvian.mods.kubejs.typings.Info;
 import com.chen1335.arcanumlib.modules.loot.lootInjector.operator.ConditionOperator;
-import dev.latvian.mods.kubejs.typings.Info;
 import com.chen1335.arcanumlib.modules.loot.lootInjector.operator.FunctionOperator;
-import dev.latvian.mods.kubejs.typings.Info;
-import dev.latvian.mods.kubejs.typings.Info;
 import com.chen1335.arcanumlib.modules.loot.lootInjector.selector.ConditionSelector;
 import java.util.List;
 import net.minecraft.world.level.storage.loot.functions.LootItemFunction;

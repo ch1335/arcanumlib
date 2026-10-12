@@ -1,20 +1,8 @@
-package com.chen1335.arcanumlib.kubejs.helper;
+package com.chen1335.arcanumlib.kubejs.modules.lootInjector.helper;
 
 import dev.latvian.mods.kubejs.typings.Info;
 import org.jetbrains.annotations.Nullable;
-import dev.latvian.mods.kubejs.typings.Info;
-import org.jetbrains.annotations.Nullable;
-import dev.latvian.mods.kubejs.typings.Info;
-import org.jetbrains.annotations.Nullable;
-import dev.latvian.mods.kubejs.typings.Info;
-import org.jetbrains.annotations.Nullable;
-import dev.latvian.mods.kubejs.typings.Info;
-import org.jetbrains.annotations.Nullable;
 import com.chen1335.arcanumlib.modules.loot.lootInjector.selector.FunctionSelector;
-import dev.latvian.mods.kubejs.typings.Info;
-import org.jetbrains.annotations.Nullable;
-import dev.latvian.mods.kubejs.typings.Info;
-import org.jetbrains.annotations.Nullable;
 import com.mojang.serialization.Dynamic;
 import java.util.List;
 import java.util.Optional;

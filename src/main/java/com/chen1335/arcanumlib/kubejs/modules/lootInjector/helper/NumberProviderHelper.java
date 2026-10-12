@@ -1,4 +1,4 @@
-package com.chen1335.arcanumlib.kubejs.helper;
+package com.chen1335.arcanumlib.kubejs.modules.lootInjector.helper;
 
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
@@ -11,7 +11,6 @@ import net.minecraft.resources.RegistryOps;
 import net.minecraft.resources.ResourceLocation;
 import java.util.List;
 import net.minecraft.commands.arguments.NbtPathArgument;
-import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.item.enchantment.LevelBasedValue;
 import net.minecraft.world.level.storage.loot.providers.number.BinomialDistributionGenerator;
 import net.minecraft.world.level.storage.loot.providers.number.ConstantValue;
@@ -22,10 +21,6 @@ import net.minecraft.world.level.storage.loot.providers.number.ScoreboardValue;
 import net.minecraft.world.level.storage.loot.providers.number.StorageValue;
 import net.minecraft.world.level.storage.loot.providers.number.UniformGenerator;
 import net.minecraft.world.level.storage.loot.providers.score.ScoreboardNameProvider;
-import net.minecraft.world.scores.Objective;
-import net.minecraft.world.scores.Scoreboard;
-
-import java.util.List;
 
 /**
  * 数字提供器的脚本工厂：本模组用到的原版数字提供器（{@code minecraft:constant} / {@code uniform} / {@code binomial} / {@code score} / {@code storage} / {@code enchantment_level}）。

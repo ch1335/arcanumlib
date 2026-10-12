@@ -20,5 +20,6 @@ public class AttributeEvents {
         event.add(EntityType.PLAYER, ArcanumAttributes.SEEKING);
         event.add(EntityType.PLAYER, ArcanumAttributes.FORTUNE);
         event.add(EntityType.PLAYER, ArcanumAttributes.LOOTING);
+        event.add(EntityType.PLAYER, ArcanumAttributes.BONUS_LOOT);
     }
 }

@@ -38,6 +38,16 @@ public final class ArcanumAttributes {
             () -> new RangedAttribute("attribute.name.arcanumlib.looting", 0.0D, 0.0D, 100.0D)
                     .setSyncable(true));
 
+    /**
+     * 额外战利品：按这个倍率对同一张表额外摇取若干份，追加到原结果里。
+     * 字面值就是倍率（0.25 = 再多 25%），默认只对实体掉落与箱子战利品生效，前缀见配置。
+     * 基础值 0，默认不生效；上限 20（即最多再多 20 倍）。
+     */
+    public static final DeferredHolder<Attribute, Attribute> BONUS_LOOT = ATTRIBUTES.register(
+            "bonus_loot",
+            () -> new PercentageAttribute("attribute.name.arcanumlib.bonus_loot", 0.0D, 0.0D, 20.0D)
+                    .setSyncable(true));
+
     private ArcanumAttributes() {
     }
 }

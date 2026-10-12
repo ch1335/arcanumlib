@@ -1,17 +1,19 @@
 package com.chen1335.arcanumlib.kubejs;
 
-import com.chen1335.arcanumlib.kubejs.event.EntryCustomKubeEvent;
-import com.chen1335.arcanumlib.kubejs.event.LootInjectorApplyKubeEvent;
-import com.chen1335.arcanumlib.kubejs.event.PoolCustomKubeEvent;
-import com.chen1335.arcanumlib.kubejs.event.RegisterLootInjectorKubeEvent;
-import com.chen1335.arcanumlib.kubejs.event.TableCustomKubeEvent;
-import com.chen1335.arcanumlib.kubejs.event.CustomConditionSelectorKubeEvent;
-import com.chen1335.arcanumlib.kubejs.event.CustomEntrySelectorKubeEvent;
-import com.chen1335.arcanumlib.kubejs.event.CustomFunctionSelectorKubeEvent;
-import com.chen1335.arcanumlib.kubejs.event.CustomPoolSelectorKubeEvent;
-import com.chen1335.arcanumlib.kubejs.event.CustomTableSelectorKubeEvent;
+import com.chen1335.arcanumlib.kubejs.modules.lootInjector.event.EntryCustomKubeEvent;
+import com.chen1335.arcanumlib.kubejs.modules.lootInjector.event.LootInjectorApplyKubeEvent;
+import com.chen1335.arcanumlib.kubejs.modules.lootInjector.event.PoolCustomKubeEvent;
+import com.chen1335.arcanumlib.kubejs.modules.lootInjector.event.RegisterLootInjectorKubeEvent;
+import com.chen1335.arcanumlib.kubejs.modules.lootInjector.event.TableCustomKubeEvent;
+import com.chen1335.arcanumlib.kubejs.modules.lootInjector.event.CustomConditionSelectorKubeEvent;
+import com.chen1335.arcanumlib.kubejs.modules.lootInjector.event.CustomEntrySelectorKubeEvent;
+import com.chen1335.arcanumlib.kubejs.modules.lootInjector.event.CustomFunctionSelectorKubeEvent;
+import com.chen1335.arcanumlib.kubejs.modules.lootInjector.event.CustomPoolSelectorKubeEvent;
+import com.chen1335.arcanumlib.kubejs.modules.lootInjector.event.CustomTableSelectorKubeEvent;
 import dev.latvian.mods.kubejs.event.EventGroup;
 import dev.latvian.mods.kubejs.event.EventHandler;
+import com.chen1335.arcanumlib.kubejs.modules.bonusLoot.BonusLootCheckKubeEvent;
+import com.chen1335.arcanumlib.kubejs.modules.bonusLoot.ModifyBonusLootKubeEvent;
 
 /**
  * ArcanumLib 的脚本事件组：脚本里写 {@code ArcanumLibEvents.xxx(event => ...)} 就能监听。
@@ -51,4 +53,10 @@ public interface ArcanumLibKubeJSEvents {
 
     /** 判定条件选择器 {@code custom} 时。 */
     EventHandler CUSTOM_CONDITION_SELECTOR = GROUP.server("customConditionSelector", () -> CustomConditionSelectorKubeEvent.class).hasResult();
+
+    /** 判断某张表要不要吃额外战利品增幅；**优先级高于配置**。`return true/false` 或 `event.allow()` / `event.deny()`。 */
+    EventHandler BONUS_LOOT_CHECK = GROUP.server("bonusLootCheck", () -> BonusLootCheckKubeEvent.class).hasResult();
+
+    /** 即将用额外战利品增幅时：可改倍率，也可 `event.cancel()` 取消。 */
+    EventHandler MODIFY_BONUS_LOOT = GROUP.server("modifyBonusLoot", () -> ModifyBonusLootKubeEvent.class);
 }

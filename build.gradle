@@ -24,10 +24,6 @@ base {
 // Mojang ships Java 21 to end users starting in 1.20.5, so mods should target Java 21.
 java.toolchain.languageVersion = JavaLanguageVersion.of(21)
 
-java {
-    withSourcesJar()
-}
-
 neoForge {
     // Specify the version of NeoForge to use.
     version = project.neo_version
@@ -226,8 +222,25 @@ idea {
 java {
     withSourcesJar()
 }
+
+compileJava.options.compilerArgs.add '-parameters'
+compileTestJava.options.compilerArgs.add '-parameters'
+
 // 让分发的 jar 里带上许可证正文（LGPLv3 要求随库附带条款）
 tasks.named('jar', Jar).configure {
+    // 测试代码与测试用的注入器数据不进分发产物；开发时的 runData / runServer 不受影响
+    exclude 'com/chen1335/arcanumlib/test/**'
+    exclude 'data/arcanumlib/loot_injecter/**'
+
+    from('LICENSE') { into 'META-INF' }
+    from('COPYING') { into 'META-INF' }
+}
+
+// sources jar 同样排掉测试代码与测试数据，并带上许可证正文
+tasks.named('sourcesJar', Jar).configure {
+    exclude 'com/chen1335/arcanumlib/test/**'
+    exclude 'data/arcanumlib/loot_injecter/**'
+
     from('LICENSE') { into 'META-INF' }
     from('COPYING') { into 'META-INF' }
 }

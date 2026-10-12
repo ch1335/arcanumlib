@@ -45,7 +45,9 @@
   "attribute.name.arcanumlib.fortune": "Fortune",
   "attribute.name.arcanumlib.fortune.desc": "Raises your Fortune enchantment level",
   "attribute.name.arcanumlib.looting": "Looting",
-  "attribute.name.arcanumlib.looting.desc": "Raises your Looting enchantment level"
+  "attribute.name.arcanumlib.looting.desc": "Raises your Looting enchantment level",
+  "attribute.name.arcanumlib.bonus_loot": "Bonus Loot",
+  "attribute.name.arcanumlib.bonus_loot.desc": "Chance for extra loot from entity drops and chests"
 ,
   "arcanumlib.command.export.success": "ArcanumLib: exported %1$s modified + %2$s original loot tables to %3$s",
   "arcanumlib.command.export.failed": "ArcanumLib: export failed - %1$s",

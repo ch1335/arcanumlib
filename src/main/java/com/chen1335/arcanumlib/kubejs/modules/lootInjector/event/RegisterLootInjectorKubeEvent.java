@@ -1,4 +1,4 @@
-package com.chen1335.arcanumlib.kubejs.event;
+package com.chen1335.arcanumlib.kubejs.modules.lootInjector.event;
 
 import com.chen1335.arcanumlib.modules.loot.lootInjector.LootInjector;
 import com.chen1335.arcanumlib.modules.loot.lootInjector.event.LootInjectorRegisterEvent;
