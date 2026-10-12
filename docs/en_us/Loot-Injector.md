@@ -20,7 +20,7 @@ without touching vanilla data and without fighting other mods over block/entity 
 7. [Pool Selectors (9)](#7-pool-selectors-9)
 8. [Pool-Level Operators (12)](#8-pool-level-operators-12)
 9. [Entry Selectors (15)](#9-entry-selectors-15)
-10. [Entry-Level Operators (13)](#10-entry-level-operators-13)
+10. [Entry-Level Operators (17)](#10-entry-level-operators-17)
 11. [Function Selectors (9)](#11-function-selectors-9)
 12. [Function-Level Operators (3)](#12-function-level-operators-3)
 13. [Condition Selectors (8)](#13-condition-selectors-8)
@@ -29,8 +29,7 @@ without touching vanilla data and without fighting other mods over block/entity 
 16. [Extension Points for Mods](#16-extension-points-for-mods)
 17. [Recipes: Common Tasks](#17-recipes-common-tasks)
 18. [Writing Injectors with Datagen](#18-writing-injectors-with-datagen)
-19. [Cheat Sheet](#19-cheat-sheet)
-20. [Semantic Boundaries and Pitfalls](#20-semantic-boundaries-and-pitfalls)
+19. [Semantic Boundaries and Pitfalls](#19-semantic-boundaries-and-pitfalls)
 21. [Loot Conditions Provided by This Mod](#21-loot-conditions-provided-by-this-mod)
 
 ---
@@ -692,7 +691,7 @@ Written inside `modify_pool.ops`. Registry: `arcanumlib:pool_operator`.
 
 #### 8.3 `modify_entry` — Scope: apply the child ops on the matched entries in the current pool
 - `*entrySelector`: <EntrySelector> selects the entries to modify, see [9. Entry Selectors](#9-entry-selectors-15).
-- `*ops`: <json array> a list of entry-level operators, see [10. Entry-Level Operators](#10-entry-level-operators-13).
+- `*ops`: <json array> a list of entry-level operators, see [10. Entry-Level Operators](#10-entry-level-operators-17).
 
 ```json
 {
@@ -1053,11 +1052,15 @@ Written inside `modify_entry.entrySelector`. Registry: `arcanumlib:entry_selecto
 ```
 
 ---
-## 10. Entry-Level Operators (13)
+> To **change** what is inside those children, use the entry-level ops `modify_child` / `add_child` / `remove_child` / `move_child` (see 10.14-10.17).
+## 10. Entry-Level Operators (17)
 
 Written inside `modify_entry.ops`. Registry: `arcanumlib:entry_operator`.
 
 **Entries**:
+
+> The `modify_child` / `add_child` / `remove_child` / `move_child` ops in this section **only work on composite entries** (`alternatives` / `group` / `sequence`); see each subsection.
+> Mind the scope: `add_child` / `remove_child` / `move_child` all act on **the current entry's** children, so to change a composite you must make **that composite the current entry** (typically by putting these ops in a `modify_entry` whose `entry_type` selects `alternatives` / `group` / `sequence`); `modify_child` is for descending **into a child**. Do not mix the two.
 
 - [10.1 `remove_entry`](#101-remove_entry--delete-the-current-entry) — Delete the current entry
 - [10.2 `replace_entry`](#102-replace_entry--replace-the-current-entry-with-a-new-one-one-independent-instance-per-site) — Replace the current entry with a new one (one independent instance per site)
@@ -1072,6 +1075,10 @@ Written inside `modify_entry.ops`. Registry: `arcanumlib:entry_operator`.
 - [10.11 `add_function`](#1011-add_function--append-to-the-current-entrys-function-list-composite-entries-are-skipped) — Append to the current entry's function list (composite entries are skipped)
 - [10.12 `remove_function`](#1012-remove_function--remove-the-current-entrys-functions-by-type-id-composite-entries-are-skipped) — Remove the current entry's functions by type id (composite entries are skipped)
 - [10.13 `entry_custom`](#1013-entry_custom--handed-to-the-listeners-of-entrycustomopevent) — Handed to the listeners of `EntryCustomOpEvent`
+- [10.14 `modify_child`](#1014-modify_child--modify-children) — Modify children
+- [10.15 `add_child`](#1015-add_child--insert-a-branch) — Insert a branch into a composite
+- [10.16 `remove_child`](#1016-remove_child--remove-branches) — Remove children by selector
+- [10.17 `move_child`](#1017-move_child--reorder-branches) — Reorder children
 
 #### 10.1 `remove_entry` — Delete the current entry
 - No parameters.
@@ -1268,6 +1275,68 @@ Written inside `modify_entry.ops`. Registry: `arcanumlib:entry_operator`.
 ```
 
 ---
+#### 10.14 `modify_child` — Modify Children
+
+> Only applies to **composite entries** (`alternatives` / `group` / `sequence`): when the current entry is not a composite the op is **skipped** and nothing changes.
+
+- `entrySelector`: <EntrySelector> which children receive the sub-ops (default `any`, i.e. all of them);
+- `ops`: <List of EntryOperator> applied to the selected children in order (default empty).
+
+```json
+{
+  "type": "arcanumlib:modify_child",
+  "entrySelector": { "type": "arcanumlib:entry_type", "entryType": "minecraft:group" },
+  "ops": [
+    { "type": "arcanumlib:remove_child", "entrySelector": { "type": "arcanumlib:index", "index": 1 } }
+  ]
+}
+```
+
+#### 10.15 `add_child` — Insert a Branch
+
+> Only applies to **composite entries** (`alternatives` / `group` / `sequence`): when the current entry is not a composite the op is **skipped** and nothing changes.
+
+- `entry`: <entry> **required**, the branch to insert;
+- `index`: <Int> **optional**, where to insert it (defaults to appending at the end, which keeps existing priorities).
+
+```json
+{
+  "type": "arcanumlib:add_child",
+  "index": 0,
+  "entry": { "type": "minecraft:item", "name": "minecraft:diamond" }
+}
+```
+
+#### 10.16 `remove_child` — Remove Branches
+
+> Only applies to **composite entries** (`alternatives` / `group` / `sequence`): when the current entry is not a composite the op is **skipped** and nothing changes.
+
+- `entrySelector`: <EntrySelector> which children to remove (default `any`, i.e. all; every match is removed).
+
+```json
+{
+  "type": "arcanumlib:remove_child",
+  "entrySelector": { "type": "arcanumlib:item", "item": "minecraft:stick" }
+}
+```
+
+#### 10.17 `move_child` — Reorder Branches
+
+> Only applies to **composite entries** (`alternatives` / `group` / `sequence`): when the current entry is not a composite the op is **skipped** and nothing changes.
+
+- `entrySelector`: <EntrySelector> the child to move (default `any`; only the first match is moved);
+- `position`: <String> `first` / `last` / `index` (default `first`);
+- `index`: <Int> the target slot when `position` is `index` (default 0).
+
+> The order of `alternatives` children **is** the priority: moving a branch to `first` makes it win first.
+
+```json
+{
+  "type": "arcanumlib:move_child",
+  "entrySelector": { "type": "arcanumlib:entry_type", "entryType": "minecraft:group" },
+  "position": "first"
+}
+```
 ## 11. Function Selectors (9)
 
 Written inside `modify_function.functionSelector`. Registry: `arcanumlib:function_selector`.
@@ -1421,7 +1490,7 @@ Written inside `modify_function.ops`. Registry: `arcanumlib:function_operator`.
 
 - [12.1 `remove_function`](#121-remove_function--delete-the-current-function) — Delete the current function
 - [12.2 `replace_function`](#122-replace_function--replace-the-current-function-with-a-new-one-one-independent-instance-per-site) — Replace the current function with a new one (one independent instance per site)
-- [12.3 `modify_condition`](#123-modify_condition--scope-descend-into-the-current-functions-own-conditions-non-conditional-functions-such-as-set_count-have-no-conditions-and-are-skipped) — Scope: descend into **the current function's own conditions**; non-conditional functions (such as `set_count`) have no conditions and are skipped
+- [12.3 `modify_condition`](#123-modify_condition--scope-reach-into-the-current-functions-own-conditions-non-conditional-functions-such-as-set_count-have-no-conditions-and-are-skipped) — Scope: reach into **the current function's own conditions**; non-conditional functions (such as `set_count`) have no conditions and are skipped
 
 #### 12.1 `remove_function` — Delete the current function
 - No parameters.
@@ -1446,7 +1515,7 @@ Written inside `modify_function.ops`. Registry: `arcanumlib:function_operator`.
 }
 ```
 
-#### 12.3 `modify_condition` — Scope: descend into **the current function's own conditions**; non-conditional functions (such as `set_count`) have no conditions and are skipped
+#### 12.3 `modify_condition` — Scope: reach into **the current function's own conditions**; non-conditional functions (such as `set_count`) have no conditions and are skipped
 - `*conditionSelector`: <ConditionSelector> selects the conditions to modify, see [13. Condition Selectors](#13-condition-selectors-8).
 - `*ops`: <json array> a list of condition-level operators, see [14. Condition-Level Operators](#14-condition-level-operators-2).
 
@@ -2115,59 +2184,7 @@ public final class MyDatagen {
 
 ---
 
-## 19. Cheat Sheet
-
-### All Ops (37)
-
-| Layer | id |
-|---|---|
-| Table (7) | `add_pool`, `modify_pool`, `modify_function`, `set_function`, `add_function`, `remove_function`, `table_custom` |
-| Pool (12) | `remove_pool`, `add_entry`, `modify_entry`, `modify_function`, `modify_condition`, `set_condition`, `add_condition`, `remove_condition`, `set_function`, `add_function`, `remove_function`, `pool_custom` |
-| Entry (13) | `remove_entry`, `replace_entry`, `set_weight`, `set_quality`, `modify_function`, `modify_condition`, `set_condition`, `add_condition`, `remove_condition`, `set_function`, `add_function`, `remove_function`, `entry_custom` |
-| Function (3) | `remove_function`, `replace_function`, `modify_condition` |
-| Condition (2) | `remove_condition`, `replace_condition` |
-
-### All Selectors (53)
-
-| Family | id | Optional fields |
-|---|---|---|
-| Table (13) | `all` / `id` / `namespace` / `path_prefix` / `entity_tag` / `block_tag` / `entity_type` / `block_type` / `not` / `any_of` / `all_of` / `has_pool` / `custom` | `id`, `namespace`, `prefix`, `tag`, `entity`, `block`, `condition`, `conditions`, `pool`, `custom_id` |
-| Pool (9) | `any` / `index` / `name` / `has_entry` / `total_weight` / `not` / `any_of` / `all_of` / `custom` | `index`, `name`, `entrySelector`, `min`, `max`, `condition`, `conditions`, `custom_id` |
-| Entry (15) | `any` / `index` / `item` / `tag` / `item_with_tag` / `entry_type` / `weight_in_range` / `weight_share` / `has_condition` / `has_function` / `has_child` / `not` / `any_of` / `all_of` / `custom` | `index`, `item`, `tag`, `entryType`, `min`, `max`, `conditionType`, `functionType`, `entrySelector`, `condition`, `conditions`, `custom_id` |
-| Function (9) | `any` / `index` / `function_type` / `has_condition` / `not` / `any_of` / `all_of` / `match` / `custom` | `index`, `functionType`, `conditionType`, `selector`, `selectors`, `function`, `strict`, `custom_id` |
-| Condition (8) | `any` / `index` / `condition_type` / `not` / `any_of` / `all_of` / `match` / `custom` | `index`, `conditionType`, `selector`, `selectors`, `condition`, `strict`, `custom_id` |
-
-> Note that two field names are inconsistent (for historical reasons; **the actual field names are what counts**):
-> `not` on table/pool/entry selectors uses the `condition` field, while `not` on function/condition selectors uses `selector`;
-> `any_of`/`all_of` use `conditions` on the table/pool/entry side and `selectors` on the function/condition side.
-
-### The Same id Appears in Several Families / Layers (This Is Normal)
-
-Every family has its own registry, and the same id is **registered once in each of those registries**; json disambiguates by **the field it sits in / the level it sits at**:
-
-| Duplicated id | Appears in |
-|---|---|
-| `any`, `index`, `not`, `any_of`, `all_of`, `custom` | **One copy in each** of the five selector families |
-| `set_function`, `add_function`, `remove_function` | Table / Pool / Entry / Function / Condition — they act on **their own container's** function list |
-| `set_condition`, `add_condition`, `remove_condition` | Pool / Entry / Condition |
-| `remove_function`, `replace_function` | They can also appear at **function level**, but there they act on "the current function" itself rather than on some container |
-
-So `{"type":"arcanumlib:custom","custom_id":"x"}` written inside `tableSelector` is a table selector, and written inside `functionSelector` it is a function selector —
-**`type` does not need a family-name prefix**. Dispatch is done by `(registry, id)`, and the registry is decided by the field; writing it in the wrong place fails at parse time with "this level has no such type", and never silently takes a wrong branch.
-
-> The only ones that "carry a prefix" are the three customs on the **operator side**: `table_custom` / `pool_custom` / `entry_custom`.
-> Each of them is the only custom entry point at its level, and the prefix makes them easier to read; selector-side `custom`, by contrast, follows the style of "generic ids carry no prefix".
-
-### Type Keys for Functions and Conditions in Vanilla json
-
-- Functions: `"function": "minecraft:set_count"` (the dispatch field of `LootItemFunctions.ROOT_CODEC`)
-- Conditions: `"condition": "minecraft:random_chance"` (the dispatch field of `LootItemCondition.DIRECT_CODEC`)
-
-These two ids are exactly what you write in `remove_function.functionTypes` / `remove_condition.conditionTypes`.
-
----
-
-## 20. Semantic Boundaries and Pitfalls
+## 19. Semantic Boundaries and Pitfalls
 
 1. **Weights use a static measure**: `total_weight` / `weight_in_range` / `weight_share` exclude `quality × luck`,
    do not filter by entry conditions, and `alternatives` sums every branch. **Do not use them to reproduce the exact probability of a given roll**;
@@ -2250,3 +2267,7 @@ To test "does this entry carry this condition?", use the entry selector
 | Datagen base class and template | `modules/loot/lootInjector/data/{LootInjectorProvider,LootInjectorTemplate}.java` |
 | Access transformer | `src/main/resources/META-INF/accesstransformer.cfg` |
 | Official test data (all 37 ops and 52 of the 53 selectors have a json example; the `tableSelector` default `all` never shows up in generated output because it is the default) | `src/generated/resources/data/arcanumlib/loot_injecter/` |
+
+- A selector over a composite's children **only sees that one level**: go deeper by nesting `modify_child`; the order of `alternatives` children **is** the priority (that is what `move_child` changes).
+
+- When you change a composite's children, the pre-composed container inside it (`composedChildren`) has to be recomputed too; replacing only the `children` field will not affect drops. This mod handles it in `CompositeEntryBaseMixin`; third-party code that touches children itself must do the same.

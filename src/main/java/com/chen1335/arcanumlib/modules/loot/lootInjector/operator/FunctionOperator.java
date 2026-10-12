@@ -67,7 +67,7 @@ public interface FunctionOperator {
     }
 
     /**
-     * 作用域：钻进"当前函数"自带的条件里，对每个命中的条件跑子 ops。
+     * 作用域：钻进"当前函数"自带的条件里，对每个命中的条件应用子 ops。
      * 非条件型函数（例如 set_count）没有条件可改，直接跳过。
      */
     record ModifyCondition(ConditionSelector conditionSelector,

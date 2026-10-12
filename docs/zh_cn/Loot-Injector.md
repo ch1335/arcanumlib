@@ -20,7 +20,7 @@
 7. [池选择器（9）](#7-池选择器9)
 8. [池级操作（12）](#8-池级操作12)
 9. [条目选择器（15）](#9-条目选择器15)
-10. [条目级操作（13）](#10-条目级操作13)
+10. [条目级操作（17）](#10-条目级操作17)
 11. [函数选择器（9）](#11-函数选择器9)
 12. [函数级操作（3）](#12-函数级操作3)
 13. [条件选择器（8）](#13-条件选择器8)
@@ -29,8 +29,7 @@
 16. [给模组的扩展点](#16-给模组的扩展点)
 17. [常见任务配方](#17-常见任务配方)
 18. [用数据生成写注入器](#18-用数据生成写注入器)
-19. [速查表](#19-速查表)
-20. [语义边界与注意事项](#20-语义边界与注意事项)
+19. [语义边界与注意事项](#19-语义边界与注意事项)
 21. [本模组提供的战利品条件](#21-本模组提供的战利品条件)
 
 ---
@@ -692,7 +691,7 @@ Loot injection: 26 injectors, 1183 loot tables, 4521 applications in 36.5538 ms
 
 #### 8.3 `modify_entry` — 作用域：对当前池里命中的条目应用子 ops
 - `*entrySelector`：<EntrySelector> 选出要改的条目，见 [9. 条目选择器](#9-条目选择器15)。
-- `*ops`：<json数组> 条目级操作列表，见 [10. 条目级操作](#10-条目级操作13)。
+- `*ops`：<json数组> 条目级操作列表，见 [10. 条目级操作](#10-条目级操作17)。
 
 ```json
 {
@@ -1053,11 +1052,15 @@ Loot injection: 26 injectors, 1183 loot tables, 4521 applications in 36.5538 ms
 ```
 
 ---
-## 10. 条目级操作（13）
+> 想**改** children 里的东西，用条目级 op `modify_child` / `add_child` / `remove_child` / `move_child`（见 §10.14–§10.17）。
+## 10. 条目级操作（17）
 
 写在 `modify_entry.ops` 里。注册表：`arcanumlib:entry_operator`。
 
 **条目**：
+
+> 本节的 `modify_child` / `add_child` / `remove_child` / `move_child` **只对复合条目有效**（`alternatives` / `group` / `sequence`），详见各小节。
+> 注意作用域：`add_child` / `remove_child` / `move_child` 都是"对**当前条目**的 children 动手"，所以要改某个复合条目，得让它**自己就是当前条目**（典型写法：把这三个 op 写在 `modify_entry` 的 `ops` 里，用 `entry_type` 选中 `alternatives` / `group` / `sequence`）；`modify_child` 则是"钻进某个 child 继续操作"，两者别混用。
 
 - [10.1 `remove_entry`](#101-remove_entry--删掉当前条目) — 删掉当前条目
 - [10.2 `replace_entry`](#102-replace_entry--把当前条目换成新条目每处一份独立实例) — 把当前条目换成新条目（每处一份独立实例）
@@ -1072,6 +1075,10 @@ Loot injection: 26 injectors, 1183 loot tables, 4521 applications in 36.5538 ms
 - [10.11 `add_function`](#1011-add_function--追加到当前条目的函数列表复合条目跳过) — 追加到当前条目的函数列表（复合条目跳过）
 - [10.12 `remove_function`](#1012-remove_function--按类型-id-移除当前条目的函数复合条目跳过) — 按类型 id 移除当前条目的函数（复合条目跳过）
 - [10.13 `entry_custom`](#1013-entry_custom--交给-entrycustomopevent-的监听者) — 交给 `EntryCustomOpEvent` 的监听者
+- [10.14 `modify_child`](#1014-modify_child--修改子条目) — 修改子条目
+- [10.15 `add_child`](#1015-add_child--插入分支) — 往复合条目里插分支
+- [10.16 `remove_child`](#1016-remove_child--移除分支) — 按 selector 删 children
+- [10.17 `move_child`](#1017-move_child--调整分支顺序) — 调整 children 顺序
 
 #### 10.1 `remove_entry` — 删掉当前条目
 - 无参数。
@@ -1268,6 +1275,68 @@ Loot injection: 26 injectors, 1183 loot tables, 4521 applications in 36.5538 ms
 ```
 
 ---
+#### 10.14 `modify_child` — 修改子条目
+
+> 只对**复合条目**（`alternatives` / `group` / `sequence`）生效：当前条目不是复合条目时**跳过**，什么都不改。
+
+- `entrySelector`：<EntrySelector> 选中哪些 child 应用子 ops（默认 `any`，即全部）；
+- `ops`：<EntryOperator 列表> 对选中的 child 依次应用（默认空）。
+
+```json
+{
+  "type": "arcanumlib:modify_child",
+  "entrySelector": { "type": "arcanumlib:entry_type", "entryType": "minecraft:group" },
+  "ops": [
+    { "type": "arcanumlib:remove_child", "entrySelector": { "type": "arcanumlib:index", "index": 1 } }
+  ]
+}
+```
+
+#### 10.15 `add_child` — 插入分支
+
+> 只对**复合条目**（`alternatives` / `group` / `sequence`）生效：当前条目不是复合条目时**跳过**，什么都不改。
+
+- `entry`：<条目> **必填**，要插入的分支；
+- `index`：<Int> **可选**，插入位置（默认追加到末尾，不改变既有优先级）。
+
+```json
+{
+  "type": "arcanumlib:add_child",
+  "index": 0,
+  "entry": { "type": "minecraft:item", "name": "minecraft:diamond" }
+}
+```
+
+#### 10.16 `remove_child` — 移除分支
+
+> 只对**复合条目**（`alternatives` / `group` / `sequence`）生效：当前条目不是复合条目时**跳过**，什么都不改。
+
+- `entrySelector`：<EntrySelector> 移除哪些 child（默认 `any`，即全部；命中的都移除）。
+
+```json
+{
+  "type": "arcanumlib:remove_child",
+  "entrySelector": { "type": "arcanumlib:item", "item": "minecraft:stick" }
+}
+```
+
+#### 10.17 `move_child` — 调整分支顺序
+
+> 只对**复合条目**（`alternatives` / `group` / `sequence`）生效：当前条目不是复合条目时**跳过**，什么都不改。
+
+- `entrySelector`：<EntrySelector> 要搬的 child（默认 `any`；只搬第一个命中的）；
+- `position`：<String> `first` / `last` / `index`（默认 `first`）；
+- `index`：<Int> `position` 为 `index` 时的目标位置（默认 0）。
+
+> `alternatives` 的 children 顺序就是优先级：把分支搬到 `first` 就等于让它优先命中。
+
+```json
+{
+  "type": "arcanumlib:move_child",
+  "entrySelector": { "type": "arcanumlib:entry_type", "entryType": "minecraft:group" },
+  "position": "first"
+}
+```
 ## 11. 函数选择器（9）
 
 写在 `modify_function.functionSelector` 里。注册表：`arcanumlib:function_selector`。
@@ -1421,7 +1490,7 @@ Loot injection: 26 injectors, 1183 loot tables, 4521 applications in 36.5538 ms
 
 - [12.1 `remove_function`](#121-remove_function--删掉当前函数) — 删掉当前函数
 - [12.2 `replace_function`](#122-replace_function--把当前函数换成新函数每处一份独立实例) — 把当前函数换成新函数（每处一份独立实例）
-- [12.3 `modify_condition`](#123-modify_condition--作用域钻进当前函数自带的条件非条件型函数如-set_count没有条件跳过) — 作用域：钻进**当前函数自带的条件**；非条件型函数（如 `set_count`）没有条件，跳过
+- [12.3 `modify_condition`](#123-modify_condition--作用域深入到当前函数自带的条件非条件型函数如-set_count没有条件跳过) — 作用域：深入到**当前函数自带的条件**；非条件型函数（如 `set_count`）没有条件，跳过
 
 #### 12.1 `remove_function` — 删掉当前函数
 - 无参数。
@@ -1446,7 +1515,7 @@ Loot injection: 26 injectors, 1183 loot tables, 4521 applications in 36.5538 ms
 }
 ```
 
-#### 12.3 `modify_condition` — 作用域：钻进**当前函数自带的条件**；非条件型函数（如 `set_count`）没有条件，跳过
+#### 12.3 `modify_condition` — 作用域：深入到**当前函数自带的条件**；非条件型函数（如 `set_count`）没有条件，跳过
 - `*conditionSelector`：<ConditionSelector> 选出要改的条件，见 [13. 条件选择器](#13-条件选择器8)。
 - `*ops`：<json数组> 条件级操作列表，见 [14. 条件级操作](#14-条件级操作2)。
 
@@ -2115,59 +2184,7 @@ public final class MyDatagen {
 
 ---
 
-## 19. 速查表
-
-### 全部 op（37）
-
-| 层 | id |
-|---|---|
-| 表（7） | `add_pool`、`modify_pool`、`modify_function`、`set_function`、`add_function`、`remove_function`、`table_custom` |
-| 池（12） | `remove_pool`、`add_entry`、`modify_entry`、`modify_function`、`modify_condition`、`set_condition`、`add_condition`、`remove_condition`、`set_function`、`add_function`、`remove_function`、`pool_custom` |
-| 条目（13） | `remove_entry`、`replace_entry`、`set_weight`、`set_quality`、`modify_function`、`modify_condition`、`set_condition`、`add_condition`、`remove_condition`、`set_function`、`add_function`、`remove_function`、`entry_custom` |
-| 函数（3） | `remove_function`、`replace_function`、`modify_condition` |
-| 条件（2） | `remove_condition`、`replace_condition` |
-
-### 全部选择器（53）
-
-| 族 | id | 可选字段 |
-|---|---|---|
-| 表（13） | `all` / `id` / `namespace` / `path_prefix` / `entity_tag` / `block_tag` / `entity_type` / `block_type` / `not` / `any_of` / `all_of` / `has_pool` / `custom` | `id`、`namespace`、`prefix`、`tag`、`entity`、`block`、`condition`、`conditions`、`custom_id` |
-| 池（9） | `any` / `index` / `name` / `has_entry` / `total_weight` / `not` / `any_of` / `all_of` / `custom` | `index`、`name`、`entrySelector`、`min`、`max`、`condition`、`conditions`、`custom_id` |
-| 条目（15） | `any` / `index` / `item` / `tag` / `item_with_tag` / `entry_type` / `weight_in_range` / `weight_share` / `has_condition` / `has_function` / `has_child` / `not` / `any_of` / `all_of` / `custom` | `index`、`item`、`tag`、`entryType`、`min`、`max`、`conditionType`、`functionType`、`entrySelector`、`condition`、`conditions`、`custom_id` |
-| 函数（9） | `any` / `index` / `function_type` / `has_condition` / `not` / `any_of` / `all_of` / `match` / `custom` | `index`、`functionType`、`conditionType`、`selector`、`selectors`、`function`、`strict`、`custom_id` |
-| 条件（8） | `any` / `index` / `condition_type` / `not` / `any_of` / `all_of` / `match` / `custom` | `index`、`conditionType`、`selector`、`selectors`、`condition`、`strict`、`custom_id` |
-
-> 注意字段名有两处不统一（历史原因，**以实际字段名为准**）：
-> 表/池/条目选择器的 `not` 用 `condition` 字段，而函数/条件选择器的 `not` 用 `selector`；
-> `any_of`/`all_of` 在表/池/条目侧是 `conditions`，在函数/条件侧是 `selectors`。
-
-### 同一个 id 会在多族 / 多层重复出现（正常现象）
-
-每一族都有自己的注册表，同一个 id 会在**各自的注册表里各注册一份**，json 里靠**所在字段 / 所在层级**消歧：
-
-| 重复的 id | 出现在 |
-|---|---|
-| `any`、`index`、`not`、`any_of`、`all_of`、`custom` | 五个选择器族**各一份** |
-| `set_function`、`add_function`、`remove_function` | 表 / 池 / 条目 / 函数 / 条件 —— 作用的是**各自那个容器的**函数列表 |
-| `set_condition`、`add_condition`、`remove_condition` | 池 / 条目 / 条件 |
-| `remove_function`、`replace_function` | 也可以在**函数级**出现，但那时作用的是"当前函数"本身，而不是某个容器 |
-
-所以 `{"type":"arcanumlib:custom","custom_id":"x"}` 写在 `tableSelector` 里就是表选择器、写在 `functionSelector` 里就是函数选择器——
-**`type` 不需要带族名前缀**。分发是按 `(注册表, id)` 做的，而注册表由字段决定；写错位置会在解析期直接报"这一层没有这个类型"，不会静默走错分支。
-
-> 唯一"带前缀"的是**操作侧**的三个自定义：`table_custom` / `pool_custom` / `entry_custom`。
-> 它们各自是所在层级唯一的自定义入口，带前缀便于阅读；选择器侧的 `custom` 则遵循"通用 id 不带前缀"的风格。
-
-### 原版 json 里函数与条件的类型 key
-
-- 函数：`"function": "minecraft:set_count"`（`LootItemFunctions.ROOT_CODEC` 的分发字段）
-- 条件：`"condition": "minecraft:random_chance"`（`LootItemCondition.DIRECT_CODEC` 的分发字段）
-
-`remove_function.functionTypes` / `remove_condition.conditionTypes` 里写的就是这两个 id。
-
----
-
-## 20. 语义边界与注意事项
+## 19. 语义边界与注意事项
 
 1. **权重是静态口径**：`total_weight` / `weight_in_range` / `weight_share` 不含 `quality × 幸运`、
    不按条目条件过滤、`alternatives` 把所有分支都累加。**不要用它们精确复现某次掷骰的概率**，
@@ -2250,3 +2267,7 @@ public final class MyDatagen {
 | datagen 基类与模板 | `modules/loot/lootInjector/data/{LootInjectorProvider,LootInjectorTemplate}.java` |
 | 访问转换器 | `src/main/resources/META-INF/accesstransformer.cfg` |
 | 官方测试数据（37 个 op 与 52 个选择器都有 json 示例；`tableSelector` 的默认值 `all` 因为是默认值不会出现在生成物里） | `src/generated/resources/data/arcanumlib/loot_injecter/` |
+
+- 复合条目 children 上的 selector **只作用于该层**：要更深处就用 `modify_child` 一层层下去；`alternatives` 的 children 顺序就是优先级（`move_child` 调的就是它）。
+
+- 改复合条目的 children 时，内里预先组合出来的容器（`composedChildren`）必须一起重算 —— 只换 `children` 字段不会影响掉落。本模组由 `CompositeEntryBaseMixin` 处理；第三方代码自行改 children 时也要注意。

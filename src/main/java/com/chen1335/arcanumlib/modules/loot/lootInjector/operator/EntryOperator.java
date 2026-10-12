@@ -2,6 +2,8 @@ package com.chen1335.arcanumlib.modules.loot.lootInjector.operator;
 
 import com.chen1335.arcanumlib.modules.loot.lootInjector.LootInjectorOps;
 import com.chen1335.arcanumlib.modules.loot.lootInjector.event.EntryCustomOpEvent;
+import com.chen1335.arcanumlib.ArcanumLib;
+import com.chen1335.arcanumlib.modules.loot.lootInjector.selector.EntrySelector;
 import com.chen1335.arcanumlib.modules.loot.lootInjector.selector.ConditionSelector;
 import com.chen1335.arcanumlib.modules.loot.lootInjector.selector.FunctionSelector;
 import com.google.gson.JsonElement;
@@ -17,6 +19,7 @@ import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.resources.RegistryOps;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.level.storage.loot.LootPool;
+import net.minecraft.world.level.storage.loot.entries.CompositeEntryBase;
 import net.minecraft.world.level.storage.loot.entries.LootPoolEntries;
 import net.minecraft.world.level.storage.loot.entries.LootPoolEntryContainer;
 import net.minecraft.world.level.storage.loot.entries.LootPoolSingletonContainer;
@@ -255,7 +258,7 @@ public interface EntryOperator {
         }
     }
 
-    /** 作用域：对"当前条目"函数列表里命中的每个函数跑子 ops；复合条目没有函数，跳过。 */
+    /** 作用域：对"当前条目"函数列表里命中的每个函数应用子 ops；复合条目没有函数，跳过。 */
     record ModifyFunction(FunctionSelector functionSelector,
                           List<FunctionOperator> ops) implements EntryOperator {
         @Override
@@ -298,7 +301,7 @@ public interface EntryOperator {
         }
     }
 
-    /** 作用域：对"当前条目"条件里命中的每个条件跑子 ops。 */
+    /** 作用域：对"当前条目"条件里命中的每个条件应用子 ops。 */
     record ModifyCondition(ConditionSelector conditionSelector,
                            List<ConditionOperator> ops) implements EntryOperator {
         @Override
@@ -355,6 +358,199 @@ public interface EntryOperator {
         public void apply(LootPool pool, List<LootPoolEntryContainer> entries, int index,
                           HolderLookup.Provider registries) {
             EntryCustomOpEvent.post(this.id, this.data.orElseGet(CompoundTag::new), pool, entries, index, registries);
+        }
+    }
+    /**
+     * 复合条目的 {@code children} 在 vanilla 是 final，改之前先换成可变列表
+     * （与 {@code PoolOperator.mutableEntries} 同一手法）。
+     */
+    static List<LootPoolEntryContainer> mutableChildren(CompositeEntryBase composite) {
+        List<LootPoolEntryContainer> children = new ArrayList<>(composite.children);
+        // 交给 mixin 换 children 并重算 composedChildren（只改字段掷骰仍走旧列表）
+        ((CompositeChildrenAccess) composite).arcanumlib$replaceChildren(children);
+
+        return children;
+    }
+
+    /** 按 codec 复制一个条目，避免同一个注入器作用于多张表时共享同一实例。 */
+    static LootPoolEntryContainer copyEntry(LootPoolEntryContainer entry, HolderLookup.Provider registries) {
+        RegistryOps<JsonElement> ops = RegistryOps.create(JsonOps.INSTANCE, registries);
+
+        return LootPoolEntries.CODEC.parse(ops, LootPoolEntries.CODEC.encodeStart(ops, entry).getOrThrow())
+                .getOrThrow();
+    }
+
+    /**
+     * 修改子条目：对"当前条目"的 children 运行子 ops。当前条目不是复合条目就跳过。
+     * 嵌套 {@code modify_child} 即可逐层下去，一层一个 selector。
+     */
+    record ModifyChild(EntrySelector entrySelector, List<EntryOperator> ops) implements EntryOperator {
+        @Override
+        public EntryOperatorType getType() {
+            return LootInjectorOps.ENTRY_MODIFY_CHILD.get();
+        }
+
+        public static final MapCodec<ModifyChild> CODEC = RecordCodecBuilder.mapCodec(instance -> instance.group(
+                EntrySelector.CODEC.optionalFieldOf("entrySelector", new EntrySelector.Any())
+                        .forGetter(ModifyChild::entrySelector),
+                EntryOperator.CODEC.listOf().optionalFieldOf("ops", List.of()).forGetter(ModifyChild::ops))
+                .apply(instance, ModifyChild::new));
+
+        @Override
+        public void apply(LootPool pool, List<LootPoolEntryContainer> entries, int index,
+                          HolderLookup.Provider registries) {
+            if (!(entries.get(index) instanceof CompositeEntryBase composite)) {
+                // 写错目标时最常见的坑：当前条目不是复合条目（alternatives / group / sequence），这里跳过
+                ArcanumLib.LOGGER.debug("Composite child op skipped: entry class={}, registered type={}, pool={}",
+                        entries.get(index).getClass().getName(),
+                        BuiltInRegistries.LOOT_POOL_ENTRY_TYPE.getKey(entries.get(index).getType()),
+                        pool);
+                return;
+            }
+
+            List<LootPoolEntryContainer> children = mutableChildren(composite);
+
+            // 快照遍历：子 op 可能删 child，直接按下标走会跳项
+            for (LootPoolEntryContainer child : List.copyOf(children)) {
+                int at = children.indexOf(child);
+
+                if (at < 0 || !this.entrySelector.test(at, child, pool, registries)) {
+                    continue;
+                }
+
+                for (EntryOperator op : this.ops) {
+                    int current = children.indexOf(child);
+
+                    if (current < 0) {
+                        break;
+                    }
+
+                    op.apply(pool, children, current, registries);
+                }
+            }
+        }
+    }
+
+    /** 往"当前复合条目"里插入一个分支；index 省略时追加到末尾（不改变既有优先级）。 */
+    record AddChild(LootPoolEntryContainer entry, Optional<Integer> index) implements EntryOperator {
+        @Override
+        public EntryOperatorType getType() {
+            return LootInjectorOps.ENTRY_ADD_CHILD.get();
+        }
+
+        public static final MapCodec<AddChild> CODEC = RecordCodecBuilder.mapCodec(instance -> instance.group(
+                LootPoolEntries.CODEC.fieldOf("entry").forGetter(AddChild::entry),
+                Codec.INT.optionalFieldOf("index").forGetter(AddChild::index)).apply(instance, AddChild::new));
+
+        @Override
+        public void apply(LootPool pool, List<LootPoolEntryContainer> entries, int index,
+                          HolderLookup.Provider registries) {
+            if (!(entries.get(index) instanceof CompositeEntryBase composite)) {
+                // 写错目标时最常见的坑：当前条目不是复合条目（alternatives / group / sequence），这里跳过
+                ArcanumLib.LOGGER.debug("Composite child op skipped: entry class={}, registered type={}, pool={}",
+                        entries.get(index).getClass().getName(),
+                        BuiltInRegistries.LOOT_POOL_ENTRY_TYPE.getKey(entries.get(index).getType()),
+                        pool);
+                return;
+            }
+
+            List<LootPoolEntryContainer> children = mutableChildren(composite);
+            LootPoolEntryContainer copy = copyEntry(this.entry, registries);
+
+            if (this.index.isPresent() && this.index.get() >= 0 && this.index.get() <= children.size()) {
+                children.add(this.index.get(), copy);
+            } else {
+                children.add(copy);
+            }
+        }
+    }
+
+    /** 按 selector 移除"当前复合条目"里的 children（命中的全部移除）。 */
+    record RemoveChild(EntrySelector entrySelector) implements EntryOperator {
+        @Override
+        public EntryOperatorType getType() {
+            return LootInjectorOps.ENTRY_REMOVE_CHILD.get();
+        }
+
+        public static final MapCodec<RemoveChild> CODEC = RecordCodecBuilder.mapCodec(instance -> instance.group(
+                EntrySelector.CODEC.optionalFieldOf("entrySelector", new EntrySelector.Any())
+                        .forGetter(RemoveChild::entrySelector)).apply(instance, RemoveChild::new));
+
+        @Override
+        public void apply(LootPool pool, List<LootPoolEntryContainer> entries, int index,
+                          HolderLookup.Provider registries) {
+            if (!(entries.get(index) instanceof CompositeEntryBase composite)) {
+                // 写错目标时最常见的坑：当前条目不是复合条目（alternatives / group / sequence），这里跳过
+                ArcanumLib.LOGGER.debug("Composite child op skipped: entry class={}, registered type={}, pool={}",
+                        entries.get(index).getClass().getName(),
+                        BuiltInRegistries.LOOT_POOL_ENTRY_TYPE.getKey(entries.get(index).getType()),
+                        pool);
+                return;
+            }
+
+            List<LootPoolEntryContainer> children = mutableChildren(composite);
+
+            for (LootPoolEntryContainer child : List.copyOf(children)) {
+                int at = children.indexOf(child);
+
+                if (at >= 0 && this.entrySelector.test(at, child, pool, registries)) {
+                    children.remove(at);
+                }
+            }
+        }
+    }
+
+    /**
+     * 调整"当前复合条目"里某个 child 的位置：{@code first} / {@code last} / {@code index}。
+     * alternatives 的 children 顺序就是优先级，所以这个 op 最常用于抢优先级。只搬第一个命中的 child。
+     */
+    record MoveChild(EntrySelector entrySelector, String position, int index) implements EntryOperator {
+        @Override
+        public EntryOperatorType getType() {
+            return LootInjectorOps.ENTRY_MOVE_CHILD.get();
+        }
+
+        public static final MapCodec<MoveChild> CODEC = RecordCodecBuilder.mapCodec(instance -> instance.group(
+                EntrySelector.CODEC.optionalFieldOf("entrySelector", new EntrySelector.Any())
+                        .forGetter(MoveChild::entrySelector),
+                Codec.STRING.optionalFieldOf("position", "first").forGetter(MoveChild::position),
+                Codec.INT.optionalFieldOf("index", 0).forGetter(MoveChild::index))
+                .apply(instance, MoveChild::new));
+
+        @Override
+        public void apply(LootPool pool, List<LootPoolEntryContainer> entries, int index,
+                          HolderLookup.Provider registries) {
+            if (!(entries.get(index) instanceof CompositeEntryBase composite)) {
+                // 写错目标时最常见的坑：当前条目不是复合条目（alternatives / group / sequence），这里跳过
+                ArcanumLib.LOGGER.debug("Composite child op skipped: entry class={}, registered type={}, pool={}",
+                        entries.get(index).getClass().getName(),
+                        BuiltInRegistries.LOOT_POOL_ENTRY_TYPE.getKey(entries.get(index).getType()),
+                        pool);
+                return;
+            }
+
+            List<LootPoolEntryContainer> children = mutableChildren(composite);
+
+            for (LootPoolEntryContainer child : List.copyOf(children)) {
+                int at = children.indexOf(child);
+
+                if (at < 0 || !this.entrySelector.test(at, child, pool, registries)) {
+                    continue;
+                }
+
+                int target = switch (this.position) {
+                    case "last" -> children.size() - 1;
+                    case "index" -> Math.max(0, Math.min(this.index, children.size() - 1));
+                    default -> 0;
+                };
+
+                if (target != at) {
+                    children.remove(at);
+                    children.add(target, child);
+                }
+
+                break;
+            }
         }
     }
 }

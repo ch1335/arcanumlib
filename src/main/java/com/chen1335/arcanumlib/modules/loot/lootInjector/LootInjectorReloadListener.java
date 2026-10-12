@@ -13,7 +13,7 @@ import java.util.Map;
 
 /**
  * 读 {@code data/<ns>/loot_injecter/*.json}，但只存原始 json、不在这里解析。
- * 条件/函数要解析注册表引用，而本方法跑在 reload 阶段、那时 ServerLifecycleHooks 还是 null（实测 NPE），所以解析推迟到 applier。
+ * 条件/函数要解析注册表引用，而本方法运行在 reload 阶段、那时 ServerLifecycleHooks 还是 null（实测 NPE），所以解析推迟到 applier。
  */
 public class LootInjectorReloadListener extends SimpleJsonResourceReloadListener {
     public static final String DIRECTORY = "loot_injecter";

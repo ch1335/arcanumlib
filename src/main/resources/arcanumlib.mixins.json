@@ -4,6 +4,7 @@
   "package": "com.chen1335.arcanumlib.mixins",
   "compatibilityLevel": "JAVA_21",
   "mixins": [
+    "CompositeEntryBaseMixin",
     "MixinMinecraftServer",
     "IntrusiveBaseWeightAccessor",
     "ApplyBonusCountMixin",

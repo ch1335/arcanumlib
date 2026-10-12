@@ -315,7 +315,7 @@ public class TestLootInjectorProvider extends LootInjectorTemplate {
         list.add(raw("test_logs_remove_pool", new TableSelector.BlockTagTable(BlockTags.LOGS), 1200,
                 modifyPool(new PoolSelector.Any(), new PoolOperator.RemovePool())));
 
-        // TableSelector.All：效果是空操作（龙蛋不在任何表里），只把选择器与 remove_entry 跑一遍
+        // TableSelector.All：效果是空操作（龙蛋不在任何表里），只把选择器与 remove_entry 应用一遍
         list.add(raw("test_all_tables", new TableSelector.All(), 1500,
                 modifyPool(new PoolSelector.Any(), modifyEntry(new EntrySelector.IsItem(mc("dragon_egg")),
                         new EntryOperator.RemoveEntry()))));
@@ -366,7 +366,7 @@ public class TestLootInjectorProvider extends LootInjectorTemplate {
     }
 
     /**
-    * 池/条目选择器探针：空 ops 的作用域只求值不改动，能把各选择器跑一遍；最后一条才是真改动（地牢箱子里火药 +1）。
+    * 池/条目选择器探针：空 ops 的作用域只求值不改动，能把各选择器应用一遍；最后一条才是真改动（地牢箱子里火药 +1）。
     */
     private LootInjector selectorProbe() {
         List<TableOperator> ops = new ArrayList<>();
@@ -434,6 +434,8 @@ public class TestLootInjectorProvider extends LootInjectorTemplate {
 
     /** 三类自定义 op 与三类自定义选择器；实际行为由 {@link TestCustomLootHandlers} 决定。 */
     private List<LootInjector> customInjectors() {
+        List<EntryOperator> children = compositeChildOps();
+
         return List.of(
                 raw("test_custom", new TableSelector.Custom("test_table"), 1000,
                         new TableOperator.TableCustom("test_table_custom", Optional.empty()),
@@ -442,6 +444,12 @@ public class TestLootInjectorProvider extends LootInjectorTemplate {
                                 modifyEntry(new EntrySelector.Custom("test_entry"),
                                         new EntryOperator.EntryCustom("test_entry_custom", Optional.empty())))),
 
+                raw("test_composite_children",
+                        new TableSelector.ById(ResourceLocation.withDefaultNamespace("blocks/oak_leaves")), 1200,
+                        modifyPool(new PoolSelector.Any(),
+                                new PoolOperator.ModifyEntry(
+                                        new EntrySelector.IsType(ResourceLocation.withDefaultNamespace("alternatives")),
+                                        children))),
                 raw("test_apply_event", new TableSelector.ById(BuiltInLootTables.ABANDONED_MINESHAFT.location()), 1300,
                         addPool(Items.COAL, 0.10D)));
     }
@@ -579,5 +587,14 @@ public class TestLootInjectorProvider extends LootInjectorTemplate {
     /** 空 ops 的池作用域：只求值池选择器。 */
     private static TableOperator probePool(PoolSelector poolSelector) {
         return new TableOperator.ModifyPool(poolSelector, List.of());
+    }
+
+    /** 复合条目子操作：下钻一层 + 搬顺序 + 插分支 + 删分支（最后一条演示"不是复合条目就跳过"）。 */
+    private static List<EntryOperator> compositeChildOps() {
+        EntryOperator moveFirst = new EntryOperator.MoveChild(new EntrySelector.ByIndex(0), "last", 0);
+        EntryOperator addBranch = new EntryOperator.AddChild(LootItem.lootTableItem(Items.DIAMOND).build(), Optional.of(0));
+        EntryOperator removeStick = new EntryOperator.RemoveChild(new EntrySelector.IsItem(ResourceLocation.withDefaultNamespace("oak_sapling")));
+
+        return List.of(moveFirst, addBranch, removeStick);
     }
 }

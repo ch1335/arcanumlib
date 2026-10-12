@@ -1,8 +1,9 @@
-// 1.21.1	2026-10-12T02:27:44.3219085	ArcanumLib Test Loot Injectors
+// 1.21.1	2026-10-12T17:06:34.5250646	ArcanumLib Test Loot Injectors
 c88df361a5cafaee0cdc0939e49bab103db8a9a2 data/arcanumlib/loot_injecter/test_all_tables.json
 93fa65ce25b487e1986d1f10e62dc884dd382ed3 data/arcanumlib/loot_injecter/test_apply_event.json
 19eebdeb7d6319cad53ce169881eea46f1ddbd9a data/arcanumlib/loot_injecter/test_block_type.json
 bbc2b599b422953c903a44d66fac874db191d1cb data/arcanumlib/loot_injecter/test_chests_except_end_city.json
+ef648b555fbb0ba9ca78d503c03cd497b963f13c data/arcanumlib/loot_injecter/test_composite_children.json
 e4c025cac86f6c1da0a5acee22d247db729d904f data/arcanumlib/loot_injecter/test_custom.json
 bfc4341bdbe52bfe69ba16913cf4084731b305ec data/arcanumlib/loot_injecter/test_dungeon_add.json
 3279f9f93d87090f62055050881aed7c9a4b5a83 data/arcanumlib/loot_injecter/test_dungeon_entries.json

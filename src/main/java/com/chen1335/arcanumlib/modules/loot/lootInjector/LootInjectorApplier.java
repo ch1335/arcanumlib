@@ -82,8 +82,14 @@ public final class LootInjectorApplier {
                     continue;
                 }
 
-                effective.get().ops().forEach(op -> op.apply(table, registries));
-                applications++;
+                // 单个注入器/单个 op 出错不能拖垮整批：记下真实异常，继续下一个
+                try {
+                    effective.get().ops().forEach(op -> op.apply(table, registries));
+                    applications++;
+                } catch (Exception e) {
+                    ArcanumLib.LOGGER.error("Loot injector {} failed on table {}: {}",
+                            injector.id(), holder.key().location(), e.toString(), e);
+                }
             }
         }
 

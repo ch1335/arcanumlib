@@ -49,7 +49,7 @@ public interface TableOperator {
         }
     }
 
-    /** 作用域：命中的每个池依次跑一遍子 ops。 */
+    /** 作用域：命中的每个池依次应用一遍子 ops。 */
     record ModifyPool(PoolSelector poolSelector, List<PoolOperator> ops) implements TableOperator {
         @Override
         public TableOperatorType getType() {
@@ -143,7 +143,7 @@ public interface TableOperator {
         }
     }
 
-    /** 作用域：对表函数列表里命中的每个函数跑子 ops，可以再往里钻到函数自带的条件。 */
+    /** 作用域：对表函数列表里命中的每个函数应用子 ops，可以再往里钻到函数自带的条件。 */
     record ModifyFunction(FunctionSelector functionSelector, List<FunctionOperator> ops) implements TableOperator {
         @Override
         public TableOperatorType getType() {

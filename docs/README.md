@@ -56,5 +56,5 @@ cd wiki && git add -A && git commit -m "docs: sync" && git push
 | 读者 | 建议入口 |
 |---|---|
 | 模组作者（用它当依赖库 / 扩展它） | `Loot-Injector.md` 的「给模组的扩展点」与「用数据生成写注入器」 |
-| 整合包作者（只想改掉落） | `Loot-Injector.md` 的「常见任务配方」与「速查表」 |
+| 整合包作者（只想改掉落） | `Loot-Injector.md` 的「常见任务配方」与「常见任务配方」 |
 | 想给自己的模组挂概率 / 属性 | `Loot-Conditions.md`、`Attributes.md` |

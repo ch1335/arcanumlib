@@ -158,6 +158,17 @@ public final class LootInjectorOps {
             ENTRY_OPERATOR_TYPES.register("modify_condition",
                     () -> new EntryOperatorType(EntryOperator.ModifyCondition.CODEC));
 
+    public static final DeferredHolder<EntryOperatorType, EntryOperatorType> ENTRY_MODIFY_CHILD =
+            ENTRY_OPERATOR_TYPES.register("modify_child", () -> new EntryOperatorType(EntryOperator.ModifyChild.CODEC));
+
+    public static final DeferredHolder<EntryOperatorType, EntryOperatorType> ENTRY_ADD_CHILD =
+            ENTRY_OPERATOR_TYPES.register("add_child", () -> new EntryOperatorType(EntryOperator.AddChild.CODEC));
+
+    public static final DeferredHolder<EntryOperatorType, EntryOperatorType> ENTRY_REMOVE_CHILD =
+            ENTRY_OPERATOR_TYPES.register("remove_child", () -> new EntryOperatorType(EntryOperator.RemoveChild.CODEC));
+
+    public static final DeferredHolder<EntryOperatorType, EntryOperatorType> ENTRY_MOVE_CHILD =
+            ENTRY_OPERATOR_TYPES.register("move_child", () -> new EntryOperatorType(EntryOperator.MoveChild.CODEC));
     // ---- 函数级操作 ----
 
     public static final ResourceKey<Registry<FunctionOperatorType>> FUNCTION_OPERATOR_KEY =
