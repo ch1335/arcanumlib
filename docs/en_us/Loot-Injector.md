@@ -1,4 +1,4 @@
-# Loot Injector Wiki
+# Loot Injector
 
 With json (or datagen) you can modify **any loot table**: add pools, add entries, change weights, replace entries, add or remove or modify conditions and functions —
 without touching vanilla data and without fighting other mods over block/entity drop override rights: you only stack your changes onto the part you own.

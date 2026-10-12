@@ -225,3 +225,8 @@ idea {
 java {
     withSourcesJar()
 }
+// 让分发的 jar 里带上许可证正文（LGPLv3 要求随库附带条款）
+tasks.named('jar', Jar).configure {
+    from('LICENSE') { into 'META-INF' }
+    from('COPYING') { into 'META-INF' }
+}
