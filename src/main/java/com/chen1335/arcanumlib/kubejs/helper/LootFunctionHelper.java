@@ -208,13 +208,11 @@ public final class LootFunctionHelper {
             params = {
                     @Param(name = "name", value = "the new name component"),
                     @Param(name = "target", value = "which name to write: CUSTOM_NAME for the custom (anvil) name, ITEM_NAME for the item's base name"),
-                    @Param(name = "resolutionContext", value = "the entity of the loot context used to resolve entity-sensitive parts of the name, such as scoreboard scores")
+@Param(name = "", value = "the entity of the loot context used to resolve entity-sensitive parts of the name, such as scoreboard scores")
             })
     public static LootItemFunction setName(Component name, SetNameFunction.Target target, LootContext.EntityTarget resolutionContext) {
         return SetNameFunction.setName(name, target, resolutionContext).build();
     }
-
-
 
     @Info("Copies the name from a block entity or an entity in the loot context.")
     public static LootItemFunction copyName(CopyNameFunction.NameSource source) {
@@ -293,7 +291,6 @@ public final class LootFunctionHelper {
     public static LootItemFunction explosionDecay() {
         return ApplyExplosionDecay.explosionDecay().build();
     }
-
 
     @Info("Fills a player head with the profile of a player in the loot context.")
     public static LootItemFunction fillPlayerHead(LootContext.EntityTarget entityTarget) {
@@ -438,7 +435,7 @@ public final class LootFunctionHelper {
             params = {
                     @Param(name = "lines", value = "the lore lines, in order"),
                     @Param(name = "mode", value = "how the lines combine with the existing lore, such as ListOperation.REPLACE_ALL"),
-                    @Param(name = "resolutionContext", value = "the entity of the loot context used to resolve entity-sensitive parts of the lines, such as scoreboard scores")
+@Param(name = "", value = "the entity of the loot context used to resolve entity-sensitive parts of the lines, such as scoreboard scores")
             })
     public static LootItemFunction setLore(List<Component> lines, ListOperation mode, LootContext.EntityTarget resolutionContext) {
         SetLoreFunction.Builder builder = SetLoreFunction.setLore().setMode(mode).setResolutionContext(resolutionContext);

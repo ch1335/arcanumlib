@@ -15,9 +15,11 @@ import dev.latvian.mods.kubejs.event.EventResult;
 import com.chen1335.arcanumlib.kubejs.event.EntryCustomKubeEvent;
 import com.chen1335.arcanumlib.kubejs.event.LootInjectorApplyKubeEvent;
 import com.chen1335.arcanumlib.kubejs.event.PoolCustomKubeEvent;
+import com.chen1335.arcanumlib.kubejs.event.RegisterLootInjectorKubeEvent;
 import com.chen1335.arcanumlib.kubejs.event.TableCustomKubeEvent;
 import com.chen1335.arcanumlib.modules.loot.lootInjector.event.EntryCustomOpEvent;
 import com.chen1335.arcanumlib.modules.loot.lootInjector.event.LootInjectorApplyEvent;
+import com.chen1335.arcanumlib.modules.loot.lootInjector.event.LootInjectorRegisterEvent;
 import com.chen1335.arcanumlib.modules.loot.lootInjector.event.PoolCustomOpEvent;
 import com.chen1335.arcanumlib.modules.loot.lootInjector.event.TableCustomOpEvent;
 import net.neoforged.bus.api.EventPriority;
@@ -50,8 +52,14 @@ public class ArcanumLibKubeJSEventBridge {
     }
 
     @SubscribeEvent(priority = EventPriority.LOWEST)
-    public static void onTableCustom(TableCustomOpEvent event) {
-        if (ArcanumLibKubeJSEvents.TABLE_CUSTOM.hasListeners()) {
+    public static void onLootInjectorRegister(LootInjectorRegisterEvent event) {
+        if (ArcanumLibKubeJSEvents.REGISTER_LOOT_INJECTOR.hasListeners()) {
+            ArcanumLibKubeJSEvents.REGISTER_LOOT_INJECTOR.post(new RegisterLootInjectorKubeEvent(event));
+        }
+    }
+
+    @SubscribeEvent(priority = EventPriority.LOWEST)
+    public static void onTableCustom(TableCustomOpEvent event) {        if (ArcanumLibKubeJSEvents.TABLE_CUSTOM.hasListeners()) {
             ArcanumLibKubeJSEvents.TABLE_CUSTOM.post(new TableCustomKubeEvent(
                     event.getId(), event.getData(), event.getTable(), event.getRegistries()));
         }

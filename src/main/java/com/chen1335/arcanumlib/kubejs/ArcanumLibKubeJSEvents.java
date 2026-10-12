@@ -3,6 +3,7 @@ package com.chen1335.arcanumlib.kubejs;
 import com.chen1335.arcanumlib.kubejs.event.EntryCustomKubeEvent;
 import com.chen1335.arcanumlib.kubejs.event.LootInjectorApplyKubeEvent;
 import com.chen1335.arcanumlib.kubejs.event.PoolCustomKubeEvent;
+import com.chen1335.arcanumlib.kubejs.event.RegisterLootInjectorKubeEvent;
 import com.chen1335.arcanumlib.kubejs.event.TableCustomKubeEvent;
 import com.chen1335.arcanumlib.kubejs.event.CustomConditionSelectorKubeEvent;
 import com.chen1335.arcanumlib.kubejs.event.CustomEntrySelectorKubeEvent;
@@ -23,6 +24,9 @@ public interface ArcanumLibKubeJSEvents {
 
     /** 每条注入器应用到某张表之前。可以 {@code event.cancel()} 取消。 */
     EventHandler LOOT_INJECTOR_APPLY = GROUP.server("lootInjectorApply", () -> LootInjectorApplyKubeEvent.class);
+
+    /** 运行时注册注入器：数据包 json 之外，脚本也能加自己的注入器（同 id 覆盖数据包里的）。 */
+    EventHandler REGISTER_LOOT_INJECTOR = GROUP.server("registerLootInjector", () -> RegisterLootInjectorKubeEvent.class);
 
     /** {@code arcanumlib:table_custom}：拿到表本体自己改。 */
     EventHandler TABLE_CUSTOM = GROUP.server("tableCustom", () -> TableCustomKubeEvent.class);

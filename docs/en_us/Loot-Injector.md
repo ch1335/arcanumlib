@@ -2284,6 +2284,7 @@ With KubeJS installed, this mod registers the script event group **`ArcanumLibEv
 | Event | When it fires | What the script gets | Result |
 |---|---|---|---|
 | `lootInjectorApply` | Before each injector is applied to a table | `injectorId` / `tableId` / `table` / `injector` | `event.cancel()` cancels this application |
+| `registerLootInjector` | While injectors are collected (datapack json parsed, not applied yet) | `registries` / `injectors` | `event.register(...)` adds one; the same id overrides the datapack entry |
 | `tableCustom` | When `table_custom` runs | `id` / `data` / `table` | - |
 | `poolCustom` | When `pool_custom` runs | `id` / `data` / `table` / `poolIndex` / `pool` | - |
 | `entryCustom` | When `entry_custom` runs | `id` / `data` / `pool` / `entries` / `index` | - |
@@ -2297,7 +2298,8 @@ With KubeJS installed, this mod registers the script event group **`ArcanumLibEv
 - Result events can be answered in **three ways**: `return false`, `event.setResult(false)`, or `event.cancel()` (`cancel` means false); staying silent **keeps whatever Java-side listeners decided**;
 - All of these are listened to from server scripts (`ServerEvents` / `StartupEvents` and friends).
 - The three custom ops and all five custom selectors also carry **`data`** (`event.data`): the optional `CompoundTag` written in json (SNBT string or json object), empty when omitted;
-- **All nine events carry `registries`** (`event.registries`, the very same object the Java-side `getRegistries()` hands out): use it for codec round-trips or registry lookups; `lootInjectorApply` also gets `event.injector` (the injector itself).
+- `registerLootInjector` also gets `event.injectors` (every injector so far, datapack ones included) and `event.isDataPack(id)` (whether the id would override a datapack entry);
+- **All ten events carry `registries`** (`event.registries`, the very same object the Java-side `getRegistries()` hands out): use it for codec round-trips or registry lookups; `lootInjectorApply` also gets `event.injector` (the injector itself).
 
 ### 20.2 Bindings
 
@@ -2312,21 +2314,52 @@ With KubeJS installed, this mod registers the script event group **`ArcanumLibEv
 
 ```js
 ArcanumLibEvents.lootInjectorApply(event => {
-  if (event.tableId.toString() === 'minecraft:blocks/oak_leaves') event.cancel()
+  let tableId = event.tableId.toString()
+
+  if (tableId === 'minecraft:blocks/oak_leaves') {
+    event.cancel()
+  }
 })
 
 ArcanumLibEvents.tableCustom(event => {
-  if (event.id === 'my_hook' && event.data.getInt('times') > 0) {
-    // change event.table directly
-  }
+  if (event.id !== 'my_hook') return
+  if (event.data.getInt('times') <= 0) return
+
+  // change event.table directly
 })
 
 ArcanumLibEvents.customTableSelector(event => {
   if (event.tableId.getPath().startsWith('chests/')) return true
 })
 
+ArcanumLibEvents.registerLootInjector(event => {
+  if (event.isDataPack('mypack:runtime_hook')) return
+
+  let selector = { type: 'arcanumlib:all' }
+  let ops = [
+    {
+      type: 'arcanumlib:add_pool',
+      pool: {
+        rolls: 1,
+        entries: [
+          { type: 'minecraft:item', name: 'minecraft:diamond' }
+        ]
+      }
+    }
+  ]
+
+  // priority 900 runs before the json default of 1000
+  event.register('mypack:runtime_hook',
+    selector,
+    900,
+    ops
+  )
+})
+
 ServerEvents.recipes(event => {
-  console.info(`loot tables: ${ArcanumLib.lootTableIds().length}`)
+  let ids = ArcanumLib.lootTableIds()
+
+  console.info(`loot tables: ${ids.length}`)
 })
 ```
 
@@ -2371,15 +2404,20 @@ The condition, function, number provider and entry helpers each also expose thre
 Every `LootEntryHelper` factory comes in two versions: the direct one returns a **finished entry**, the config one takes an extra `Consumer` so you can put conditions, weight or functions on the vanilla builder, after which it builds for you.
 
 ```js
-// direct
-PoolOperatorHelper.addEntry(LootEntryHelper.item('minecraft:diamond'))
+// direct: get a finished entry
+let diamond = LootEntryHelper.item('minecraft:diamond')
+
+PoolOperatorHelper.addEntry(diamond)
 
 // config: setWeight / setQuality / when (condition) / apply (function)
-PoolOperatorHelper.addEntry(
-  LootEntryHelper.item('minecraft:diamond', builder => builder
+let rare = LootEntryHelper.item('minecraft:diamond',
+  builder => builder
     .setWeight(3)
     .when(LootConditionHelper.randomChance(NumberProviderHelper.constant(0.5)))
-    .apply(LootFunctionHelper.setCount(NumberProviderHelper.constant(4)))))
+    .apply(LootFunctionHelper.setCount(NumberProviderHelper.constant(4)))
+)
+
+PoolOperatorHelper.addEntry(rare)
 ```
 
 - `when` (attach a condition) exists on every entry; `setWeight` / `setQuality` / `apply` (attach a function) exist **only on leaf entries** - composite entries do not have them, exactly as in vanilla;
@@ -2393,17 +2431,85 @@ PoolOperatorHelper.addEntry(
 Vanilla `group` / `sequence` only flatten their children's weights into the candidate list and still pick one child per roll, so using them for several independent chances degenerates.
 
 ```js
+let diamond = LootEntryHelper.item('minecraft:diamond',
+  b => b.when(LootConditionHelper.randomChance(NumberProviderHelper.constant(0.1)))
+)
+
+let emerald = LootEntryHelper.item('minecraft:emerald',
+  b => b.when(LootConditionHelper.randomChance(NumberProviderHelper.constant(0.3)))
+)
+
+// all_of: picked once, then each child rolls on its own
 PoolOperatorHelper.addEntry(
-  LootEntryHelper.allOf([
-    LootEntryHelper.item('minecraft:diamond', b => b.when(LootConditionHelper.randomChance(NumberProviderHelper.constant(0.1)))),
-    LootEntryHelper.item('minecraft:emerald', b => b.when(LootConditionHelper.randomChance(NumberProviderHelper.constant(0.3))))
-  ]))
+  LootEntryHelper.allOf([diamond, emerald])
+)
 ```
 
 ### 20.8 Type wrappers
 
 `registerTypeWrappers` lets scripts write json or shorthand values directly instead of calling a factory for everything:
 
-- The five operator and five selector interfaces each registered their `CODEC`, so a parameter position accepts a json object such as `{type: 'item', item: 'minecraft:diamond'}` or `{type: 'set_weight', weight: 3}`;
+- The five operator and five selector interfaces each registered their `CODEC`, so a parameter position accepts a json object such as `{type: 'arcanumlib:item', item: 'minecraft:diamond'}` or `{type: 'arcanumlib:set_weight', weight: 3}`;
 - `LootPoolEntryContainer` also got a wrapper: an item id string or an `ItemStack` turns into an `item` entry;
+- Type ids are **fully namespaced**: this mod's are `arcanumlib:xxx` (a bare name is read as `minecraft:xxx` and fails with Unknown registry key), vanilla ones are `minecraft:xxx` or just the bare name;
 - KubeJS already wraps `ResourceLocation` / `ItemStack` / `Item` / `NumberProvider` / `LootContext.EntityTarget` and friends, so this mod does not register those again.
+
+### 20.9 Building an injector with the factories
+
+The examples above describe selectors and operators in json; if you would rather use **code**, the Helper factories build exactly the same things layer by layer - and the two styles can be mixed.
+
+```js
+ArcanumLibEvents.registerLootInjector(event => {
+  // target: every chest table
+  let selector = TableSelectorHelper.pathPrefix('chests/')
+
+  // one diamond entry with weight, a condition and a function
+  let entry = LootEntryHelper.item('minecraft:diamond',
+    builder => builder
+      .setWeight(5)
+      .when(
+        LootConditionHelper.randomChance(
+          NumberProviderHelper.constant(0.25)
+        )
+      )
+      .apply(
+        LootFunctionHelper.setCount(
+          NumberProviderHelper.uniform(
+            NumberProviderHelper.constant(1),
+            NumberProviderHelper.constant(3)
+          )
+        )
+      )
+  )
+
+  // pool operators: append that entry and reweight the existing emerald entry to 10
+  let addEntry = PoolOperatorHelper.addEntry(entry)
+  let buffEmerald = PoolOperatorHelper.modifyEntry(
+    EntrySelectorHelper.isItem('minecraft:emerald'),
+    [
+      EntryOperatorHelper.setWeight(10)
+    ]
+  )
+
+  // table operator: do both on every pool
+  let modifyPool = TableOperatorHelper.modifyPool(
+    PoolSelectorHelper.any(),
+    [
+      addEntry,
+      buffEmerald
+    ]
+  )
+
+  event.register('mypack:factory_hook',
+    selector,
+    900,
+    [
+      modifyPool
+    ]
+  )
+})
+```
+
+- Each Helper covers one layer: `TableSelectorHelper` / `PoolSelectorHelper` / `EntrySelectorHelper` pick the targets, `TableOperatorHelper` / `PoolOperatorHelper` / `EntryOperatorHelper` describe the changes;
+- Entries, conditions, functions and number providers come from `LootEntryHelper` / `LootConditionHelper` / `LootFunctionHelper` / `NumberProviderHelper`;
+- What the factories return are plain Java objects, so you can bind them to variables, reuse them and combine them; json and factories **can be mixed** - for example a json operator next to a factory-built entry inside the same `ops` array.

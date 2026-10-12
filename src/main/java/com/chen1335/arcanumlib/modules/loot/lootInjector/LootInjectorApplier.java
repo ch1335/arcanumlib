@@ -2,6 +2,7 @@ package com.chen1335.arcanumlib.modules.loot.lootInjector;
 
 import com.chen1335.arcanumlib.ArcanumLib;
 import com.chen1335.arcanumlib.modules.loot.lootInjector.event.LootInjectorApplyEvent;
+import com.chen1335.arcanumlib.modules.loot.lootInjector.event.LootInjectorRegisterEvent;
 import com.google.gson.JsonElement;
 import com.mojang.serialization.JsonOps;
 import net.minecraft.core.Holder;
@@ -40,10 +41,17 @@ public final class LootInjectorApplier {
     }
 
     public static void applyAll(MinecraftServer server) {
-        List<LootInjector> injectors = parse(server);
+        List<LootInjector> parsed = parse(server);
 
         // 解析完 JsonElement 树就没用了；它是这里唯一的大块内存，reload 时会重新填
         LootInjectorReloadListener.clearRaw();
+
+        // op 可能要读注册表（ReplaceEntry 靠 codec 往返造新实例），一次性取好传下去
+        HolderLookup.Provider registries = server.registryAccess();
+
+        // 运行时注册：数据包 json 之外，代码与 KubeJS 脚本可以在这一步补注入器；
+        // 必须放在"空表就返回"之前，否则只有脚本注入器时会一条都不生效
+        List<LootInjector> injectors = LootInjectorRegisterEvent.post(registries, parsed);
 
         if (injectors.isEmpty()) {
             return;
@@ -56,9 +64,6 @@ public final class LootInjectorApplier {
             ArcanumLib.LOGGER.error("Cannot resolve the loot table registry, skipping loot injection");
             return;
         }
-
-        // op 可能要读注册表（ReplaceEntry 靠 codec 往返造新实例），一次性取好传下去
-        HolderLookup.Provider registries = server.registryAccess();
 
         long start = System.nanoTime();
         int tables = 0;

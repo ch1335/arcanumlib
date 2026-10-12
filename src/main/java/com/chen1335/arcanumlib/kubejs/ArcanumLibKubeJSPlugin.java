@@ -15,6 +15,7 @@ import com.chen1335.arcanumlib.kubejs.helper.PoolOperatorHelper;
 import com.chen1335.arcanumlib.kubejs.helper.PoolSelectorHelper;
 import com.chen1335.arcanumlib.kubejs.helper.TableOperatorHelper;
 import com.chen1335.arcanumlib.kubejs.helper.TableSelectorHelper;
+import com.chen1335.arcanumlib.modules.loot.lootInjector.LootInjector;
 import com.chen1335.arcanumlib.modules.loot.lootInjector.operator.ConditionOperator;
 import com.chen1335.arcanumlib.modules.loot.lootInjector.operator.EntryOperator;
 import com.chen1335.arcanumlib.modules.loot.lootInjector.operator.FunctionOperator;
@@ -119,6 +120,9 @@ public class ArcanumLibKubeJSPlugin implements KubeJSPlugin {
         registry.registerCodec(EntrySelector.class, EntrySelector.CODEC);
         registry.registerCodec(FunctionSelector.class, FunctionSelector.CODEC);
         registry.registerCodec(ConditionSelector.class, ConditionSelector.CODEC);
+
+        // 整条注入器也能直接写 json（registerLootInjector 事件里用得上）
+        registry.registerCodec(LootInjector.class, LootInjector.CODEC);
 
         // 操作 5 层
         registry.registerCodec(TableOperator.class, TableOperator.CODEC);

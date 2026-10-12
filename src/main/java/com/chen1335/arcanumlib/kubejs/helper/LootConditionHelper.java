@@ -1,6 +1,5 @@
 package com.chen1335.arcanumlib.kubejs.helper;
 
-
 import com.chen1335.arcanumlib.compat.astages.HasStageCondition;
 import com.chen1335.arcanumlib.compat.astages.StagePattern;
 import com.chen1335.arcanumlib.modules.loot.lootCondition.ChanceModifier;

@@ -69,7 +69,6 @@ public class TestCustomLootHandlers {
         ArcanumLib.LOGGER.info("[test] entry_custom applied at {}", event.getIndex());
     }
 
-
     /** test_function：命中所有函数。 */
     @SubscribeEvent
     public static void onCustomFunction(CustomFunctionSelectorEvent event) {

@@ -15,7 +15,6 @@ import net.neoforged.fml.config.ModConfig;
 import net.neoforged.neoforge.registries.NewRegistryEvent;
 import org.slf4j.Logger;
 
-
 @Mod(ArcanumLib.MODID)
 public class ArcanumLib {
     public static final String MODID = "arcanumlib";
