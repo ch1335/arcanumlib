@@ -340,6 +340,7 @@ Loot injection: 26 injectors, 1183 loot tables, 4521 applications in 36.5538 ms
 #### 5.13 `custom` — 自定义（判定交给 `CustomTableSelectorEvent`）
 
 - `*custom_id`：<String> 交给 `CustomTableSelectorEvent` 监听者的自定义 id。
+- `data`：<CompoundTag> **可选**附加数据；可写 SNBT 字符串（如 `"{team: \"red\"}"`）或普通 json 对象，省略时是**空 tag**（不是 null）；监听者用 `event.getData()` 取。
 
 ```json
 {
@@ -488,6 +489,7 @@ Loot injection: 26 injectors, 1183 loot tables, 4521 applications in 36.5538 ms
 #### 6.7 `table_custom` — 交给 `TableCustomOpEvent` 的监听者
 
 - `*custom_id`：<String> 交给 `TableCustomOpEvent` 监听者的 id。
+- `data`：<CompoundTag> **可选**附加数据；可写 SNBT 字符串（如 `"{times: 3}"`）或普通 json 对象，省略时是**空 tag**（不是 null）；监听者用 `event.getData()` 取。
 
 ```json
 {
@@ -632,6 +634,7 @@ Loot injection: 26 injectors, 1183 loot tables, 4521 applications in 36.5538 ms
 #### 7.9 `custom` — 交给 `CustomPoolSelectorEvent` 的监听者
 
 - `*custom_id`：<String> 交给池级自定义事件监听者的 id。
+- `data`：<CompoundTag> **可选**附加数据；可写 SNBT 字符串（如 `"{team: \"red\"}"`）或普通 json 对象，省略时是**空 tag**（不是 null）；监听者用 `event.getData()` 取。
 
 ```json
 {
@@ -838,6 +841,7 @@ Loot injection: 26 injectors, 1183 loot tables, 4521 applications in 36.5538 ms
 
 #### 8.12 `pool_custom` — 交给 `PoolCustomOpEvent` 的监听者
 - `*custom_id`：<String> 交给池级自定义事件监听者的 id。
+- `data`：<CompoundTag> **可选**附加数据；可写 SNBT 字符串（如 `"{times: 3}"`）或普通 json 对象，省略时是**空 tag**（不是 null）；监听者用 `event.getData()` 取。
 
 ```json
 {
@@ -1039,6 +1043,7 @@ Loot injection: 26 injectors, 1183 loot tables, 4521 applications in 36.5538 ms
 
 #### 9.15 `custom` — 交给 `CustomEntrySelectorEvent` 的监听者
 - `*custom_id`：<String> 交给条目级自定义事件监听者的 id。
+- `data`：<CompoundTag> **可选**附加数据；可写 SNBT 字符串（如 `"{team: \"red\"}"`）或普通 json 对象，省略时是**空 tag**（不是 null）；监听者用 `event.getData()` 取。
 
 ```json
 {
@@ -1253,6 +1258,7 @@ Loot injection: 26 injectors, 1183 loot tables, 4521 applications in 36.5538 ms
 
 #### 10.13 `entry_custom` — 交给 `EntryCustomOpEvent` 的监听者
 - `*custom_id`：<String> 交给条目级自定义事件监听者的 id。
+- `data`：<CompoundTag> **可选**附加数据；可写 SNBT 字符串（如 `"{times: 3}"`）或普通 json 对象，省略时是**空 tag**（不是 null）；监听者用 `event.getData()` 取。
 
 ```json
 {
@@ -1387,6 +1393,7 @@ Loot injection: 26 injectors, 1183 loot tables, 4521 applications in 36.5538 ms
 
 #### 11.9 `custom` — 交给 `CustomFunctionSelectorEvent` 的监听者
 - `*custom_id`：<String> 交给函数级自定义事件监听者的 id。
+- `data`：<CompoundTag> **可选**附加数据；可写 SNBT 字符串（如 `"{team: \"red\"}"`）或普通 json 对象，省略时是**空 tag**（不是 null）；监听者用 `event.getData()` 取。
 
 ```json
 {
@@ -1574,6 +1581,7 @@ Loot injection: 26 injectors, 1183 loot tables, 4521 applications in 36.5538 ms
 
 #### 13.8 `custom` — 交给 `CustomConditionSelectorEvent` 的监听者
 - `*custom_id`：<String> 交给条件级自定义事件监听者的 id。
+- `data`：<CompoundTag> **可选**附加数据；可写 SNBT 字符串（如 `"{team: \"red\"}"`）或普通 json 对象，省略时是**空 tag**（不是 null）；监听者用 `event.getData()` 取。
 
 ```json
 {
@@ -1633,6 +1641,7 @@ Loot injection: 26 injectors, 1183 loot tables, 4521 applications in 36.5538 ms
 | `PoolCustomOpEvent` | 执行 `pool_custom` 时 | `{"type":"arcanumlib:pool_custom","custom_id":"..."}` |
 | `EntryCustomOpEvent` | 执行 `entry_custom` 时 | `{"type":"arcanumlib:entry_custom","custom_id":"..."}` |
 | `LootInjectorApplyEvent` | 每个注入器被**应用之前** | —（可整条替换，也可取消） |
+> 八个 `custom` 类事件（五个选择器 + 三个操作）都另外带 `getData()`：json 里可选的 `data`（SNBT 字符串或普通 json 对象），省略时是**空 tag**（不是 null）。
 
 > **9 个事件都带 `getRegistries()`**（含 `LootInjectorApplyEvent`）。
 > 需要读注册表 / 做 codec 往返时用它，与自定义选择器 `test(...)`、自定义 op `apply(...)` 收到的 `registries` 是同一个：

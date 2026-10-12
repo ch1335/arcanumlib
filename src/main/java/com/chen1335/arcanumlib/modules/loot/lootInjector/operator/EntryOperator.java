@@ -6,6 +6,8 @@ import com.chen1335.arcanumlib.modules.loot.lootInjector.selector.ConditionSelec
 import com.chen1335.arcanumlib.modules.loot.lootInjector.selector.FunctionSelector;
 import com.google.gson.JsonElement;
 import com.mojang.serialization.Codec;
+import net.minecraft.nbt.CompoundTag;
+import java.util.Optional;
 import com.mojang.serialization.JsonOps;
 import com.mojang.serialization.MapCodec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
@@ -337,17 +339,22 @@ public interface EntryOperator {
         }
     }
     /** 自定义：json 里只给一个 id，改动交给 EntryCustomOpEvent 的监听者。 */
-    record EntryCustom(String id) implements EntryOperator {
+    record EntryCustom(String id, Optional<CompoundTag> data) implements EntryOperator {
+        /** 只给 id 的简写：不带附加数据。 */
+        public EntryCustom(String id) {
+            this(id, Optional.empty());
+        }
         @Override
         public EntryOperatorType getType() {
             return LootInjectorOps.ENTRY_CUSTOM.get();
         }
         public static final MapCodec<EntryCustom> CODEC = RecordCodecBuilder.mapCodec(instance -> instance.group(
-                Codec.STRING.fieldOf("custom_id").forGetter(EntryCustom::id)).apply(instance, EntryCustom::new));
+                Codec.STRING.fieldOf("custom_id").forGetter(EntryCustom::id),
+                LootInjectorOps.CUSTOM_DATA.forGetter(EntryCustom::data)).apply(instance, EntryCustom::new));
         @Override
         public void apply(LootPool pool, List<LootPoolEntryContainer> entries, int index,
                           HolderLookup.Provider registries) {
-            EntryCustomOpEvent.post(this.id, pool, entries, index, registries);
+            EntryCustomOpEvent.post(this.id, this.data.orElseGet(CompoundTag::new), pool, entries, index, registries);
         }
     }
 }

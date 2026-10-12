@@ -5,6 +5,8 @@ import com.chen1335.arcanumlib.modules.loot.lootInjector.selector.PoolSelector;
 import com.chen1335.arcanumlib.modules.loot.lootInjector.event.TableCustomOpEvent;
 import com.chen1335.arcanumlib.modules.loot.lootInjector.selector.FunctionSelector;
 import com.mojang.serialization.Codec;
+import net.minecraft.nbt.CompoundTag;
+import java.util.Optional;
 import com.mojang.serialization.MapCodec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
 import net.minecraft.core.HolderLookup;
@@ -180,16 +182,21 @@ public interface TableOperator {
         }
     }
     /** 自定义：json 里只给一个 id，改动交给 TableCustomOpEvent 的监听者。 */
-    record TableCustom(String id) implements TableOperator {
+    record TableCustom(String id, Optional<CompoundTag> data) implements TableOperator {
+        /** 只给 id 的简写：不带附加数据。 */
+        public TableCustom(String id) {
+            this(id, Optional.empty());
+        }
         @Override
         public TableOperatorType getType() {
             return LootInjectorOps.TABLE_CUSTOM.get();
         }
         public static final MapCodec<TableCustom> CODEC = RecordCodecBuilder.mapCodec(instance -> instance.group(
-                Codec.STRING.fieldOf("custom_id").forGetter(TableCustom::id)).apply(instance, TableCustom::new));
+                Codec.STRING.fieldOf("custom_id").forGetter(TableCustom::id),
+                LootInjectorOps.CUSTOM_DATA.forGetter(TableCustom::data)).apply(instance, TableCustom::new));
         @Override
         public void apply(LootTable table, HolderLookup.Provider registries) {
-            TableCustomOpEvent.post(this.id, table, registries);
+            TableCustomOpEvent.post(this.id, this.data.orElseGet(CompoundTag::new), table, registries);
         }
     }
 }

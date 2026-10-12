@@ -1,6 +1,7 @@
 package com.chen1335.arcanumlib.modules.loot.lootInjector.event;
 
 import net.minecraft.core.HolderLookup;
+import net.minecraft.nbt.CompoundTag;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.level.storage.loot.LootTable;
 import net.neoforged.bus.api.Event;
@@ -12,16 +13,24 @@ import net.neoforged.neoforge.common.NeoForge;
  */
 public class CustomTableSelectorEvent extends Event {
     private final String id;
+    /** json 里的可选附加数据；没写就是空 tag（不会是 null）。 */
+    private final CompoundTag data;
     private final ResourceLocation tableId;
     private final LootTable table;
     private final HolderLookup.Provider registries;
     private boolean result;
 
-    public CustomTableSelectorEvent(String id, ResourceLocation tableId, LootTable table, HolderLookup.Provider registries) {
+    public CustomTableSelectorEvent(String id, CompoundTag data, ResourceLocation tableId, LootTable table, HolderLookup.Provider registries) {
         this.id = id;
+        this.data = data;
         this.tableId = tableId;
         this.table = table;
         this.registries = registries;
+    }
+
+    /** json 里的可选附加数据；没写就是空 tag（不会是 null）。 */
+    public CompoundTag getData() {
+        return this.data;
     }
 
     public String getId() {
@@ -49,8 +58,8 @@ public class CustomTableSelectorEvent extends Event {
         return this.registries;
     }
 
-    public static boolean post(String id, ResourceLocation tableId, LootTable table, HolderLookup.Provider registries) {
-        CustomTableSelectorEvent event = new CustomTableSelectorEvent(id, tableId, table, registries);
+    public static boolean post(String id, CompoundTag data, ResourceLocation tableId, LootTable table, HolderLookup.Provider registries) {
+        CustomTableSelectorEvent event = new CustomTableSelectorEvent(id, data, tableId, table, registries);
         NeoForge.EVENT_BUS.post(event);
         return event.getResult();
     }

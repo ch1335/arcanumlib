@@ -4,6 +4,8 @@ import com.google.common.collect.Sets;
 import com.chen1335.arcanumlib.modules.loot.lootInjector.LootInjectorOps;
 import com.chen1335.arcanumlib.modules.loot.lootInjector.event.CustomTableSelectorEvent;
 import com.mojang.serialization.Codec;
+import java.util.Optional;
+import net.minecraft.nbt.CompoundTag;
 import com.mojang.serialization.MapCodec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
 import net.minecraft.core.HolderLookup;
@@ -229,9 +231,14 @@ public interface TableSelector {
      * 自定义选择器：json 里只给一个 id，判断交给监听 CustomTableSelectorEvent 的代码。
      * 注入器会拿每张表逐个问一遍，触发次数是 注入器数 × 表数，监听者别做重活。
      */
-    record Custom(String id) implements TableSelector {
+    record Custom(String id, Optional<CompoundTag> data) implements TableSelector {
+        /** 只给 id 的简写：不带附加数据。 */
+        public Custom(String id) {
+            this(id, Optional.empty());
+        }
         public static final MapCodec<Custom> CODEC = RecordCodecBuilder.mapCodec(instance -> instance.group(
-                Codec.STRING.fieldOf("custom_id").forGetter(Custom::id)).apply(instance, Custom::new));
+                Codec.STRING.fieldOf("custom_id").forGetter(Custom::id),
+                LootInjectorOps.CUSTOM_DATA.forGetter(Custom::data)).apply(instance, Custom::new));
 
         @Override
         public TableSelectorType getType() {
@@ -240,7 +247,7 @@ public interface TableSelector {
 
         @Override
         public boolean test(ResourceLocation tableId, LootTable table, HolderLookup.Provider registries) {
-            return CustomTableSelectorEvent.post(this.id, tableId, table, registries);
+            return CustomTableSelectorEvent.post(this.id, this.data.orElseGet(CompoundTag::new), tableId, table, registries);
         }
     }
 }

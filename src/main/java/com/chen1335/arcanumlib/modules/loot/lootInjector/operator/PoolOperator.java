@@ -6,6 +6,8 @@ import com.chen1335.arcanumlib.modules.loot.lootInjector.event.PoolCustomOpEvent
 import com.chen1335.arcanumlib.modules.loot.lootInjector.selector.ConditionSelector;
 import com.chen1335.arcanumlib.modules.loot.lootInjector.selector.FunctionSelector;
 import com.mojang.serialization.Codec;
+import net.minecraft.nbt.CompoundTag;
+import java.util.Optional;
 import com.mojang.serialization.MapCodec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
 import net.minecraft.Util;
@@ -308,16 +310,21 @@ public interface PoolOperator {
         }
     }
     /** 自定义：json 里只给一个 id，改动交给 PoolCustomOpEvent 的监听者。 */
-    record PoolCustom(String id) implements PoolOperator {
+    record PoolCustom(String id, Optional<CompoundTag> data) implements PoolOperator {
+        /** 只给 id 的简写：不带附加数据。 */
+        public PoolCustom(String id) {
+            this(id, Optional.empty());
+        }
         @Override
         public PoolOperatorType getType() {
             return LootInjectorOps.POOL_CUSTOM.get();
         }
         public static final MapCodec<PoolCustom> CODEC = RecordCodecBuilder.mapCodec(instance -> instance.group(
-                Codec.STRING.fieldOf("custom_id").forGetter(PoolCustom::id)).apply(instance, PoolCustom::new));
+                Codec.STRING.fieldOf("custom_id").forGetter(PoolCustom::id),
+                LootInjectorOps.CUSTOM_DATA.forGetter(PoolCustom::data)).apply(instance, PoolCustom::new));
         @Override
         public void apply(LootTable table, int poolIndex, LootPool pool, HolderLookup.Provider registries) {
-            PoolCustomOpEvent.post(this.id, table, poolIndex, pool, registries);
+            PoolCustomOpEvent.post(this.id, this.data.orElseGet(CompoundTag::new), table, poolIndex, pool, registries);
         }
     }
 }

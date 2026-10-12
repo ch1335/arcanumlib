@@ -4,6 +4,8 @@ import com.chen1335.arcanumlib.modules.loot.lootInjector.LootInjectorOps;
 import com.chen1335.arcanumlib.modules.loot.lootInjector.event.CustomConditionSelectorEvent;
 import com.google.gson.JsonElement;
 import com.mojang.serialization.Codec;
+import java.util.Optional;
+import net.minecraft.nbt.CompoundTag;
 import com.mojang.serialization.Dynamic;
 import com.mojang.serialization.JsonOps;
 import com.mojang.serialization.MapCodec;
@@ -145,16 +147,21 @@ public interface ConditionSelector {
         }
     }
     /** 自定义：json 里只给一个 id，判断交给 CustomConditionSelectorEvent 的监听者。 */
-    record Custom(String id) implements ConditionSelector {
+    record Custom(String id, Optional<CompoundTag> data) implements ConditionSelector {
+        /** 只给 id 的简写：不带附加数据。 */
+        public Custom(String id) {
+            this(id, Optional.empty());
+        }
         @Override
         public ConditionSelectorType getType() {
             return LootInjectorOps.CONDITION_CUSTOM.get();
         }
         public static final MapCodec<Custom> CODEC = RecordCodecBuilder.mapCodec(instance -> instance.group(
-                Codec.STRING.fieldOf("custom_id").forGetter(Custom::id)).apply(instance, Custom::new));
+                Codec.STRING.fieldOf("custom_id").forGetter(Custom::id),
+                LootInjectorOps.CUSTOM_DATA.forGetter(Custom::data)).apply(instance, Custom::new));
         @Override
         public boolean test(int index, LootItemCondition condition, HolderLookup.Provider registries) {
-            return CustomConditionSelectorEvent.post(this.id, index, condition, registries);
+            return CustomConditionSelectorEvent.post(this.id, this.data.orElseGet(CompoundTag::new), index, condition, registries);
         }
     }
 }

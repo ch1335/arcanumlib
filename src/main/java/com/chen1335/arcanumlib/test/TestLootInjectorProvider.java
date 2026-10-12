@@ -436,11 +436,11 @@ public class TestLootInjectorProvider extends LootInjectorTemplate {
     private List<LootInjector> customInjectors() {
         return List.of(
                 raw("test_custom", new TableSelector.Custom("test_table"), 1000,
-                        new TableOperator.TableCustom("test_table_custom"),
+                        new TableOperator.TableCustom("test_table_custom", Optional.empty()),
                         modifyPool(new PoolSelector.Custom("test_pool"),
-                                new PoolOperator.PoolCustom("test_pool_custom"),
+                                new PoolOperator.PoolCustom("test_pool_custom", Optional.empty()),
                                 modifyEntry(new EntrySelector.Custom("test_entry"),
-                                        new EntryOperator.EntryCustom("test_entry_custom")))),
+                                        new EntryOperator.EntryCustom("test_entry_custom", Optional.empty())))),
 
                 raw("test_apply_event", new TableSelector.ById(BuiltInLootTables.ABANDONED_MINESHAFT.location()), 1300,
                         addPool(Items.COAL, 0.10D)));

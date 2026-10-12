@@ -340,6 +340,7 @@ The `pool` field is a **pool selector**.
 #### 5.13 `custom` — custom (decided by `CustomTableSelectorEvent`)
 
 - `*custom_id`: <String> the custom id handed to `CustomTableSelectorEvent` listeners.
+- `data`: <CompoundTag> **optional** extra data; either an SNBT string (e.g. `"{team: \"red\"}"`) or a plain json object; when omitted it is an **empty tag** (never null) and listeners read it via `event.getData()`.
 
 ```json
 {
@@ -488,6 +489,7 @@ Written inside the top-level `ops`. Registry: `arcanumlib:table_operator`.
 #### 6.7 `table_custom` — Handed to the listeners of `TableCustomOpEvent`
 
 - `*custom_id`: <String> the id handed to `TableCustomOpEvent` listeners.
+- `data`: <CompoundTag> **optional** extra data; either an SNBT string (e.g. `"{times: 3}"`) or a plain json object; when omitted it is an **empty tag** (never null) and listeners read it via `event.getData()`.
 
 ```json
 {
@@ -632,6 +634,7 @@ Written inside `modify_pool.poolSelector`. Registry: `arcanumlib:pool_selector`.
 #### 7.9 `custom` — Handed to the listeners of `CustomPoolSelectorEvent`
 
 - `*custom_id`: <String> the id handed to the pool-level custom event listener.
+- `data`: <CompoundTag> **optional** extra data; either an SNBT string (e.g. `"{team: \"red\"}"`) or a plain json object; when omitted it is an **empty tag** (never null) and listeners read it via `event.getData()`.
 
 ```json
 {
@@ -838,6 +841,7 @@ Written inside `modify_pool.ops`. Registry: `arcanumlib:pool_operator`.
 
 #### 8.12 `pool_custom` — Handed to the listeners of `PoolCustomOpEvent`
 - `*custom_id`: <String> the id handed to the pool-level custom event listener.
+- `data`: <CompoundTag> **optional** extra data; either an SNBT string (e.g. `"{times: 3}"`) or a plain json object; when omitted it is an **empty tag** (never null) and listeners read it via `event.getData()`.
 
 ```json
 {
@@ -1039,6 +1043,7 @@ Written inside `modify_entry.entrySelector`. Registry: `arcanumlib:entry_selecto
 
 #### 9.15 `custom` — Handed to the listeners of `CustomEntrySelectorEvent`
 - `*custom_id`: <String> the id handed to the entry-level custom event listener.
+- `data`: <CompoundTag> **optional** extra data; either an SNBT string (e.g. `"{team: \"red\"}"`) or a plain json object; when omitted it is an **empty tag** (never null) and listeners read it via `event.getData()`.
 
 ```json
 {
@@ -1253,6 +1258,7 @@ Written inside `modify_entry.ops`. Registry: `arcanumlib:entry_operator`.
 
 #### 10.13 `entry_custom` — Handed to the listeners of `EntryCustomOpEvent`
 - `*custom_id`: <String> the id handed to the entry-level custom event listener.
+- `data`: <CompoundTag> **optional** extra data; either an SNBT string (e.g. `"{times: 3}"`) or a plain json object; when omitted it is an **empty tag** (never null) and listeners read it via `event.getData()`.
 
 ```json
 {
@@ -1387,6 +1393,7 @@ Written inside `modify_function.functionSelector`. Registry: `arcanumlib:functio
 
 #### 11.9 `custom` — Handed to the listeners of `CustomFunctionSelectorEvent`
 - `*custom_id`: <String> the id handed to the function-level custom event listener.
+- `data`: <CompoundTag> **optional** extra data; either an SNBT string (e.g. `"{team: \"red\"}"`) or a plain json object; when omitted it is an **empty tag** (never null) and listeners read it via `event.getData()`.
 
 ```json
 {
@@ -1574,6 +1581,7 @@ Written inside `modify_condition.conditionSelector`. Registry: `arcanumlib:condi
 
 #### 13.8 `custom` — Handed to the listeners of `CustomConditionSelectorEvent`
 - `*custom_id`: <String> the id handed to the condition-level custom event listener.
+- `data`: <CompoundTag> **optional** extra data; either an SNBT string (e.g. `"{team: \"red\"}"`) or a plain json object; when omitted it is an **empty tag** (never null) and listeners read it via `event.getData()`.
 
 ```json
 {
@@ -1633,6 +1641,7 @@ All of them are listened for on `NeoForge.EVENT_BUS`.
 | `PoolCustomOpEvent` | When executing `pool_custom` | `{"type":"arcanumlib:pool_custom","custom_id":"..."}` |
 | `EntryCustomOpEvent` | When executing `entry_custom` | `{"type":"arcanumlib:entry_custom","custom_id":"..."}` |
 | `LootInjectorApplyEvent` | **Before** each injector is applied | — (the whole injector can be replaced, or the application can be cancelled) |
+> All eight `custom` events (five selectors plus three operators) also carry `getData()`: the optional `data` from json (an SNBT string or a plain json object); when omitted it is an **empty tag** (never null).
 
 > **All 9 events carry `getRegistries()`** (including `LootInjectorApplyEvent`).
 > Use it to read registries or do codec round-trips; it is the same `registries` that a custom selector's `test(...)` or a custom op's `apply(...)` receives:

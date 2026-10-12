@@ -3,6 +3,8 @@ package com.chen1335.arcanumlib.modules.loot.lootInjector.selector;
 import com.chen1335.arcanumlib.modules.loot.lootInjector.LootInjectorOps;
 import com.chen1335.arcanumlib.modules.loot.lootInjector.event.CustomPoolSelectorEvent;
 import com.mojang.serialization.Codec;
+import java.util.Optional;
+import net.minecraft.nbt.CompoundTag;
 import com.mojang.serialization.MapCodec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
 import net.minecraft.core.HolderLookup;
@@ -156,9 +158,14 @@ public interface PoolSelector {
      * 自定义选择器：json 里只给一个 id，判断交给监听 CustomPoolSelectorEvent 的代码。
      * 每次判定都会发事件（注入器 × 表规模），监听者要自己控制开销。
      */
-    record Custom(String id) implements PoolSelector {
+    record Custom(String id, Optional<CompoundTag> data) implements PoolSelector {
+        /** 只给 id 的简写：不带附加数据。 */
+        public Custom(String id) {
+            this(id, Optional.empty());
+        }
         public static final MapCodec<Custom> CODEC = RecordCodecBuilder.mapCodec(instance -> instance.group(
-                Codec.STRING.fieldOf("custom_id").forGetter(Custom::id)).apply(instance, Custom::new));
+                Codec.STRING.fieldOf("custom_id").forGetter(Custom::id),
+                LootInjectorOps.CUSTOM_DATA.forGetter(Custom::data)).apply(instance, Custom::new));
 
         @Override
         public PoolSelectorType getType() {
@@ -167,7 +174,7 @@ public interface PoolSelector {
 
         @Override
         public boolean test(int index, LootPool pool, HolderLookup.Provider registries) {
-            return CustomPoolSelectorEvent.post(this.id, index, pool, registries);
+            return CustomPoolSelectorEvent.post(this.id, this.data.orElseGet(CompoundTag::new), index, pool, registries);
         }
     }
 }

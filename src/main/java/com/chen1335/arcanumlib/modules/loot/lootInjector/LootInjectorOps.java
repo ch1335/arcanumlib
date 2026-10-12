@@ -1,4 +1,9 @@
 package com.chen1335.arcanumlib.modules.loot.lootInjector;
+import com.mojang.serialization.Codec;
+import com.mojang.serialization.MapCodec;
+import net.minecraft.nbt.CompoundTag;
+import net.minecraft.nbt.TagParser;
+import java.util.Optional;
 
 import com.chen1335.arcanumlib.ArcanumLib;
 import com.chen1335.arcanumlib.modules.loot.lootInjector.selector.EntrySelector;
@@ -32,6 +37,12 @@ import net.neoforged.neoforge.registries.RegistryBuilder;
 * 写错层级会在解析期报"这一层没有这个 op"；别的模组用 {@code DeferredRegister.create(REGISTRY_KEY, 自己的 modid)} 加自己的 op。
 */
 public final class LootInjectorOps {
+
+    /**
+     * custom 操作器的可选附加数据：json 里可写 SNBT 字符串（{@code "data": "{my_key: 1}"}）
+     * 或普通 json 对象（{@code "data": {"my_key": 1}}），两者都用原版 {@code TagParser.LENIENT_CODEC} 解析。
+     */
+    public static final MapCodec<Optional<CompoundTag>> CUSTOM_DATA = TagParser.LENIENT_CODEC.optionalFieldOf("data");
 
     // ---- 表级操作 ----
 

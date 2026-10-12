@@ -1,6 +1,7 @@
 package com.chen1335.arcanumlib.modules.loot.lootInjector.event;
 
 import net.minecraft.core.HolderLookup;
+import net.minecraft.nbt.CompoundTag;
 import net.minecraft.world.level.storage.loot.LootPool;
 import net.minecraft.world.level.storage.loot.entries.LootPoolEntryContainer;
 import net.neoforged.bus.api.Event;
@@ -14,17 +15,25 @@ import java.util.List;
  */
 public class EntryCustomOpEvent extends Event {
     private final String id;
+    /** json 里的可选附加数据；没写就是空 tag（不会是 null）。 */
+    private final CompoundTag data;
     private final LootPool pool;
     private final List<LootPoolEntryContainer> entries;
     private final int index;
     private final HolderLookup.Provider registries;
 
-    public EntryCustomOpEvent(String id, LootPool pool, List<LootPoolEntryContainer> entries, int index, HolderLookup.Provider registries) {
+    public EntryCustomOpEvent(String id, CompoundTag data, LootPool pool, List<LootPoolEntryContainer> entries, int index, HolderLookup.Provider registries) {
         this.id = id;
+        this.data = data;
         this.pool = pool;
         this.entries = entries;
         this.index = index;
         this.registries = registries;
+    }
+
+    /** json 里的可选附加数据；没写就是空 tag（不会是 null）。 */
+    public CompoundTag getData() {
+        return this.data;
     }
 
     public String getId() {
@@ -53,7 +62,7 @@ public class EntryCustomOpEvent extends Event {
         return this.registries;
     }
 
-    public static void post(String id, LootPool pool, List<LootPoolEntryContainer> entries, int index, HolderLookup.Provider registries) {
-        NeoForge.EVENT_BUS.post(new EntryCustomOpEvent(id, pool, entries, index, registries));
+    public static void post(String id, CompoundTag data, LootPool pool, List<LootPoolEntryContainer> entries, int index, HolderLookup.Provider registries) {
+        NeoForge.EVENT_BUS.post(new EntryCustomOpEvent(id, data, pool, entries, index, registries));
     }
 }

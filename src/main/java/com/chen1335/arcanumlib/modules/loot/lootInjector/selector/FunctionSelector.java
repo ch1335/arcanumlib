@@ -4,6 +4,8 @@ import com.chen1335.arcanumlib.modules.loot.lootInjector.LootInjectorOps;
 import com.chen1335.arcanumlib.modules.loot.lootInjector.event.CustomFunctionSelectorEvent;
 import com.google.gson.JsonElement;
 import com.mojang.serialization.Codec;
+import java.util.Optional;
+import net.minecraft.nbt.CompoundTag;
 import com.mojang.serialization.Dynamic;
 import com.mojang.serialization.JsonOps;
 import com.mojang.serialization.MapCodec;
@@ -164,16 +166,21 @@ public interface FunctionSelector {
         }
     }
     /** 自定义：json 里只给一个 id，判断交给 CustomFunctionSelectorEvent 的监听者。 */
-    record Custom(String id) implements FunctionSelector {
+    record Custom(String id, Optional<CompoundTag> data) implements FunctionSelector {
+        /** 只给 id 的简写：不带附加数据。 */
+        public Custom(String id) {
+            this(id, Optional.empty());
+        }
         @Override
         public FunctionSelectorType getType() {
             return LootInjectorOps.FUNCTION_CUSTOM.get();
         }
         public static final MapCodec<Custom> CODEC = RecordCodecBuilder.mapCodec(instance -> instance.group(
-                Codec.STRING.fieldOf("custom_id").forGetter(Custom::id)).apply(instance, Custom::new));
+                Codec.STRING.fieldOf("custom_id").forGetter(Custom::id),
+                LootInjectorOps.CUSTOM_DATA.forGetter(Custom::data)).apply(instance, Custom::new));
         @Override
         public boolean test(int index, LootItemFunction function, HolderLookup.Provider registries) {
-            return CustomFunctionSelectorEvent.post(this.id, index, function, registries);
+            return CustomFunctionSelectorEvent.post(this.id, this.data.orElseGet(CompoundTag::new), index, function, registries);
         }
     }
 }
