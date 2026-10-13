@@ -3,6 +3,18 @@
 ArcanumLib provides 4 **player attributes**, all with a default base value of `0` — in other words,
 **they do nothing at all by default**. You have to raise them with attribute modifiers, the `/attribute` command, or item attributes.
 
+## Table of Contents
+
+1. [Overview](#overview)
+2. [Seeking (`arcanumlib:seeking`)](#seeking-arcanumlibseeking)
+3. [Fortune / Looting (`arcanumlib:fortune` / `arcanumlib:looting`)](#fortune--looting-arcanumlibfortune--arcanumliblooting)
+4. [Bonus Loot (`arcanumlib:bonus_loot`)](#bonus-loot-arcanumlibbonus_loot)
+5. [Events](#events)
+6. [Config](#config)
+7. [Related source](#related-source)
+
+---
+
 ## Overview
 
 | Attribute id | Name | Type | Base value | Range | Effect |
@@ -65,7 +77,13 @@ After a loot table has been rolled, the **ratio** from the attribute makes the *
 > **How it differs from an injector**: an injector changes the **structure of the table** (add pools, add entries, change weights — see [Loot Injector](Loot-Injector.md));
 > bonus loot leaves the table alone and just **rolls it more times**, so it coexists with global loot modifiers and chance entries by nature.
 
-### Event: `BonusLootCheckEvent`
+---
+
+## Events
+
+Every event this mod fires is collected here; each one says which part of the mod it belongs to.
+
+### `BonusLootCheckEvent` (bonus loot)
 
 Fired while deciding whether a table should get the boost - **it outranks the config**: a listener can force it on (tables the config does not list) or force it off (tables the config does list); when nobody changes it the config prefix rule decides.
 
@@ -87,7 +105,7 @@ public static void onBonusLootCheck(BonusLootCheckEvent event) {
 }
 ```
 
-### Event: `ModifyBonusLootEvent`
+### `ModifyBonusLootEvent` (bonus loot)
 
 Fired right before the boost happens (Java side, on `NeoForge.EVENT_BUS`) so you can **change the ratio** or cancel it:
 
@@ -107,44 +125,31 @@ public static void onModifyBonusLoot(ModifyBonusLootEvent event) {
 }
 ```
 
----
+### `LivingAttributeChangeEvent` (attribute value change)
+Fired whenever the value of an attribute instance **really changes** (Java side, `NeoForge.EVENT_BUS`).
+It covers every operation that makes an attribute recompute: changing the base value, adding / removing / updating modifiers, entity sync and loading from NBT.
 
-## How to raise the values
+| Method | Description |
+|---|---|
+| `getLivingEntity()` | The entity the attribute belongs to |
+| `getAttributeInstance()` | The instance that changed (attribute type, base value and modifier list are all in it) |
+| `getNewValue()` | The value after the change (modifiers already applied) |
 
-### Command (for debugging)
-
-```
-/attribute @s arcanumlib:seeking base set 2
-/attribute @s arcanumlib:fortune base set 3
-/attribute @s arcanumlib:fortune modifier add mymod:fortune_bonus 3 add_value
-```
-
-### Item attributes (the component in an item json)
-
-```json
-{
-  "minecraft:attribute_modifiers": [
-    {
-      "type": "arcanumlib:fortune",
-      "id": "mymod:fortune_bonus",
-      "amount": 2.0,
-      "operation": "add_value",
-      "slot": "mainhand"
-    }
-  ]
-}
-```
-
-`slot` may be omitted (defaults to `any`); `operation` is one of `add_value` / `add_multiplied_base` / `add_multiplied_total`.
-
-### Code
+- **Read only**: it cannot be cancelled and the value cannot be changed - use attribute modifiers for that;
+- **The same value fires once**: only a real change is posted, so sync and NBT loading do not spam it;
+- It works for **every attribute**, not only the four from this mod.
 
 ```java
-AttributeInstance instance = player.getAttribute(ArcanumAttributes.FORTUNE);
-instance.addOrUpdateTransientModifier(new AttributeModifier(
-        ResourceLocation.fromNamespaceAndPath("mymod", "fortune_bonus"),
-        3.0D,
-        AttributeModifier.Operation.ADD_VALUE));
+@SubscribeEvent
+public static void onAttributeChanged(LivingAttributeChangeEvent event) {
+    // only care about Fortune
+    if (event.getAttributeInstance().getAttribute().value() != ArcanumAttributes.FORTUNE.value()) {
+        return;
+    }
+
+    // the new Fortune value - do something with it
+    double newValue = event.getNewValue();
+}
 ```
 
 ---
@@ -160,7 +165,6 @@ Server config `serverconfig/arcanumlib/attribute.toml` (in a singleplayer world 
 
 ---
 
-
 ## Related source
 
 | Content | File |
@@ -175,3 +179,5 @@ Server config `serverconfig/arcanumlib/attribute.toml` (in a singleplayer world 
 | The Java event that can change the ratio | `modules/loot/bonusLoot/event/ModifyBonusLootEvent.java` |
 | Event that decides whether a table gets the boost (outranks the config) | `modules/loot/bonusLoot/event/BonusLootCheckEvent.java` |
 | Injected into `LootTable` | `mixins/LootTableBonusLootMixin.java` |
+| Attribute value change event (fires for any value change) | `modules/attribute/events/LivingAttributeChangeEvent.java` |
+| Where it fires: hooked on `AttributeInstance#setDirty` | `mixins/AttributeInstanceMixin.java` |
