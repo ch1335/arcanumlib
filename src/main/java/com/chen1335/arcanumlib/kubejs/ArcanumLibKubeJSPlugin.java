@@ -25,6 +25,7 @@ import net.minecraft.world.level.storage.loot.entries.LootItem;
 import net.minecraft.world.level.storage.loot.entries.LootPoolEntryContainer;
 import net.minecraft.world.level.storage.loot.functions.LootItemFunction;
 import net.minecraft.world.level.storage.loot.predicates.LootItemCondition;
+import net.neoforged.neoforge.common.NeoForge;
 
 /**
  * ArcanumLib 的 KubeJS 插件入口。
@@ -47,6 +48,10 @@ public class ArcanumLibKubeJSPlugin implements KubeJSPlugin {
     @Override
     public void init() {
         ArcanumLib.LOGGER.info("ArcanumLib: KubeJS plugin loaded");
+
+        // 在这里（而不是用 @EventBusSubscriber）注册事件桥接：
+        // 插件只在 KubeJS 存在时被加载，所以没装 KubeJS 的整合包不会碰到引用 KubeJS 的类。
+        NeoForge.EVENT_BUS.register(ArcanumLibKubeJSEventBridge.class);
     }
 
     /** 脚本事件：把本模组的注入器事件与自定义钩子注册进 KubeJS 的事件系统。 */

@@ -26,7 +26,6 @@ import com.chen1335.arcanumlib.modules.loot.lootInjector.event.PoolCustomOpEvent
 import com.chen1335.arcanumlib.modules.loot.lootInjector.event.TableCustomOpEvent;
 import net.neoforged.bus.api.EventPriority;
 import net.neoforged.bus.api.SubscribeEvent;
-import net.neoforged.fml.common.EventBusSubscriber;
 import com.chen1335.arcanumlib.kubejs.modules.bonusLoot.BonusLootCheckKubeEvent;
 import com.chen1335.arcanumlib.kubejs.modules.bonusLoot.ModifyBonusLootKubeEvent;
 
@@ -34,9 +33,12 @@ import com.chen1335.arcanumlib.kubejs.modules.bonusLoot.ModifyBonusLootKubeEvent
  * 把本模组的 NeoForge 事件转发成 KubeJS 脚本事件。
  *
  * <p>用 {@code LOWEST} 优先级：让 Java 侧的监听者先处理完，脚本再决定要不要取消。
+ *
+ * <p>**不要**加 {@code @EventBusSubscriber}：那会让 NeoForge 在模组构造期无条件加载本类，
+ * 而本类引用 KubeJS 的类型，没装 KubeJS 的整合包会直接报找不到类。改由 {@code ArcanumLibKubeJSPlugin.init()}
+ * 注册 —— 插件只会在 KubeJS 存在时才被加载。
  * 没有脚本监听时 {@code hasListeners()} 为假，整个转发是零开销的空操作。
  */
-@EventBusSubscriber(modid = ArcanumLib.MODID)
 public class ArcanumLibKubeJSEventBridge {
 
     @SubscribeEvent(priority = EventPriority.LOWEST)
