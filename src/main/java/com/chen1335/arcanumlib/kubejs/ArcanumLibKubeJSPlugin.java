@@ -1,20 +1,7 @@
 package com.chen1335.arcanumlib.kubejs;
 
 import com.chen1335.arcanumlib.ArcanumLib;
-import com.chen1335.arcanumlib.kubejs.modules.lootInjector.helper.ConditionOperatorHelper;
-import com.chen1335.arcanumlib.kubejs.modules.lootInjector.helper.ConditionSelectorHelper;
-import com.chen1335.arcanumlib.kubejs.modules.lootInjector.helper.EntryOperatorHelper;
-import com.chen1335.arcanumlib.kubejs.modules.lootInjector.helper.EntrySelectorHelper;
-import com.chen1335.arcanumlib.kubejs.modules.lootInjector.helper.FunctionOperatorHelper;
-import com.chen1335.arcanumlib.kubejs.modules.lootInjector.helper.FunctionSelectorHelper;
-import com.chen1335.arcanumlib.kubejs.modules.lootInjector.helper.LootConditionHelper;
-import com.chen1335.arcanumlib.kubejs.modules.lootInjector.helper.LootEntryHelper;
-import com.chen1335.arcanumlib.kubejs.modules.lootInjector.helper.LootFunctionHelper;
-import com.chen1335.arcanumlib.kubejs.modules.lootInjector.helper.NumberProviderHelper;
-import com.chen1335.arcanumlib.kubejs.modules.lootInjector.helper.PoolOperatorHelper;
-import com.chen1335.arcanumlib.kubejs.modules.lootInjector.helper.PoolSelectorHelper;
-import com.chen1335.arcanumlib.kubejs.modules.lootInjector.helper.TableOperatorHelper;
-import com.chen1335.arcanumlib.kubejs.modules.lootInjector.helper.TableSelectorHelper;
+import com.chen1335.arcanumlib.kubejs.modules.lootInjector.helper.*;
 import com.chen1335.arcanumlib.modules.loot.lootInjector.LootInjector;
 import com.chen1335.arcanumlib.modules.loot.lootInjector.operator.ConditionOperator;
 import com.chen1335.arcanumlib.modules.loot.lootInjector.operator.EntryOperator;
@@ -33,8 +20,11 @@ import dev.latvian.mods.kubejs.script.TypeWrapperRegistry;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.level.storage.loot.LootPool;
 import net.minecraft.world.level.storage.loot.entries.LootItem;
 import net.minecraft.world.level.storage.loot.entries.LootPoolEntryContainer;
+import net.minecraft.world.level.storage.loot.functions.LootItemFunction;
+import net.minecraft.world.level.storage.loot.predicates.LootItemCondition;
 
 /**
  * ArcanumLib 的 KubeJS 插件入口。
@@ -46,10 +36,10 @@ import net.minecraft.world.level.storage.loot.entries.LootPoolEntryContainer;
  * <ul>
  *     <li>{@link #registerEvents(EventGroupRegistry)} —— 已注册脚本事件组：注入器事件与九个自定义钩子
  *         （{@code table_custom} / {@code pool_custom} / {@code entry_custom} 及五个自定义选择器）；</li>
- *     <li>{@link #registerBindings(BindingRegistry)} —— 已注册 {@code ArcanumLib} 与全部 13 个 Helper
+ *     <li>{@link #registerBindings(BindingRegistry)} —— 已注册 {@code ArcanumLib} 与全部 14 个 Helper
  *         （操作 5 层 + 选择器 5 族 + 条件 / 函数 / 数字提供器）；</li>
- *     <li>{@link #registerTypeWrappers(TypeWrapperRegistry)} —— 仍待补：让 JS 侧能直接传
- *         {@code ItemStack} / 权重等参数给本模组的类型。</li>
+     *     <li>{@link #registerTypeWrappers(TypeWrapperRegistry)} —— 已注册：本模组的选择器 / 操作接口、整条注入器的 codec、
+     *         {@code LootPoolEntryContainer} 的便捷写法，以及把原版 {@code LootItemCondition} / {@code LootItemFunction} 的 Builder 就地 build 成成品的包装器。</li>
  * </ul>
  */
 public class ArcanumLibKubeJSPlugin implements KubeJSPlugin {
@@ -96,6 +86,8 @@ public class ArcanumLibKubeJSPlugin implements KubeJSPlugin {
             bindings.add("LootFunctionHelper", LootFunctionHelper.class);
             bindings.add("NumberProviderHelper", NumberProviderHelper.class);
             bindings.add("LootEntryHelper", LootEntryHelper.class);
+
+            bindings.add("LootPoolHelper", LootPoolHelper.class);
         }
     }
 
@@ -141,5 +133,15 @@ public class ArcanumLibKubeJSPlugin implements KubeJSPlugin {
 
                     return LootItem.lootTableItem(BuiltInRegistries.ITEM.get(ResourceLocation.parse(from.toString()))).build();
                 });
+
+        // 条件与函数：Helper 工厂返回的是原版 Builder，这里就地 build 成成品，
+        // 于是脚本里可以把它直接塞进「收成品」的参数（例如 EntryOperatorHelper.addCondition([...])）。
+        registry.register(LootItemCondition.class,
+                (from, target) -> from instanceof LootItemCondition || from instanceof LootItemCondition.Builder,
+                (cx, from) -> from instanceof LootItemCondition condition ? condition : ((LootItemCondition.Builder) from).build());
+
+        registry.register(LootItemFunction.class,
+                (from, target) -> from instanceof LootItemFunction || from instanceof LootItemFunction.Builder,
+                (cx, from) -> from instanceof LootItemFunction function ? function : ((LootItemFunction.Builder) from).build());
     }
 }

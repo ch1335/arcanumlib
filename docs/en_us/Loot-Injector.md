@@ -2432,9 +2432,8 @@ ArcanumLibEvents.registerLootInjector(event => {
     builder => builder
       .setWeight(5)
       .when(
-        LootConditionHelper.randomChance(
-          NumberProviderHelper.constant(0.25)
-        )
+        // number provider sugar: a fixed value is just a number, same as NumberProviderHelper.constant(0.25)
+        LootConditionHelper.randomChance(0.25)
       )
       .apply(
         LootFunctionHelper.setCount(
@@ -2477,6 +2476,10 @@ ArcanumLibEvents.registerLootInjector(event => {
 - Each Helper covers one layer: `TableSelectorHelper` / `PoolSelectorHelper` / `EntrySelectorHelper` pick the targets, `TableOperatorHelper` / `PoolOperatorHelper` / `EntryOperatorHelper` describe the changes;
 - Entries, conditions, functions and number providers come from `LootEntryHelper` / `LootConditionHelper` / `LootFunctionHelper` / `NumberProviderHelper`;
 - What the factories return are plain Java objects, so you can bind them to variables, reuse them and combine them; json and factories **can be mixed** - for example a json operator next to a factory-built entry inside the same `ops` array.
+
+- Condition and function factories return a **vanilla Builder**: hang it straight on `.when(...)` / `.apply(...)`, or pass it to **our own** operators (`addCondition`, `addFunction` and friends) - the type wrapper of this mod builds it for you, no manual `.build()` in scripts.
+- Number providers have **sugar**: where a `NumberProvider` is expected, a **plain number is enough** for a fixed value (writing `0.25` is the same as `NumberProviderHelper.constant(0.25)`, which turns into a provider with a constant value); use the matching factory for ranges, binomial or enchantment-level values (`uniform` / `binomial` / `enchantmentLevel` and friends).
+- Number providers also **compose**: the result of a factory such as `NumberProviderHelper.constant(...)` can be passed straight to another Helper (KubeJS used to accept only numbers, lists or maps here; this mod fixes that gap).
 
 ### 20.10 The two bonus loot events
 
@@ -2553,10 +2556,10 @@ The same job - changing drops - is shown below through a few examples: some **ap
 
 ```json
 {
-  // 优先级：同一张表上按它依次应用（数字越小越早）
+  // priority: several injectors on one table apply in this order (smaller runs earlier)
   "priority": 1200,
 
-  // 表选择器：arcanumlib:id 表示按表 id 精确命中
+  // table selector: arcanumlib:id matches the table id exactly
   "tableSelector": {
     "type": "arcanumlib:id",
     "id": "minecraft:chests/simple_dungeon"
@@ -2564,7 +2567,7 @@ The same job - changing drops - is shown below through a few examples: some **ap
 
   "ops": [
     {
-      // 表级操作：对命中的池执行它自己的 ops（这里只挑第 1 个池）
+      // table-level operator: run its own ops on the matched pool (here the first pool only)
       "type": "arcanumlib:modify_pool",
       "poolSelector": {
         "type": "arcanumlib:index",
@@ -2572,19 +2575,19 @@ The same job - changing drops - is shown below through a few examples: some **ap
       },
       "ops": [
         {
-          // 池级操作：往这个池里追加一条条目
+          // pool-level operator: append one entry to this pool
           "type": "arcanumlib:add_entry",
           "entry": {
-            // 要追加的条目本体：一颗钻石
+            // the entry to append: a diamond
             "type": "minecraft:item",
             "name": "minecraft:diamond",
 
-            // 原版条件：25% 概率才产出
+            // vanilla condition: only drops 25% of the time
             "conditions": [
               { "condition": "minecraft:random_chance", "chance": 0.25 }
             ],
 
-            // 原版函数：数量随机 1~3
+            // vanilla function: a random amount of 1~3
             "functions": [
               { "function": "minecraft:set_count",
                 "count": { "type": "minecraft:uniform", "min": 1, "max": 3 } }
@@ -2603,16 +2606,15 @@ A script registers the same injector through an **event**; selectors and operato
 
 ```js
 ArcanumLibEvents.registerLootInjector(event => {
-  // 先造要追加的条目：钻石
+  // build the entry to append first: a diamond
   let diamond = LootEntryHelper.item('minecraft:diamond',
     builder => builder
-      // 条件：25% 概率（when = 挂在条目上的条件）
+      // condition: a 25% chance (when = a condition on the entry)
       .when(
-        LootConditionHelper.randomChance(
-          NumberProviderHelper.constant(0.25)
-        )
+        // number provider sugar: a fixed value is just a number, same as NumberProviderHelper.constant(0.25)
+        LootConditionHelper.randomChance(0.25)
       )
-      // 函数：数量随机 1~3（apply = 挂在条目上的函数）
+      // function: a random amount of 1~3 (apply = a function on the entry)
       .apply(
         LootFunctionHelper.setCount(
           NumberProviderHelper.uniform(
@@ -2623,18 +2625,18 @@ ArcanumLibEvents.registerLootInjector(event => {
       )
   )
 
-  // 注册注入器：id / 选表 / 优先级 / 操作列表
+  // register the injector: id / table selector / priority / operators
   event.register('mypack:dungeon_diamond',
-    // 选表：按 id 命中简单地牢的箱子表
+    // pick the table: match the simple dungeon chest table by id
     TableSelectorHelper.byId('minecraft:chests/simple_dungeon'),
     1200,
     [
-      // 表级：只挑第 1 个池
+      // table level: pick the first pool
       TableOperatorHelper.modifyPool(
-        // 池选择器：按索引
+        // pool selector: by index
         PoolSelectorHelper.byIndex(0),
         [
-          // 池级：往这个池里追加条目
+          // pool level: append an entry to this pool
           PoolOperatorHelper.addEntry(diamond)
         ]
       )
@@ -2649,17 +2651,17 @@ The Java side listens to the same event, builds the entry with vanilla factories
 
 ```java
 NeoForge.EVENT_BUS.addListener((LootInjectorRegisterEvent event) -> {
-    // 注册注入器：id / 选表 / 优先级 / 操作列表
+    // register the injector: id / table selector / priority / operators
     event.register(ResourceLocation.fromNamespaceAndPath("mypack", "dungeon_diamond"),
-            // 选表：按 id 命中简单地牢的箱子表
+            // pick the table: match the simple dungeon chest table by id
             new TableSelector.ById(ResourceLocation.withDefaultNamespace("chests/simple_dungeon")),
             1200,
-            // 表级：只挑第 1 个池，往里面追加一条条目
+            // table level: pick the first pool and append one entry to it
             List.of(new TableOperator.ModifyPool(
-                    // 池选择器：按索引
+                    // pool selector: by index
                     new PoolSelector.ByIndex(0),
                     List.of(new PoolOperator.AddEntry(
-                            // 要追加的条目：钻石 + 25% 条件 + 数量 1~3
+                            // the entry to append: a diamond with a 25% condition and an amount of 1~3
                             LootItem.lootTableItem(Items.DIAMOND)
                                     .when(LootItemRandomChanceCondition.randomChance(0.25F))
                                     .apply(SetItemCountFunction.setCount(UniformGenerator.between(1.0F, 3.0F)))
@@ -2669,13 +2671,13 @@ NeoForge.EVENT_BUS.addListener((LootInjectorRegisterEvent event) -> {
 
 ### Example 2: modifying an existing entry (nothing new added)
 
-**Effect**: take the **existing gold ingot entry** in the **first pool** of the same table and change it - **raise its weight to 20**, add a **50%** condition and set the amount to **1~2** (vanilla has weight 1, no extra condition and amount 1).
+**Effect**: take the **existing gold ingot entry** in the **second pool** of the same table and change it - **raise its weight to 20**, add a **50%** condition and set the amount to **1~2** (vanilla has weight 1, no extra condition and amount 1).
 
 #### Datapack
 
 ```json
 {
-  // 改造已有条目不需要抢很早的优先级
+  // changing an existing entry does not need a very early priority
   "priority": 900,
 
   "tableSelector": {
@@ -2685,29 +2687,29 @@ NeoForge.EVENT_BUS.addListener((LootInjectorRegisterEvent event) -> {
 
   "ops": [
     {
-      // 表级：只挑第 1 个池
+      // table level: pick the second pool
       "type": "arcanumlib:modify_pool",
       "poolSelector": {
         "type": "arcanumlib:index",
-        "index": 0
+        "index": 1
       },
       "ops": [
         {
-          // 池级：只挑出「金锭」那一条（这一层是筛选目标，不新增东西）
+          // pool level: select the gold ingot entry (this level only selects, it adds nothing)
           "type": "arcanumlib:modify_entry",
           "entrySelector": {
             "type": "arcanumlib:item",
             "item": "minecraft:gold_ingot"
           },
           "ops": [
-            // 改动 1：把它的权重提到 20（原版是 1）
+            // change 1: raise its weight to 20 (vanilla is 1)
             { "type": "arcanumlib:set_weight", "weight": 20 },
 
-            // 改动 2：再挂一条 50% 的条件
+            // change 2: add a 50% condition
             { "type": "arcanumlib:add_condition",
               "conditions": [ { "condition": "minecraft:random_chance", "chance": 0.5 } ] },
 
-            // 改动 3：挂一个把数量改成 1~2 的函数
+            // change 3: add a function that sets the amount to 1~2
             { "type": "arcanumlib:add_function",
               "functions": [ { "function": "minecraft:set_count",
                                "count": { "type": "minecraft:uniform", "min": 1, "max": 2 } } ] }
@@ -2725,17 +2727,17 @@ The same Helpers describe "changes" just as well: `setWeight` / `addCondition` /
 
 ```js
 ArcanumLibEvents.registerLootInjector(event => {
-  // 要施加到「金锭」这一条目上的三个改动
+  // the three changes to apply to the gold ingot entry
   let goldChanges = [
-    // 权重提到 20
+    // raise the weight to 20
     EntryOperatorHelper.setWeight(20),
-    // 再挂一条 50% 的条件
+    // plus a 50% condition
     EntryOperatorHelper.addCondition([
       LootConditionHelper.randomChance(
         NumberProviderHelper.constant(0.5)
       )
     ]),
-    // 挂一个把数量改成 1~2 的函数
+    // and a function that sets the amount to 1~2
     EntryOperatorHelper.addFunction([
       LootFunctionHelper.setCount(
         NumberProviderHelper.uniform(
@@ -2746,13 +2748,13 @@ ArcanumLibEvents.registerLootInjector(event => {
     ])
   ]
 
-  // 注册注入器：只挑第 1 个池里的金锭条目，把这几个改动套上去
+  // register the injector: pick the gold ingot entry in the second pool and apply these changes
   event.register('mypack:dungeon_gold',
     TableSelectorHelper.byId('minecraft:chests/simple_dungeon'),
     900,
     [
       TableOperatorHelper.modifyPool(
-        PoolSelectorHelper.byIndex(0),
+        PoolSelectorHelper.byIndex(1),
         [
           PoolOperatorHelper.modifyEntry(
             EntrySelectorHelper.isItem('minecraft:gold_ingot'),
@@ -2775,17 +2777,17 @@ NeoForge.EVENT_BUS.addListener((LootInjectorRegisterEvent event) -> {
             new TableSelector.ById(ResourceLocation.withDefaultNamespace("chests/simple_dungeon")),
             900,
             List.of(new TableOperator.ModifyPool(
-                    new PoolSelector.ByIndex(0),
+                    new PoolSelector.ByIndex(1),
                     List.of(new PoolOperator.ModifyEntry(
-                            // 目标：金锭那一条（这里只是筛选，不新增）
+                            // target: the gold ingot entry (this only selects, it adds nothing)
                             new EntrySelector.IsItem(ResourceLocation.withDefaultNamespace("gold_ingot")),
                             List.of(
-                                    // 权重提到 20
+                                    // raise the weight to 20
                                     new EntryOperator.SetWeight(20),
-                                    // 再挂一条 50% 的条件（条件要先 build 出来）
+                                    // plus a 50% condition (a condition has to be built first)
                                     new EntryOperator.AddCondition(List.of(
                                             LootItemRandomChanceCondition.randomChance(0.5F).build())),
-                                    // 挂一个把数量改成 1~2 的函数
+                                    // and a function that sets the amount to 1~2
                                     new EntryOperator.AddFunction(List.of(
                                             SetItemCountFunction.setCount(
                                                     UniformGenerator.between(1.0F, 2.0F)).build()))))))));

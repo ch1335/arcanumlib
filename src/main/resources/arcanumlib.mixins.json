@@ -2,9 +2,11 @@
   "required": true,
   "minVersion": "0.8.5",
   "package": "com.chen1335.arcanumlib.mixins",
+  "plugin": "com.chen1335.arcanumlib.mixins.ArcanumLibMixinPlugin",
   "compatibilityLevel": "JAVA_21",
   "mixins": [
     "CompositeEntryBaseMixin",
+    "kubejs.MiscWrappersNumberProviderMixin",
     "LootTableBonusLootMixin",
     "MixinMinecraftServer",
     "IntrusiveBaseWeightAccessor",

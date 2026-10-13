@@ -58,10 +58,10 @@ public final class LootFunctionHelper {
                     @Param(name = "json", value = "the function json"),
                     @Param(name = "registries", value = "registry access, pass event.registries from a script")
             })
-    public static LootItemFunction of(JsonElement json, HolderLookup.Provider registries) {
+    public static LootItemFunction.Builder of(JsonElement json, HolderLookup.Provider registries) {
         RegistryOps<JsonElement> ops = RegistryOps.create(JsonOps.INSTANCE, registries);
 
-        return LootItemFunctions.ROOT_CODEC.parse(ops, json).getOrThrow();
+        return () -> LootItemFunctions.ROOT_CODEC.parse(ops, json).getOrThrow();
     }
 
     @Info(value = "Builds a loot function from a type id plus its fields, e.g. ofType(`minecraft:set_count`, {count: 3}, registries).",
@@ -70,7 +70,7 @@ public final class LootFunctionHelper {
                     @Param(name = "fields", value = "the rest of the json"),
                     @Param(name = "registries", value = "registry access")
             })
-    public static LootItemFunction ofType(String typeId, JsonObject fields, HolderLookup.Provider registries) {
+    public static LootItemFunction.Builder ofType(String typeId, JsonObject fields, HolderLookup.Provider registries) {
         JsonObject json = fields.deepCopy();
         json.addProperty("function", typeId);
 
@@ -89,8 +89,8 @@ public final class LootFunctionHelper {
             params = {
                     @Param(name = "countValue", value = "the new size")
             })
-    public static LootItemFunction setCount(NumberProvider countValue) {
-        return SetItemCountFunction.setCount(countValue).build();
+    public static LootItemFunction.Builder setCount(NumberProvider countValue) {
+        return SetItemCountFunction.setCount(countValue);
     }
 
     @Info(value = "Sets the stack size from the number provider.",
@@ -98,8 +98,8 @@ public final class LootFunctionHelper {
                     @Param(name = "countValue", value = "the amount to use"),
                     @Param(name = "add", value = "when true it is added to the current count instead of replacing it")
             })
-    public static LootItemFunction setCount(NumberProvider countValue, boolean add) {
-        return SetItemCountFunction.setCount(countValue, add).build();
+    public static LootItemFunction.Builder setCount(NumberProvider countValue, boolean add) {
+        return SetItemCountFunction.setCount(countValue, add);
     }
 
     @Info(value = "Enchants the item as if it had been enchanted with the given number of levels.",
@@ -107,23 +107,23 @@ public final class LootFunctionHelper {
                     @Param(name = "registries", value = "registry access for the enchantment pool"),
                     @Param(name = "levels", value = "how many levels to enchant as")
             })
-    public static LootItemFunction enchantWithLevels(HolderLookup.Provider registries, NumberProvider levels) {
-        return EnchantWithLevelsFunction.enchantWithLevels(registries, levels).build();
+    public static LootItemFunction.Builder enchantWithLevels(HolderLookup.Provider registries, NumberProvider levels) {
+        return EnchantWithLevelsFunction.enchantWithLevels(registries, levels);
     }
 
     @Info("Enchants the item with one random enchantment.")
-    public static LootItemFunction randomEnchantment() {
-        return EnchantRandomlyFunction.randomEnchantment().build();
+    public static LootItemFunction.Builder randomEnchantment() {
+        return EnchantRandomlyFunction.randomEnchantment();
     }
 
     @Info("Enchants the item with one random enchantment.")
-    public static LootItemFunction randomApplicableEnchantment(HolderLookup.Provider registries) {
-        return EnchantRandomlyFunction.randomApplicableEnchantment(registries).build();
+    public static LootItemFunction.Builder randomApplicableEnchantment(HolderLookup.Provider registries) {
+        return EnchantRandomlyFunction.randomApplicableEnchantment(registries);
     }
 
     @Info("Merges NBT into the item's custom data component.")
-    public static LootItemFunction setCustomData(CompoundTag tag) {
-        return SetCustomDataFunction.setCustomData(tag).build();
+    public static LootItemFunction.Builder setCustomData(CompoundTag tag) {
+        return SetCustomDataFunction.setCustomData(tag);
     }
 
     @Info(value = "Adds or replaces a data component on the item.",
@@ -131,13 +131,13 @@ public final class LootFunctionHelper {
                     @Param(name = "component", value = "which component to set"),
                     @Param(name = "value", value = "its new value")
             })
-    public static <T> LootItemFunction setComponent(DataComponentType<T> component, T value) {
-        return SetComponentsFunction.setComponent(component, value).build();
+    public static <T> LootItemFunction.Builder setComponent(DataComponentType<T> component, T value) {
+        return SetComponentsFunction.setComponent(component, value);
     }
 
     @Info("Smelts the dropped item as a furnace would.")
-    public static LootItemFunction smelted() {
-        return SmeltItemFunction.smelted().build();
+    public static LootItemFunction.Builder smelted() {
+        return SmeltItemFunction.smelted();
     }
 
     @Info(value = "Increases the count based on the level of a given enchantment.",
@@ -145,16 +145,16 @@ public final class LootFunctionHelper {
                     @Param(name = "registries", value = "registry access"),
                     @Param(name = "count", value = "how much is added per level of that enchantment")
             })
-    public static LootItemFunction lootingMultiplier(HolderLookup.Provider registries, NumberProvider count) {
-        return EnchantedCountIncreaseFunction.lootingMultiplier(registries, count).build();
+    public static LootItemFunction.Builder lootingMultiplier(HolderLookup.Provider registries, NumberProvider count) {
+        return EnchantedCountIncreaseFunction.lootingMultiplier(registries, count);
     }
 
     @Info(value = "Sets the item's damage (durability).",
             params = {
                     @Param(name = "damageValue", value = "how much durability is left, as a fraction: 1.0 is undamaged, 0.0 is fully damaged")
             })
-    public static LootItemFunction setDamage(NumberProvider damageValue) {
-        return SetItemDamageFunction.setDamage(damageValue).build();
+    public static LootItemFunction.Builder setDamage(NumberProvider damageValue) {
+        return SetItemDamageFunction.setDamage(damageValue);
     }
 
     @Info(value = "Sets the item's damage (durability).",
@@ -162,8 +162,8 @@ public final class LootFunctionHelper {
                     @Param(name = "damageValue", value = "how much durability is left, as a fraction: 1.0 is undamaged, 0.0 is fully damaged"),
                     @Param(name = "add", value = "when true it is added to the current remaining durability instead of replacing it")
             })
-    public static LootItemFunction setDamage(NumberProvider damageValue, boolean add) {
-        return SetItemDamageFunction.setDamage(damageValue, add).build();
+    public static LootItemFunction.Builder setDamage(NumberProvider damageValue, boolean add) {
+        return SetItemDamageFunction.setDamage(damageValue, add);
     }
 
     @Info(value = "Adds or replaces attribute modifiers on the item.",
@@ -171,14 +171,14 @@ public final class LootFunctionHelper {
                     @Param(name = "modifiers", value = "the modifiers to apply, built with attributeModifier(...)"),
                     @Param(name = "replace", value = "when true the modifiers already on the item are replaced, when false they are extended")
             })
-    public static LootItemFunction setAttributes(List<SetAttributesFunction.ModifierBuilder> modifiers, boolean replace) {
+    public static LootItemFunction.Builder setAttributes(List<SetAttributesFunction.ModifierBuilder> modifiers, boolean replace) {
         SetAttributesFunction.Builder builder = new SetAttributesFunction.Builder(replace);
 
         for (SetAttributesFunction.ModifierBuilder modifier : modifiers) {
             builder.withModifier(modifier);
         }
 
-        return builder.build();
+        return builder;
     }
 
     @Info(value = "Builds one attribute modifier for setAttributes(...). Chain forSlot(...) on the result to limit it to equipment slots.",
@@ -198,8 +198,8 @@ public final class LootFunctionHelper {
                     @Param(name = "name", value = "the new name component"),
                     @Param(name = "target", value = "which name to write: CUSTOM_NAME for the custom (anvil) name, ITEM_NAME for the item's base name")
             })
-    public static LootItemFunction setName(Component name, SetNameFunction.Target target) {
-        return SetNameFunction.setName(name, target).build();
+    public static LootItemFunction.Builder setName(Component name, SetNameFunction.Target target) {
+        return SetNameFunction.setName(name, target);
     }
 
     @Info(value = "Sets the name on the item stack, optionally resolving entity-sensitive parts of the name against the loot context.",
@@ -208,22 +208,22 @@ public final class LootFunctionHelper {
                     @Param(name = "target", value = "which name to write: CUSTOM_NAME for the custom (anvil) name, ITEM_NAME for the item's base name"),
                     @Param(name = "resolutionContext", value = "the entity of the loot context used to resolve entity-sensitive parts of the name, such as scoreboard scores")
             })
-    public static LootItemFunction setName(Component name, SetNameFunction.Target target, LootContext.EntityTarget resolutionContext) {
-        return SetNameFunction.setName(name, target, resolutionContext).build();
+    public static LootItemFunction.Builder setName(Component name, SetNameFunction.Target target, LootContext.EntityTarget resolutionContext) {
+        return SetNameFunction.setName(name, target, resolutionContext);
     }
 
 
 
     @Info("Copies the name from a block entity or an entity in the loot context.")
-    public static LootItemFunction copyName(CopyNameFunction.NameSource source) {
-        return CopyNameFunction.copyName(source).build();
+    public static LootItemFunction.Builder copyName(CopyNameFunction.NameSource source) {
+        return CopyNameFunction.copyName(source);
     }
     @Info(value = "Fills a container item with the given entries.",
             params = {
                     @Param(name = "component", value = "which container component to fill, such as CONTAINER"),
                     @Param(name = "entries", value = "the entry builders describing what goes inside, such as EntryHelper.item(...)")
             })
-    public static LootItemFunction setContents(ContainerComponentManipulator<?> component,
+    public static LootItemFunction.Builder setContents(ContainerComponentManipulator<?> component,
                                                List<LootPoolEntryContainer.Builder<?>> entries) {
         SetContainerContents.Builder builder = SetContainerContents.setContents(component);
 
@@ -231,12 +231,12 @@ public final class LootFunctionHelper {
             builder.withEntry(entry);
         }
 
-        return builder.build();
+        return builder;
     }
 
     @Info("Limits the stack size to a minimum and/or a maximum.")
-    public static LootItemFunction limitCount(IntRange countLimit) {
-        return LimitCount.limitCount(countLimit).build();
+    public static LootItemFunction.Builder limitCount(IntRange countLimit) {
+        return LimitCount.limitCount(countLimit);
     }
 
     @Info(value = "Adds extra rolls using a binomial distribution.",
@@ -245,18 +245,18 @@ public final class LootFunctionHelper {
                     @Param(name = "probability", value = "the chance of each extra roll"),
                     @Param(name = "extraRounds", value = "how many extra rolls are attempted per enchantment level")
             })
-    public static LootItemFunction addBonusBinomialDistributionCount(Holder<Enchantment> enchantment, float probability, int extraRounds) {
-        return ApplyBonusCount.addBonusBinomialDistributionCount(enchantment, probability, extraRounds).build();
+    public static LootItemFunction.Builder addBonusBinomialDistributionCount(Holder<Enchantment> enchantment, float probability, int extraRounds) {
+        return ApplyBonusCount.addBonusBinomialDistributionCount(enchantment, probability, extraRounds);
     }
 
     @Info("Applies a vanilla bonus formula based on an enchantment level.")
-    public static LootItemFunction addOreBonusCount(Holder<Enchantment> enchantment) {
-        return ApplyBonusCount.addOreBonusCount(enchantment).build();
+    public static LootItemFunction.Builder addOreBonusCount(Holder<Enchantment> enchantment) {
+        return ApplyBonusCount.addOreBonusCount(enchantment);
     }
 
     @Info("Applies a vanilla bonus formula based on an enchantment level.")
-    public static LootItemFunction addUniformBonusCount(Holder<Enchantment> enchantment) {
-        return ApplyBonusCount.addUniformBonusCount(enchantment).build();
+    public static LootItemFunction.Builder addUniformBonusCount(Holder<Enchantment> enchantment) {
+        return ApplyBonusCount.addUniformBonusCount(enchantment);
     }
 
     @Info(value = "Adds a uniformly random bonus count.",
@@ -264,8 +264,8 @@ public final class LootFunctionHelper {
                     @Param(name = "enchantment", value = "the enchantment whose level is read"),
                     @Param(name = "bonusMultiplier", value = "how many extra rolls are attempted per enchantment level")
             })
-    public static LootItemFunction addUniformBonusCount(Holder<Enchantment> enchantment, int bonusMultiplier) {
-        return ApplyBonusCount.addUniformBonusCount(enchantment, bonusMultiplier).build();
+    public static LootItemFunction.Builder addUniformBonusCount(Holder<Enchantment> enchantment, int bonusMultiplier) {
+        return ApplyBonusCount.addUniformBonusCount(enchantment, bonusMultiplier);
     }
 
     @Info(value = "Stores a loot table id on a container block entity item.",
@@ -273,8 +273,8 @@ public final class LootFunctionHelper {
                     @Param(name = "type", value = "the block entity type the table applies to"),
                     @Param(name = "toolTable", value = "the loot table to store")
             })
-    public static LootItemFunction withLootTable(BlockEntityType<?> type, ResourceKey<LootTable> toolTable) {
-        return SetContainerLootTable.withLootTable(type, toolTable).build();
+    public static LootItemFunction.Builder withLootTable(BlockEntityType<?> type, ResourceKey<LootTable> toolTable) {
+        return SetContainerLootTable.withLootTable(type, toolTable);
     }
 
     @Info(value = "Stores a loot table id and seed on a container block entity item.",
@@ -283,49 +283,49 @@ public final class LootFunctionHelper {
                     @Param(name = "lootTable", value = "the loot table to store"),
                     @Param(name = "seed", value = "the loot table seed")
             })
-    public static LootItemFunction withLootTable(BlockEntityType<?> type, ResourceKey<LootTable> lootTable, long seed) {
-        return SetContainerLootTable.withLootTable(type, lootTable, seed).build();
+    public static LootItemFunction.Builder withLootTable(BlockEntityType<?> type, ResourceKey<LootTable> lootTable, long seed) {
+        return SetContainerLootTable.withLootTable(type, lootTable, seed);
     }
 
     @Info("Reduces the count based on the explosion radius, as vanilla explosion decay does.")
-    public static LootItemFunction explosionDecay() {
-        return ApplyExplosionDecay.explosionDecay().build();
+    public static LootItemFunction.Builder explosionDecay() {
+        return ApplyExplosionDecay.explosionDecay();
     }
 
 
     @Info("Fills a player head with the profile of a player in the loot context.")
-    public static LootItemFunction fillPlayerHead(LootContext.EntityTarget entityTarget) {
-        return FillPlayerHead.fillPlayerHead(entityTarget).build();
+    public static LootItemFunction.Builder fillPlayerHead(LootContext.EntityTarget entityTarget) {
+        return FillPlayerHead.fillPlayerHead(entityTarget);
     }
 
     @Info(value = "Copies custom data onto the item from an NBT source, such as a block entity or command storage.",
             params = {
                     @Param(name = "source", value = "where the data is read from")
             })
-    public static LootItemFunction copyDataFromNbt(NbtProvider source) {
-        return CopyCustomDataFunction.copyData(source).build();
+    public static LootItemFunction.Builder copyDataFromNbt(NbtProvider source) {
+        return CopyCustomDataFunction.copyData(source);
     }
 
     @Info(value = "Copies custom data onto the item from an entity in the loot context.",
             params = {
                     @Param(name = "target", value = "which entity of the loot context the data is read from")
             })
-    public static LootItemFunction copyDataFromEntity(LootContext.EntityTarget target) {
-        return CopyCustomDataFunction.copyData(target).build();
+    public static LootItemFunction.Builder copyDataFromEntity(LootContext.EntityTarget target) {
+        return CopyCustomDataFunction.copyData(target);
     }
     @Info(value = "Copies the given block state properties of the broken block onto the item.",
             params = {
                     @Param(name = "block", value = "the block whose state is read"),
                     @Param(name = "properties", value = "which properties to copy, such as BlockStateProperties.FACING")
             })
-    public static LootItemFunction copyState(Block block, List<Property<?>> properties) {
+    public static LootItemFunction.Builder copyState(Block block, List<Property<?>> properties) {
         CopyBlockState.Builder builder = CopyBlockState.copyState(block);
 
         for (Property<?> property : properties) {
             builder.copy(property);
         }
 
-        return builder.build();
+        return builder;
     }
     @Info("One banner pattern layer: a pattern plus the colour it is drawn in.")
     public record BannerLayer(
@@ -338,29 +338,29 @@ public final class LootFunctionHelper {
                     @Param(name = "append", value = "when true the patterns are appended to the existing ones instead of replacing them"),
                     @Param(name = "patterns", value = "the pattern layers to apply, in order")
             })
-    public static LootItemFunction setBannerPattern(boolean append, List<BannerLayer> patterns) {
+    public static LootItemFunction.Builder setBannerPattern(boolean append, List<BannerLayer> patterns) {
         SetBannerPatternFunction.Builder builder = SetBannerPatternFunction.setBannerPattern(append);
 
         for (BannerLayer layer : patterns) {
             builder.addPattern(layer.pattern(), layer.color());
         }
 
-        return builder.build();
+        return builder;
     }
 
     @Info("Sets the potion contents of the item.")
-    public static LootItemFunction setPotion(Holder<Potion> potion) {
-        return SetPotionFunction.setPotion(potion).build();
+    public static LootItemFunction.Builder setPotion(Holder<Potion> potion) {
+        return SetPotionFunction.setPotion(potion);
     }
 
     @Info("Sets the goat horn instrument.")
-    public static LootItemFunction setInstrumentOptions(TagKey<Instrument> instrumentOptions) {
-        return SetInstrumentFunction.setInstrumentOptions(instrumentOptions).build();
+    public static LootItemFunction.Builder setInstrumentOptions(TagKey<Instrument> instrumentOptions) {
+        return SetInstrumentFunction.setInstrumentOptions(instrumentOptions);
     }
 
     @Info("Delegates to another loot function by its id.")
-    public static LootItemFunction functionReference(ResourceKey<LootItemFunction> key) {
-        return FunctionReference.functionReference(key).build();
+    public static LootItemFunction.Builder functionReference(ResourceKey<LootItemFunction> key) {
+        return FunctionReference.functionReference(key);
     }
     @Info(value = "Copies data components from a block entity or an entity in the loot context onto the item.",
             params = {
@@ -368,7 +368,7 @@ public final class LootFunctionHelper {
                     @Param(name = "include", value = "the component types to copy; leave empty and use exclude instead"),
                     @Param(name = "exclude", value = "the component types to skip; leave empty and use include instead")
             })
-    public static LootItemFunction copyComponents(CopyComponentsFunction.Source source,
+    public static LootItemFunction.Builder copyComponents(CopyComponentsFunction.Source source,
                                                  List<DataComponentType<?>> include, List<DataComponentType<?>> exclude) {
         CopyComponentsFunction.Builder builder = CopyComponentsFunction.copyComponents(source);
 
@@ -380,17 +380,17 @@ public final class LootFunctionHelper {
             builder.exclude(exclude_);
         }
 
-        return builder.build();
+        return builder;
     }
 
     @Info("Sets the amplifier of an ominous bottle.")
-    public static LootItemFunction setAmplifier(NumberProvider amplifier) {
-        return SetOminousBottleAmplifierFunction.setAmplifier(amplifier).build();
+    public static LootItemFunction.Builder setAmplifier(NumberProvider amplifier) {
+        return SetOminousBottleAmplifierFunction.setAmplifier(amplifier);
     }
 
     @Info("Turns the item into a treasure map pointing at the nearest matching structure, using the vanilla defaults: destination on_treasure_maps, zoom 2, search radius 50 and skipping already generated chunks.")
-    public static LootItemFunction makeExplorationMap() {
-        return ExplorationMapFunction.makeExplorationMap().build();
+    public static LootItemFunction.Builder makeExplorationMap() {
+        return ExplorationMapFunction.makeExplorationMap();
     }
 
     @Info(value = "Turns the item into an exploration map.",
@@ -401,15 +401,14 @@ public final class LootFunctionHelper {
                     @Param(name = "searchRadius", value = "how far, in chunks, the structure is searched for"),
                     @Param(name = "skipKnownStructures", value = "when true, structures that already have a map are skipped")
             })
-    public static LootItemFunction makeExplorationMap(TagKey<Structure> destination, Holder<MapDecorationType> mapDecoration,
+    public static LootItemFunction.Builder makeExplorationMap(TagKey<Structure> destination, Holder<MapDecorationType> mapDecoration,
                                                       byte zoom, int searchRadius, boolean skipKnownStructures) {
         return ExplorationMapFunction.makeExplorationMap()
                 .setDestination(destination)
                 .setMapDecoration(mapDecoration)
                 .setZoom(zoom)
                 .setSearchRadius(searchRadius)
-                .setSkipKnownStructures(skipKnownStructures)
-                .build();
+                .setSkipKnownStructures(skipKnownStructures);
     }
 
     @Info("One suspicious stew effect: the effect plus how long it lasts.")
@@ -422,14 +421,14 @@ public final class LootFunctionHelper {
             params = {
                     @Param(name = "effects", value = "the effects to apply; vanilla rejects an empty list")
             })
-    public static LootItemFunction stewEffect(List<StewEffect> effects) {
+    public static LootItemFunction.Builder stewEffect(List<StewEffect> effects) {
         SetStewEffectFunction.Builder builder = SetStewEffectFunction.stewEffect();
 
         for (StewEffect effect : effects) {
             builder.withEffect(effect.effect(), effect.duration());
         }
 
-        return builder.build();
+        return builder;
     }
 
     @Info(value = "Sets the item's lore lines.",
@@ -438,13 +437,13 @@ public final class LootFunctionHelper {
                     @Param(name = "mode", value = "how the lines combine with the existing lore, such as ListOperation.REPLACE_ALL"),
                     @Param(name = "resolutionContext", value = "the entity of the loot context used to resolve entity-sensitive parts of the lines, such as scoreboard scores")
             })
-    public static LootItemFunction setLore(List<Component> lines, ListOperation mode, LootContext.EntityTarget resolutionContext) {
+    public static LootItemFunction.Builder setLore(List<Component> lines, ListOperation mode, LootContext.EntityTarget resolutionContext) {
         SetLoreFunction.Builder builder = SetLoreFunction.setLore().setMode(mode).setResolutionContext(resolutionContext);
 
         for (Component line : lines) {
             builder.addLine(line);
         }
 
-        return builder.build();
+        return builder;
     }
 }
