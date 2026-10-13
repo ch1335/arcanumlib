@@ -3,9 +3,6 @@
 All the loot conditions provided by ArcanumLib are collected here. They are all **vanilla `LootItemCondition`s**,
 so they can be written into the `conditions` of any loot table, and the injector system can also use them as ordinary conditions.
 
-> This document is a **container**: whenever a new condition is added later, just add a row to the "Condition list" below
-> and append a detailed section. Currently there are 2 entries.
-
 ## Condition list
 
 | Condition id | One-line description | Details |
