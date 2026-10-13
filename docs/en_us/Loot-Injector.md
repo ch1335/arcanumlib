@@ -32,6 +32,7 @@ without touching vanilla data and without fighting other mods over block/entity 
 19. [Semantic Boundaries and Pitfalls](#19-semantic-boundaries-and-pitfalls)
 20. [KubeJS Integration](#20-kubejs-integration)
 21. [Loot Conditions Provided by This Mod](#21-loot-conditions-provided-by-this-mod)
+22. [Examples of changing loot](#22-examples-of-changing-loot)
 
 ---
 
@@ -648,7 +649,9 @@ Written inside `modify_pool.poolSelector`. Registry: `arcanumlib:pool_selector`.
 - **Excludes** `quality × luck` — selectors have no access to a `LootContext`;
 - **Does not filter by entry conditions** — vanilla expands via `expand(context)` when rolling;
 - Composite entries (`alternatives`/`sequence`/`group`) have no `weight` of their own, so their **subtrees are summed recursively**; for `alternatives`, vanilla only walks the first branch whose condition passes, whereas here every branch is counted, which makes it a **static upper bound**.
+
 ---
+
 ## 8. Pool-Level Operators (12)
 
 Written inside `modify_pool.ops`. Registry: `arcanumlib:pool_operator`.
@@ -851,6 +854,7 @@ Written inside `modify_pool.ops`. Registry: `arcanumlib:pool_operator`.
 ```
 
 ---
+
 ## 9. Entry Selectors (15)
 
 Written inside `modify_entry.entrySelector`. Registry: `arcanumlib:entry_selector`.
@@ -1054,6 +1058,9 @@ Written inside `modify_entry.entrySelector`. Registry: `arcanumlib:entry_selecto
 
 ---
 > To **change** what is inside those children, use the entry-level ops `modify_child` / `add_child` / `remove_child` / `move_child` (see 10.14-10.17).
+
+---
+
 ## 10. Entry-Level Operators (17)
 
 Written inside `modify_entry.ops`. Registry: `arcanumlib:entry_operator`.
@@ -1338,6 +1345,9 @@ Written inside `modify_entry.ops`. Registry: `arcanumlib:entry_operator`.
   "position": "first"
 }
 ```
+
+---
+
 ## 11. Function Selectors (9)
 
 Written inside `modify_function.functionSelector`. Registry: `arcanumlib:function_selector`.
@@ -1482,7 +1492,9 @@ The semantics mirror vanilla's `DataComponentIngredient` component matching:
 - The type key in the template (for functions `"function"`, for conditions `"condition"`) **must be present**, otherwise it never matches.
 Typical use: **telling functions of the same type apart by their arguments**. For example, if an entry has both `set_count(2)` and `set_count(+3)`, `function_type` selects both of them, while `match` can pick out just one.
 > Note: the `match` template is **not validated**. A misspelled key (for example `coun`) raises no error, it simply never matches.
+
 ---
+
 ## 12. Function-Level Operators (3)
 
 Written inside `modify_function.ops`. Registry: `arcanumlib:function_operator`.
@@ -1537,7 +1549,9 @@ Written inside `modify_function.ops`. Registry: `arcanumlib:function_operator`.
 
 > There is **no** generic implementation of "change an argument" (for example changing `count` from 5 to 10): each function's argument fields are private to that function.
 > When you need it, combine `remove_function` + `add_function`, or write a `function_custom`-level custom op (see section 16).
+
 ---
+
 ## 13. Condition Selectors (8)
 
 Written inside `modify_condition.conditionSelector`. Registry: `arcanumlib:condition_selector`.
@@ -1661,6 +1675,7 @@ Written inside `modify_condition.conditionSelector`. Registry: `arcanumlib:condi
 ```
 
 ---
+
 ## 14. Condition-Level Operators (2)
 
 Written inside `modify_condition.ops`. Registry: `arcanumlib:condition_operator`.
@@ -2210,71 +2225,6 @@ public final class MyDatagen {
 
 ---
 
-## 21. Loot Conditions Provided by This Mod
-
-The `conditions` / `add_condition` / `set_condition` inside injectors accept **ordinary vanilla condition json**,
-so the loot conditions that ArcanumLib provides itself can be written there directly as well. They are all registered under `minecraft:loot_condition_type`,
-and **the entries are as follows** (more will be added later; every new one gets a row in this table):
-
-| Condition id | One-line description | Detailed usage |
-|---|---|---|
-| `arcanumlib:chance_modifiers` | Chance modifier chain: starts from `base_chance`, passes through a list of modifiers in order, then rolls once against the final chance | [Loot Conditions Guide](Loot-Conditions.md) |
-| `arcanumlib:has_stage` | Stage condition: with AStages installed, gates on player / world stages | [Loot Conditions Guide](Loot-Conditions.md) |
-
-Example usage (attached to some entry):
-
-```json
-{
-  "type": "arcanumlib:modify_entry",
-  "entrySelector": {
-    "type": "arcanumlib:item",
-    "item": "minecraft:gunpowder"
-  },
-  "ops": [
-    {
-      "type": "arcanumlib:add_condition",
-      "conditions": [
-        {
-          "condition": "arcanumlib:chance_modifiers",
-          "base_chance": 0.5,
-          "chance_modifiers": [
-            {
-              "type": "arcanumlib:difficulty_factor",
-              "hard": 1.5
-            }
-          ]
-        }
-      ]
-    }
-  ]
-}
-```
-
-To test "does this entry carry this condition?", use the entry selector
-`{"type":"arcanumlib:has_condition","conditionType":"arcanumlib:chance_modifiers"}`.
-
----
-## Appendix: Related Source Locations
-
-| Content | File |
-|---|---|
-| The per-level op interfaces and implementations | `modules/loot/lootInjector/operator/{Table,Pool,Entry,Function,Condition}Operator.java` |
-| The five selector families | `modules/loot/lootInjector/selector/{Table,Pool,Entry,Function,Condition}Selector.java` |
-| Weight measure | `modules/loot/lootInjector/selector/PoolWeights.java` |
-| The subset comparison of `match` | `modules/loot/lootInjector/selector/JsonSubset.java` |
-| Registries and all registrations | `modules/loot/lootInjector/LootInjectorOps.java` |
-| The injector itself and application | `modules/loot/lootInjector/{LootInjector,LootInjectorApplier,LootInjectorReloadListener}.java` |
-| Events | `modules/loot/lootInjector/event/` |
-| Datagen base class and template | `modules/loot/lootInjector/data/{LootInjectorProvider,LootInjectorTemplate}.java` |
-| Access transformer | `src/main/resources/META-INF/accesstransformer.cfg` |
-| Official test data (all 37 ops and 52 of the 53 selectors have a json example; the `tableSelector` default `all` never shows up in generated output because it is the default) | `src/generated/resources/data/arcanumlib/loot_injecter/` |
-
-- A selector over a composite's children **only sees that one level**: go deeper by nesting `modify_child`; the order of `alternatives` children **is** the priority (that is what `move_child` changes).
-
-- When you change a composite's children, the pre-composed container inside it (`composedChildren`) has to be recomputed too; replacing only the `children` field will not affect drops. This mod handles it in `CompositeEntryBaseMixin`; third-party code that touches children itself must do the same.
-
----
-
 ## 20. KubeJS Integration
 
 With KubeJS installed, this mod registers the script event group **`ArcanumLibEvents`** and the read-only binding **`ArcanumLib`**; without KubeJS none of that code is even loaded.
@@ -2540,3 +2490,328 @@ Bonus loot (the `arcanumlib:bonus_loot` attribute) comes with two script events 
 - `bonusLootCheck` **outranks the config**: it can let a table in that the config does not list, and keep a listed table out;
 - In `modifyBonusLoot` the `ratio` is the multiplier (`1.0` means one extra roll); setting it to 0 or less means no boost, and anything above 20 is clamped to 20;
 - Both carry `lootContext`, so registries can be reached through the entity or the level in it.
+
+---
+
+## 21. Loot Conditions Provided by This Mod
+
+The `conditions` / `add_condition` / `set_condition` inside injectors accept **ordinary vanilla condition json**,
+so the loot conditions that ArcanumLib provides itself can be written there directly as well. They are all registered under `minecraft:loot_condition_type`,
+and **the entries are as follows** (more will be added later; every new one gets a row in this table):
+
+| Condition id | One-line description | Detailed usage |
+|---|---|---|
+| `arcanumlib:chance_modifiers` | Chance modifier chain: starts from `base_chance`, passes through a list of modifiers in order, then rolls once against the final chance | [Loot Conditions Guide](Loot-Conditions.md) |
+| `arcanumlib:has_stage` | Stage condition: with AStages installed, gates on player / world stages | [Loot Conditions Guide](Loot-Conditions.md) |
+
+Example usage (attached to some entry):
+
+```json
+{
+  "type": "arcanumlib:modify_entry",
+  "entrySelector": {
+    "type": "arcanumlib:item",
+    "item": "minecraft:gunpowder"
+  },
+  "ops": [
+    {
+      "type": "arcanumlib:add_condition",
+      "conditions": [
+        {
+          "condition": "arcanumlib:chance_modifiers",
+          "base_chance": 0.5,
+          "chance_modifiers": [
+            {
+              "type": "arcanumlib:difficulty_factor",
+              "hard": 1.5
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
+```
+
+To test "does this entry carry this condition?", use the entry selector
+`{"type":"arcanumlib:has_condition","conditionType":"arcanumlib:chance_modifiers"}`.
+
+---
+
+
+## 22. Examples of changing loot
+
+The same job - changing drops - is shown below through a few examples: some **append** new entries, others **modify** existing ones. Each example is shown in three equivalent forms: datapack json, a KubeJS script, and Java code.
+
+### Example 1: appending an entry to a pool
+
+**Effect**: append one new entry to the **first pool** of `minecraft:chests/simple_dungeon` - a **25% chance to drop 1~3 diamonds** (the entry carries a `minecraft:random_chance` condition and a `minecraft:set_count` function).
+
+#### Datapack
+
+> The `//` lines below are only there to explain things: **json has no comments, so delete them before pasting into a datapack**.
+
+```json
+{
+  // 优先级：同一张表上按它依次应用（数字越小越早）
+  "priority": 1200,
+
+  // 表选择器：arcanumlib:id 表示按表 id 精确命中
+  "tableSelector": {
+    "type": "arcanumlib:id",
+    "id": "minecraft:chests/simple_dungeon"
+  },
+
+  "ops": [
+    {
+      // 表级操作：对命中的池执行它自己的 ops（这里只挑第 1 个池）
+      "type": "arcanumlib:modify_pool",
+      "poolSelector": {
+        "type": "arcanumlib:index",
+        "index": 0
+      },
+      "ops": [
+        {
+          // 池级操作：往这个池里追加一条条目
+          "type": "arcanumlib:add_entry",
+          "entry": {
+            // 要追加的条目本体：一颗钻石
+            "type": "minecraft:item",
+            "name": "minecraft:diamond",
+
+            // 原版条件：25% 概率才产出
+            "conditions": [
+              { "condition": "minecraft:random_chance", "chance": 0.25 }
+            ],
+
+            // 原版函数：数量随机 1~3
+            "functions": [
+              { "function": "minecraft:set_count",
+                "count": { "type": "minecraft:uniform", "min": 1, "max": 3 } }
+            ]
+          }
+        }
+      ]
+    }
+  ]
+}
+```
+
+#### KubeJS
+
+A script registers the same injector through an **event**; selectors and operators come from the Helper factories, and conditions / functions go on the entry with the builder's `.when(...)` / `.apply(...)`:
+
+```js
+ArcanumLibEvents.registerLootInjector(event => {
+  // 先造要追加的条目：钻石
+  let diamond = LootEntryHelper.item('minecraft:diamond',
+    builder => builder
+      // 条件：25% 概率（when = 挂在条目上的条件）
+      .when(
+        LootConditionHelper.randomChance(
+          NumberProviderHelper.constant(0.25)
+        )
+      )
+      // 函数：数量随机 1~3（apply = 挂在条目上的函数）
+      .apply(
+        LootFunctionHelper.setCount(
+          NumberProviderHelper.uniform(
+            NumberProviderHelper.constant(1),
+            NumberProviderHelper.constant(3)
+          )
+        )
+      )
+  )
+
+  // 注册注入器：id / 选表 / 优先级 / 操作列表
+  event.register('mypack:dungeon_diamond',
+    // 选表：按 id 命中简单地牢的箱子表
+    TableSelectorHelper.byId('minecraft:chests/simple_dungeon'),
+    1200,
+    [
+      // 表级：只挑第 1 个池
+      TableOperatorHelper.modifyPool(
+        // 池选择器：按索引
+        PoolSelectorHelper.byIndex(0),
+        [
+          // 池级：往这个池里追加条目
+          PoolOperatorHelper.addEntry(diamond)
+        ]
+      )
+    ]
+  )
+})
+```
+
+#### Java
+
+The Java side listens to the same event, builds the entry with vanilla factories (conditions and functions go on the builder) and nests the operators exactly like the json:
+
+```java
+NeoForge.EVENT_BUS.addListener((LootInjectorRegisterEvent event) -> {
+    // 注册注入器：id / 选表 / 优先级 / 操作列表
+    event.register(ResourceLocation.fromNamespaceAndPath("mypack", "dungeon_diamond"),
+            // 选表：按 id 命中简单地牢的箱子表
+            new TableSelector.ById(ResourceLocation.withDefaultNamespace("chests/simple_dungeon")),
+            1200,
+            // 表级：只挑第 1 个池，往里面追加一条条目
+            List.of(new TableOperator.ModifyPool(
+                    // 池选择器：按索引
+                    new PoolSelector.ByIndex(0),
+                    List.of(new PoolOperator.AddEntry(
+                            // 要追加的条目：钻石 + 25% 条件 + 数量 1~3
+                            LootItem.lootTableItem(Items.DIAMOND)
+                                    .when(LootItemRandomChanceCondition.randomChance(0.25F))
+                                    .apply(SetItemCountFunction.setCount(UniformGenerator.between(1.0F, 3.0F)))
+                                    .build())))));
+});
+```
+
+### Example 2: modifying an existing entry (nothing new added)
+
+**Effect**: take the **existing gold ingot entry** in the **first pool** of the same table and change it - **raise its weight to 20**, add a **50%** condition and set the amount to **1~2** (vanilla has weight 1, no extra condition and amount 1).
+
+#### Datapack
+
+```json
+{
+  // 改造已有条目不需要抢很早的优先级
+  "priority": 900,
+
+  "tableSelector": {
+    "type": "arcanumlib:id",
+    "id": "minecraft:chests/simple_dungeon"
+  },
+
+  "ops": [
+    {
+      // 表级：只挑第 1 个池
+      "type": "arcanumlib:modify_pool",
+      "poolSelector": {
+        "type": "arcanumlib:index",
+        "index": 0
+      },
+      "ops": [
+        {
+          // 池级：只挑出「金锭」那一条（这一层是筛选目标，不新增东西）
+          "type": "arcanumlib:modify_entry",
+          "entrySelector": {
+            "type": "arcanumlib:item",
+            "item": "minecraft:gold_ingot"
+          },
+          "ops": [
+            // 改动 1：把它的权重提到 20（原版是 1）
+            { "type": "arcanumlib:set_weight", "weight": 20 },
+
+            // 改动 2：再挂一条 50% 的条件
+            { "type": "arcanumlib:add_condition",
+              "conditions": [ { "condition": "minecraft:random_chance", "chance": 0.5 } ] },
+
+            // 改动 3：挂一个把数量改成 1~2 的函数
+            { "type": "arcanumlib:add_function",
+              "functions": [ { "function": "minecraft:set_count",
+                               "count": { "type": "minecraft:uniform", "min": 1, "max": 2 } } ] }
+          ]
+        }
+      ]
+    }
+  ]
+}
+```
+
+#### KubeJS
+
+The same Helpers describe "changes" just as well: `setWeight` / `addCondition` / `addFunction` all return operator objects, so they simply go into the `ops` of `modifyEntry`:
+
+```js
+ArcanumLibEvents.registerLootInjector(event => {
+  // 要施加到「金锭」这一条目上的三个改动
+  let goldChanges = [
+    // 权重提到 20
+    EntryOperatorHelper.setWeight(20),
+    // 再挂一条 50% 的条件
+    EntryOperatorHelper.addCondition([
+      LootConditionHelper.randomChance(
+        NumberProviderHelper.constant(0.5)
+      )
+    ]),
+    // 挂一个把数量改成 1~2 的函数
+    EntryOperatorHelper.addFunction([
+      LootFunctionHelper.setCount(
+        NumberProviderHelper.uniform(
+          NumberProviderHelper.constant(1),
+          NumberProviderHelper.constant(2)
+        )
+      )
+    ])
+  ]
+
+  // 注册注入器：只挑第 1 个池里的金锭条目，把这几个改动套上去
+  event.register('mypack:dungeon_gold',
+    TableSelectorHelper.byId('minecraft:chests/simple_dungeon'),
+    900,
+    [
+      TableOperatorHelper.modifyPool(
+        PoolSelectorHelper.byIndex(0),
+        [
+          PoolOperatorHelper.modifyEntry(
+            EntrySelectorHelper.isItem('minecraft:gold_ingot'),
+            goldChanges
+          )
+        ]
+      )
+    ]
+  )
+})
+```
+
+#### Java
+
+The Java form matches, except that `AddCondition` / `AddFunction` want **already built** conditions and functions:
+
+```java
+NeoForge.EVENT_BUS.addListener((LootInjectorRegisterEvent event) -> {
+    event.register(ResourceLocation.fromNamespaceAndPath("mypack", "dungeon_gold"),
+            new TableSelector.ById(ResourceLocation.withDefaultNamespace("chests/simple_dungeon")),
+            900,
+            List.of(new TableOperator.ModifyPool(
+                    new PoolSelector.ByIndex(0),
+                    List.of(new PoolOperator.ModifyEntry(
+                            // 目标：金锭那一条（这里只是筛选，不新增）
+                            new EntrySelector.IsItem(ResourceLocation.withDefaultNamespace("gold_ingot")),
+                            List.of(
+                                    // 权重提到 20
+                                    new EntryOperator.SetWeight(20),
+                                    // 再挂一条 50% 的条件（条件要先 build 出来）
+                                    new EntryOperator.AddCondition(List.of(
+                                            LootItemRandomChanceCondition.randomChance(0.5F).build())),
+                                    // 挂一个把数量改成 1~2 的函数
+                                    new EntryOperator.AddFunction(List.of(
+                                            SetItemCountFunction.setCount(
+                                                    UniformGenerator.between(1.0F, 2.0F)).build()))))))));
+});
+```
+
+- Neither example touches anything outside the table structure, and both can be written in all three forms;
+- There are 5 selector families and 41 operators; Helpers map one to one onto the records (see the factory assembly in [20.9](#209-building-an-injector-with-the-factories)).
+
+---
+
+## Appendix: Related Source Locations
+
+| Content | File |
+|---|---|
+| The per-level op interfaces and implementations | `modules/loot/lootInjector/operator/{Table,Pool,Entry,Function,Condition}Operator.java` |
+| The five selector families | `modules/loot/lootInjector/selector/{Table,Pool,Entry,Function,Condition}Selector.java` |
+| Weight measure | `modules/loot/lootInjector/selector/PoolWeights.java` |
+| The subset comparison of `match` | `modules/loot/lootInjector/selector/JsonSubset.java` |
+| Registries and all registrations | `modules/loot/lootInjector/LootInjectorOps.java` |
+| The injector itself and application | `modules/loot/lootInjector/{LootInjector,LootInjectorApplier,LootInjectorReloadListener}.java` |
+| Events | `modules/loot/lootInjector/event/` |
+| Datagen base class and template | `modules/loot/lootInjector/data/{LootInjectorProvider,LootInjectorTemplate}.java` |
+| Access transformer | `src/main/resources/META-INF/accesstransformer.cfg` |
+| Official test data (all 37 ops and 52 of the 53 selectors have a json example; the `tableSelector` default `all` never shows up in generated output because it is the default) | `src/generated/resources/data/arcanumlib/loot_injecter/` |
+
+- A selector over a composite's children **only sees that one level**: go deeper by nesting `modify_child`; the order of `alternatives` children **is** the priority (that is what `move_child` changes).
+
+- When you change a composite's children, the pre-composed container inside it (`composedChildren`) has to be recomputed too; replacing only the `children` field will not affect drops. This mod handles it in `CompositeEntryBaseMixin`; third-party code that touches children itself must do the same.
