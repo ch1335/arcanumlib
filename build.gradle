@@ -165,6 +165,7 @@ dependencies {
 
     implementation "curse.maven:apothic-attributes-898963:6751650"
     implementation "curse.maven:placebo-283644:6751290"
+    implementation "curse.maven:lootr-361276:8968561"
 //    compileOnly("mezz.jei:jei-${minecraft_version}-neoforge-api:${jei_version}")
     implementation("mezz.jei:jei-${minecraft_version}-neoforge:${jei_version}")
 }

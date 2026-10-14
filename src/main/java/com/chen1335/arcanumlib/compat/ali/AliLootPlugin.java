@@ -8,21 +8,26 @@ import com.chen1335.arcanumlib.compat.astages.HasStageCondition;
 import com.chen1335.arcanumlib.compat.astages.StageChanceModifier;
 import com.chen1335.arcanumlib.compat.astages.StagePattern;
 import com.chen1335.arcanumlib.modules.loot.lootEntry.AllOfEntry;
+import com.chen1335.arcanumlib.modules.loot.lootEntry.SummonMobEntry;
 import com.yanny.aci.api.NumberExpr;
 import com.yanny.aci.tooltip.TooltipBuilder;
 import com.yanny.ali.api.IDataNode;
 import com.yanny.aci.tooltip.TooltipNode;
 import com.yanny.ali.api.AliEntrypoint;
+import com.yanny.ali.api.IClientRegistry;
 import com.yanny.ali.api.IPlugin;
 import com.yanny.ali.api.IServerRegistry;
 import com.yanny.ali.api.IServerUtils;
+import com.yanny.ali.plugin.common.NodeUtils;
 import com.yanny.ali.plugin.common.nodes.GroupNode;
+import com.yanny.ali.plugin.server.LootCount;
 import com.yanny.ali.plugin.server.TooltipUtils;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.item.enchantment.Enchantment;
 import net.minecraft.world.level.storage.loot.entries.LootPoolEntryContainer;
+import net.minecraft.world.level.storage.loot.functions.LootItemFunction;
 import net.minecraft.world.level.storage.loot.predicates.LootItemCondition;
 
 import java.util.ArrayList;
@@ -68,6 +73,41 @@ public class AliLootPlugin implements IPlugin {
             // 用 GroupNode：图标和文案都跟着它走，正好是选择所有条目那一套
             return new GroupNode(children, TooltipUtils.getGroupTooltip().build());
         });
+
+
+        registry.registerEntry(SummonMobEntry.class, (utils, entry, rawChance, sumWeight, chanceConditions,
+                                                       functions, conditions) -> {
+            LootCount chance = NodeUtils.getChance(utils, entry, rawChance, sumWeight, chanceConditions);
+            LootCount count = NodeUtils.getCount(utils, utils.convertNumber(utils, entry.count(), List.of()), functions);
+
+            return new SummonMobNode(entry.mob(), count.value(),
+                    entryTooltip(utils, entry, chance, count, functions, conditions),
+                    NodeUtils.toFloat(chance.value()));
+        });
+    }
+
+    /**
+     * 条目提示：第一行是被包装实体的本地化名称，下面挂 ALI 给物品条目用的那套标准信息
+     * （概率、数量、functions、谓词），所以 summon_mob 在界面里和普通物品条目长得一样。
+     *
+     * <p>名称走 {@code TooltipBuilder.translate(entityType.getDescriptionId())}，值带 ACI 的翻译标记，
+     * 客户端会翻成实体名（苦力怕 / Creeper），所以这里是本地化名称而不是注册 id。
+     */
+    private static TooltipNode entryTooltip(IServerUtils utils, SummonMobEntry entry, LootCount chance, LootCount count,
+                                            List<LootItemFunction> functions, List<LootItemCondition> conditions) {
+        TooltipBuilder entity = TooltipBuilder.value(TooltipBuilder.translate(entry.mob().getDescriptionId()))
+                .key(key("property.entity"));
+        // countLimit 传 null：这个条目没有"物品堆叠上限"这类限制
+        entity.add(TooltipUtils.getTooltip(utils, 0, chance, count, null, functions, conditions).build());
+
+        return entity.build();
+    }
+
+    /** 客户端入口：告诉 ALI 怎么解码本模组的节点、以及用什么控件画它。 */
+    @Override
+    public void registerClient(IClientRegistry registry) {
+        registry.registerDataNode(SummonMobNode.ID, SummonMobNode::new);
+        registry.registerWidget(SummonMobNode.ID, SummonMobWidget::new);
     }
 
     /** 返回的是未构建的 builder：注册接口要的就是它，标题用 key 设置。 */

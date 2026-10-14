@@ -14,6 +14,9 @@ public final class LootEntryTypes {
     public static final DeferredHolder<LootPoolEntryType, LootPoolEntryType> ALL_OF =
             ENTRY_TYPES.register("all_of", () -> new LootPoolEntryType(AllOfEntry.CODEC));
 
+    public static final DeferredHolder<LootPoolEntryType, LootPoolEntryType> SUMMON_MOB =
+            ENTRY_TYPES.register("summon_mob", () -> new LootPoolEntryType(SummonMobEntry.CODEC));
+
     private LootEntryTypes() {
     }
 }

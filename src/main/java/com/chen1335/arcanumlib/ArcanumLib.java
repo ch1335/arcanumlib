@@ -6,6 +6,8 @@ import com.chen1335.arcanumlib.modules.loot.lootCondition.ChanceModifierTypes;
 import com.chen1335.arcanumlib.modules.loot.lootCondition.LootConditionTypes;
 import com.chen1335.arcanumlib.modules.loot.lootEntry.LootEntryTypes;
 import com.chen1335.arcanumlib.modules.loot.lootInjector.LootInjectorOps;
+import com.chen1335.arcanumlib.registry.ArcanumDataComponents;
+import com.chen1335.arcanumlib.registry.ArcanumItems;
 import com.mojang.logging.LogUtils;
 import net.minecraft.resources.ResourceLocation;
 import net.neoforged.bus.api.IEventBus;
@@ -53,6 +55,9 @@ public class ArcanumLib {
         ChanceModifierTypes.TYPES.register(modEventBus);
         // 自定义属性
         ArcanumAttributes.ATTRIBUTES.register(modEventBus);
+        // 全模组共用的物品与数据组件注册表
+        ArcanumItems.ITEMS.register(modEventBus);
+        ArcanumDataComponents.COMPONENTS.register(modEventBus);
         modContainer.registerConfig(ModConfig.Type.SERVER, AttributeConfig.CONFIG_SPEC, "arcanumlib/attribute.toml");
     }
 

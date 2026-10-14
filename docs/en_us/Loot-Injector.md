@@ -2817,3 +2817,49 @@ NeoForge.EVENT_BUS.addListener((LootInjectorRegisterEvent event) -> {
 - A selector over a composite's children **only sees that one level**: go deeper by nesting `modify_child`; the order of `alternatives` children **is** the priority (that is what `move_child` changes).
 
 - When you change a composite's children, the pre-composed container inside it (`composedChildren`) has to be recomputed too; replacing only the `children` field will not affect drops. This mod handles it in `CompositeEntryBaseMixin`; third-party code that touches children itself must do the same.
+
+### 20.11 This mod's entry: `summon_mob`
+
+`arcanumlib:summon_mob` is another entry from this mod: it **produces no items at all** and instead **spawns one entity** at the `ORIGIN` of the context.
+
+- `mob`: the entity id to spawn, for example `minecraft:zombie`;
+- `count`: how many to spawn - a **number provider**, so a plain number or a range (`{"type":"minecraft:uniform","min":1,"max":3}`) both work; defaults to `1`;
+- `nbt`: extra custom NBT, written **exactly like the nbt argument of the `/summon` command** (`Tags` / `CustomName` / `NoAI` / `HandItems` / `Passengers` and so on all work); empty by default;
+- The position is always `ORIGIN` (`LootContextParams.ORIGIN`) - for block sources that is the block center, for entity sources the position at the entity's feet;
+- **With no ORIGIN in the context it does nothing** (the `barter` parameter set of piglin trading, for example) and never errors;
+- Spawning follows `/summon`: without `nbt` it randomizes once through `EventHooks.finalizeMobSpawn` (so `FinalizeSpawnEvent` fires); with `nbt` it is restored from the NBT as is;
+- Weight / `conditions` work exactly like any vanilla entry (a higher `weight` is picked more often); `functions` have no effect (there are no items to change);
+- Note that every time it is picked it spawns `count` entities, so the extra rolls of [bonus loot](Attributes.md) spawn even more.
+- With Advanced Loot Info installed the **target entity itself** is drawn in the entry (living entities only - anything else stays blank) and the extra info shows the count only;
+
+```json
+{
+  "type": "arcanumlib:summon_mob",
+  "mob": "minecraft:zombie",
+  "count": 3,
+  "weight": 100,
+  "nbt": {
+    "Tags": [ "arcanumlib_probe" ],
+    "CustomName": "{\"text\":\"Summoned\"}",
+    "NoAI": 1
+  },
+  "conditions": [
+    { "condition": "minecraft:random_chance", "chance": 0.1 }
+  ]
+}
+```
+
+On the KubeJS side just build it with the codec factory:
+
+```js
+let summon = LootEntryHelper.ofType('arcanumlib:summon_mob', {
+  mob: 'minecraft:zombie',
+  count: 3,
+  weight: 100,
+  nbt: {
+    Tags: ['arcanumlib_probe'],
+    NoAI: 1
+  }
+}, event.registries)
+```
+

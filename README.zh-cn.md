@@ -24,7 +24,7 @@ ArcanumLib 把"改掉落"这件事拆成**三层可组合的能力**，可直接
 |---|---|---|
 | **战利品注入器** | `src/main/java/.../modules/loot/lootInjector/` | 核心。读 `data/<ns>/loot_injecter/*.json`，在服务端启动 / `/reload` 后应用到战利品表上。提供 5 族选择器（表 13 / 池 9 / 条目 15 / 函数 9 / 条件 8）、41 个操作（表 7 / 池 12 / 条目 17 / 函数 3 / 条件 2）、9 个事件，以及 datagen 支持 |
 | **概率加工条件** | `modules/loot/lootCondition/` | 注册 `arcanumlib:chance_modifiers` 条件：用 9 个加工器（`apply` / `set_chance` / `clamp` / `invert` / `difficulty_factor` / `tool_enchantment_level` / `entity_attribute` / `predicate` / `stage`）把基础概率按难度、工具附魔、实体属性等改写 |
-| **全部产出条目** | `modules/loot/lootEntry/` | 注册 `arcanumlib:all_of` 条目：与原生 `alternatives` 相反，**每个子项都会产出** |
+| **全部产出条目** | `modules/loot/lootEntry/` | 注册 `arcanumlib:all_of`（与原生 `alternatives` 相反，**每个子项都会产出**）与 `arcanumlib:summon_mob`（**不产物品，改在 ORIGIN 处生成实体**） |
 | **额外战利品** | `modules/loot/bonusLoot/` | 按 `arcanumlib:bonus_loot` 属性对符合条件的表**额外摇取**若干份（默认只对实体掉落与箱子）。配两个事件：一个决定某张表要不要吃增幅，一个可以改倍率或取消 |
 | **属性** | `modules/attribute/` | 注册 4 个属性 `seeking` / `fortune` / `looting` / `bonus_loot`，并接上生成与掉落相关事件，让掉落跟着属性走 |
 | **指令** | `modules/command/` | `/arcanumlib export lootTable`（导出 modified / original 两套战利品表 json）与 `/arcanumlib loot_simulation <表> [次数] [参数集]`（按参数集填充上下文反复模拟并统计产出） |
