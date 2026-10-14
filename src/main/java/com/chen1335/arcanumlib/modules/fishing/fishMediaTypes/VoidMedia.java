@@ -13,12 +13,12 @@ public class VoidMedia implements IFishMediaType {
     }
 
     @Override
-    public boolean isOpenWaterFluid(BlockPos pos, FluidState fluidState) {
+    public boolean isOpenWaterFluid(Level level, BlockPos pos, FluidState fluidState) {
         return true;
     }
 
     @Override
-    public boolean isFloatingInFluid(FluidState fluidState, float fluidHeight) {
-        return true;
+    public float getFluidHeight(Level level, BlockPos blockPos, FluidState fluidState) {
+        return 0.5F;
     }
 }

@@ -12,9 +12,9 @@ import net.minecraft.world.level.material.FluidState;
 public interface IFishMediaType {
     boolean isAvailableFluid(Level level, LivingEntity owner, IFishingHook hook, BlockPos blockPos, FluidState fluidState);
 
-    boolean isOpenWaterFluid(BlockPos pos, FluidState fluidState);
+    boolean isOpenWaterFluid(Level level, BlockPos pos, FluidState fluidState);
 
-    default boolean isFloatingInFluid(FluidState fluidState, float fluidHeight) {
+    default boolean isFloatingInFluid(Level level, BlockPos blockPos, FluidState fluidState, float fluidHeight) {
         return fluidHeight > 0.0F;
     }
 
@@ -70,11 +70,15 @@ public interface IFishMediaType {
         BlockState state = level.getBlockState(pos);
         if (!state.isAir() && !state.is(Blocks.LILY_PAD)) {
             FluidState fluidState = state.getFluidState();
-            return this.isOpenWaterFluid(pos, fluidState) && state.getCollisionShape(level, pos).isEmpty()
+            return this.isOpenWaterFluid(level, pos, fluidState) && state.getCollisionShape(level, pos).isEmpty()
                     ? OpenWaterType.INSIDE_WATER : OpenWaterType.INVALID;
         }
         return OpenWaterType.ABOVE_WATER;
     }
+
+    default float getFluidHeight(Level level, BlockPos blockPos, FluidState fluidState){
+        return fluidState.getHeight(level, blockPos);
+    };
 
     /**
      * 开阔水面判定用的单方块分类。各水体类型共用，所以放在接口里。

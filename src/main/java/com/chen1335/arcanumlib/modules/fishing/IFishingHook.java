@@ -23,7 +23,7 @@ public interface IFishingHook extends TraceableEntity, IAttachmentHolder {
     }
 
     default IFishMediaType getFishMediaType() {
-        return FishMediaType.WATER;
+        return FishMediaTypes.WATER;
     }
 
     default LootTable getLootTable(ServerLevel level, BlockPos blockPos, FluidState fluidState) {

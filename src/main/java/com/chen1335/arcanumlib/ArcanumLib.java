@@ -7,6 +7,7 @@ import com.chen1335.arcanumlib.modules.loot.lootCondition.LootConditionTypes;
 import com.chen1335.arcanumlib.modules.loot.lootEntry.LootEntryTypes;
 import com.chen1335.arcanumlib.modules.loot.lootInjector.LootInjectorOps;
 import com.chen1335.arcanumlib.registry.ArcanumAttachments;
+import com.chen1335.arcanumlib.registry.ArcanumEntities;
 import com.chen1335.arcanumlib.registry.ArcanumDataComponents;
 import com.chen1335.arcanumlib.registry.ArcanumItems;
 import com.mojang.logging.LogUtils;
@@ -57,6 +58,8 @@ public class ArcanumLib {
         // 自定义属性
         ArcanumAttributes.ATTRIBUTES.register(modEventBus);
         // 全模组共用的物品与数据组件注册表
+        // 实体（测试鱼钩）
+        ArcanumEntities.ENTITY_TYPES.register(modEventBus);
         ArcanumItems.ITEMS.register(modEventBus);
         ArcanumDataComponents.COMPONENTS.register(modEventBus);
         // 实体附件（钓鱼钩上的待生成负载）

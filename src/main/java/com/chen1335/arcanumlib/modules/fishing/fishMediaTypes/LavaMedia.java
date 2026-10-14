@@ -14,7 +14,7 @@ public class LavaMedia implements IFishMediaType{
     }
 
     @Override
-    public boolean isOpenWaterFluid(BlockPos pos, FluidState fluidState) {
+    public boolean isOpenWaterFluid(Level level, BlockPos pos, FluidState fluidState) {
         return fluidState.is(FluidTags.LAVA) && fluidState.isSource();
     }
 }

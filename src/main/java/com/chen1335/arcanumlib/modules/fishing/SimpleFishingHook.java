@@ -210,11 +210,11 @@ public abstract class SimpleFishingHook extends Projectile implements IFishingHo
     // ------------------------------------------------------------------
 
     /**
-     * 本鱼钩能钓到什么水体里。默认水；岩浆 / 虚空垂钓请返回 {@link FishMediaType#LAVA} / {@link FishMediaType#VOID}，
+     * 本鱼钩能钓到什么水体里。默认水；岩浆 / 虚空垂钓请返回 {@link FishMediaTypes#LAVA} / {@link FishMediaTypes#VOID}，
      */
     @Override
     public IFishMediaType getFishMediaType() {
-        return FishMediaType.WATER;
+        return FishMediaTypes.WATER;
     }
 
     /**
@@ -224,14 +224,14 @@ public abstract class SimpleFishingHook extends Projectile implements IFishingHo
      * @param fluidHeight 该位置流体的高度（不在可垂钓水体中时调用方传 0）
      */
     protected boolean isFloatingInFluid(FluidState fluidState, float fluidHeight) {
-        return getFishMediaType().isFloatingInFluid(fluidState, fluidHeight);
+        return getFishMediaType().isFloatingInFluid(level(), blockPosition(), fluidState, fluidHeight);
     }
 
     /**
      * 什么样的流体算"开阔水面"的一部分（原版要求是水且为水源）。换水体类型时一并重写。
      */
     protected boolean isOpenWaterFluid(BlockPos pos, FluidState fluidState) {
-        return getFishMediaType().isOpenWaterFluid(pos, fluidState);
+        return getFishMediaType().isOpenWaterFluid(level(),pos, fluidState);
     }
 
     /**
@@ -455,7 +455,7 @@ public abstract class SimpleFishingHook extends Projectile implements IFishingHo
             BlockPos blockPos = this.blockPosition();
             FluidState fluidState = this.level().getFluidState(blockPos);
             boolean inMedium = this.canFishAt(this.level(), player, blockPos, fluidState);
-            float fluidHeight = inMedium ? fluidState.getHeight(this.level(), blockPos) : 0.0F;
+            float fluidHeight = inMedium ? this.getFishMediaType().getFluidHeight(this.level(), blockPos,fluidState) : 0.0F;
             boolean floating = inMedium && this.isFloatingInFluid(fluidState, fluidHeight);
 
             if (this.currentState == FishHookState.FLYING) {
