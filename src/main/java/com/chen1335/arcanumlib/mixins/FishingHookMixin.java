@@ -16,7 +16,7 @@ import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
 @Mixin(FishingHook.class)
-public abstract class FishingHookMixin extends Projectile implements IFishingHook {
+public abstract class FishingHookMixin extends Projectile {
 
     protected FishingHookMixin(EntityType<? extends Projectile> entityType, Level level) {
         super(entityType, level);

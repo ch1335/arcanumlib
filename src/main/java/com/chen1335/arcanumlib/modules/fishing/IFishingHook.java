@@ -1,5 +1,6 @@
 package com.chen1335.arcanumlib.modules.fishing;
 
+import com.chen1335.arcanumlib.modules.fishing.fishMediaTypes.IFishMediaType;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.particles.ParticleOptions;
 import net.minecraft.core.particles.ParticleTypes;
@@ -17,24 +18,33 @@ import net.neoforged.neoforge.attachment.IAttachmentHolder;
 
 public interface IFishingHook extends TraceableEntity, IAttachmentHolder {
 
-    default boolean canFishAt(Level level,LivingEntity owner, BlockPos blockPos, FluidState fluidState) {
-        return FishMediaType.WATER.isAvailableFluid(level, owner,this, blockPos, fluidState);
+    default boolean canFishAt(Level level, LivingEntity owner, BlockPos blockPos, FluidState fluidState) {
+        return getFishMediaType().isAvailableFluid(level, owner, this, blockPos, fluidState);
+    }
+
+    default IFishMediaType getFishMediaType() {
+        return FishMediaType.WATER;
     }
 
     default LootTable getLootTable(ServerLevel level, BlockPos blockPos, FluidState fluidState) {
         return level.getServer().reloadableRegistries().getLootTable(BuiltInLootTables.FISHING);
     }
 
-    void setFishSpeed(int fishSpeed);
+    void setFishSpeed(float fishSpeed);
 
-    int getFishSpeed();
+    float getFishSpeed();
 
-    void setFishLuck(int fishLuck);
+    void setFishLuck(float fishLuck);
 
-    int getFishLuck();
+    float getFishLuck();
 
     default LootParams buildLootParams(LivingEntity owner, ItemStack rod, ItemStack bait) {
-        return FishingHooks.buildLootParams(owner, this, rod, bait).create(LootContextParamSets.FISHING);
+        LootParams.Builder builder = FishingHooks.buildLootParams(owner, this, rod, bait);
+        this.modifyLootParams(builder, owner, rod, bait);
+        return builder.create(LootContextParamSets.FISHING);
+    }
+
+    default void modifyLootParams(LootParams.Builder builder, LivingEntity owner, ItemStack rod, ItemStack bait) {
     }
 
     default ParticleOptions getBubbleParticle() {
