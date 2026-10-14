@@ -35,7 +35,7 @@ import java.util.function.Consumer;
  * <p>额外摇取复用同一个 {@link RandomSource}（见 {@link LootContext.Builder#Builder(LootContext)}），
  * 所以世界随机序列连续推进，可复现，没有引入额外的随机源。
  *
- * <p>调用点见 {@code mixins/LootTableBonusLootMixin}（挂在 {@code LootTable#getRandomItems(LootContext)} 上）。
+ * <p>调用点见 {@code mixins/LootTableMixin}（挂在 {@code LootTable#getRandomItems(LootContext)} 上）。
  */
 public final class BonusLoot {
 

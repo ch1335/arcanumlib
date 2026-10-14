@@ -37,6 +37,10 @@ public final class ChanceModifierTypes {
     public static final DeferredHolder<ChanceModifierType, ChanceModifierType> ENTITY_ATTRIBUTE =
             TYPES.register("entity_attribute", () -> new ChanceModifierType(ChanceModifier.EntityAttribute.CODEC));
 
+    /** 幸运修正：取值来自 LootContext 的 luck，其余（operation / per_point）与属性修正相同。 */
+    public static final DeferredHolder<ChanceModifierType, ChanceModifierType> LUCK =
+            TYPES.register("luck", () -> new ChanceModifierType(ChanceModifier.Luck.CODEC));
+
     /** 阶段加工器：命中 AStages 阶段走 success 链，否则走 fail 链；两条链本身是普通加工器列表。 */
     public static final DeferredHolder<ChanceModifierType, ChanceModifierType> STAGE =
             TYPES.register("stage", () -> new ChanceModifierType(StageChanceModifier.CODEC));

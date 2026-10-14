@@ -23,7 +23,7 @@ ArcanumLib splits "changing drops" into **three composable layers**, configurabl
 | Module | Location | What it does |
 |---|---|---|
 | **Loot injector** | `src/main/java/.../modules/loot/lootInjector/` | The core. Reads `data/<ns>/loot_injecter/*.json` and applies it to loot tables on server start / `/reload`. Ships 5 selector families (table 13 / pool 9 / entry 15 / function 9 / condition 8), 41 operators (table 7 / pool 12 / entry 17 / function 3 / condition 2), 9 events and datagen support |
-| **Chance modifier condition** | `modules/loot/lootCondition/` | Registers `arcanumlib:chance_modifiers`: nine modifiers (`apply` / `set_chance` / `clamp` / `invert` / `difficulty_factor` / `tool_enchantment_level` / `entity_attribute` / `predicate` / `stage`) that rewrite a base chance from difficulty, tool enchantment, entity attributes and more |
+| **Chance modifier condition** | `modules/loot/lootCondition/` | Registers `arcanumlib:chance_modifiers`: ten modifiers (`apply` / `set_chance` / `clamp` / `invert` / `difficulty_factor` / `tool_enchantment_level` / `entity_attribute` / `luck` / `predicate` / `stage`) that rewrite a base chance from difficulty, tool enchantment, entity attributes and more |
 | **All-of entry** | `modules/loot/lootEntry/` | Registers `arcanumlib:all_of` (the opposite of vanilla `alternatives` — **every child is produced**) and `arcanumlib:summon_mob` (**produces no items; spawns an entity at ORIGIN**) |
 | **Bonus loot** | `modules/loot/bonusLoot/` | Rolls a qualifying table extra times by the `arcanumlib:bonus_loot` attribute (entity drops and chests by default). Two events: one decides whether a table qualifies, one can change or cancel the ratio |
 | **Attributes** | `modules/attribute/` | Registers four attributes `seeking` / `fortune` / `looting` / `bonus_loot` and wires them into spawn and loot events |
@@ -61,7 +61,7 @@ Both need **permission level 2**. See the [command docs](docs/en_us/Commands.md)
 | Document | Content |
 |---|---|
 | [Loot Injector](docs/en_us/Loot-Injector.md) | Full injector reference: 5 selector families, 41 operators, 12 events, recipes for common tasks |
-| [Loot Conditions](docs/en_us/Loot-Conditions.md) | `arcanumlib:chance_modifiers` and its nine modifiers |
+| [Loot Conditions](docs/en_us/Loot-Conditions.md) | `arcanumlib:chance_modifiers` and its ten modifiers |
 | [Attributes](docs/en_us/Attributes.md) | The four attributes and how to use them |
 | [Commands](docs/en_us/Commands.md) | Both commands, their arguments and output |
 | [中文文档](docs/zh_cn/战利品表注入器.md) | The same documentation in Chinese |

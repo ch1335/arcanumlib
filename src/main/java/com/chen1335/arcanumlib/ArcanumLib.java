@@ -6,6 +6,7 @@ import com.chen1335.arcanumlib.modules.loot.lootCondition.ChanceModifierTypes;
 import com.chen1335.arcanumlib.modules.loot.lootCondition.LootConditionTypes;
 import com.chen1335.arcanumlib.modules.loot.lootEntry.LootEntryTypes;
 import com.chen1335.arcanumlib.modules.loot.lootInjector.LootInjectorOps;
+import com.chen1335.arcanumlib.registry.ArcanumAttachments;
 import com.chen1335.arcanumlib.registry.ArcanumDataComponents;
 import com.chen1335.arcanumlib.registry.ArcanumItems;
 import com.mojang.logging.LogUtils;
@@ -58,6 +59,8 @@ public class ArcanumLib {
         // 全模组共用的物品与数据组件注册表
         ArcanumItems.ITEMS.register(modEventBus);
         ArcanumDataComponents.COMPONENTS.register(modEventBus);
+        // 实体附件（钓鱼钩上的待生成负载）
+        ArcanumAttachments.ATTACHMENT_TYPES.register(modEventBus);
         modContainer.registerConfig(ModConfig.Type.SERVER, AttributeConfig.CONFIG_SPEC, "arcanumlib/attribute.toml");
     }
 

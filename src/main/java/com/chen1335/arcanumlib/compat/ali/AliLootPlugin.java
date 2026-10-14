@@ -161,7 +161,10 @@ public class AliLootPlugin implements IPlugin {
                     .add(operation(it.operation(), leaf("property.per_level", number(it.perLevel()))))
                     .add(leafTranslation("property.enchantment", enchantmentName(it.enchantment()))))
                     .build(key("property.enchantment_modifier"));
-            case ChanceModifier.EntityAttribute it -> TooltipBuilder.branch(branch -> branch
+            // 幸运修正：与属性修正同一套渲染，只是少了"哪条属性"那一行
+            case ChanceModifier.Luck it -> TooltipBuilder.branch(branch ->
+                    branch.add(operation(it.operation(), leaf("property.per_point", number(it.perPoint())))))
+                    .build(key("property.luck_modifier"));            case ChanceModifier.EntityAttribute it -> TooltipBuilder.branch(branch -> branch
                     .add(operation(it.operation(), leaf("property.per_point", number(it.perPoint()))))
                     .add(leafTranslation("property.attribute", it.attribute().value().getDescriptionId())))
                     .build(key("property.attribute_modifier"));

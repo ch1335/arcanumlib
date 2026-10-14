@@ -28,7 +28,7 @@ bonusing by game difficulty, by the Looting level on the tool, by the attacker's
 1. [Minimal example](#1-minimal-example)
 2. [Evaluation model](#2-evaluation-model)
 3. [Fields](#3-fields)
-4. [Modifiers (9)](#4-modifiers-9)
+4. [Modifiers (10)](#4-modifiers-10)
 5. [The two operation semantics (a common point of confusion)](#5-the-two-operation-semantics-a-common-point-of-confusion)
 6. [Entity source: EntitySource](#6-entity-source-entitysource)
 7. [EnchantedLootEvent: letting outside code change the enchantment level](#7-enchantedlootevent-letting-outside-code-change-the-enchantment-level)
@@ -123,7 +123,7 @@ double chance = new ChanceModifierCondition(0.25D, List.of(...)).resolveChance(c
 
 ---
 
-### 4. Modifiers (9)
+### 4. Modifiers (10)
 
 Registry: `arcanumlib:chance_modifier`. Each entry is `{ "type": "arcanumlib:<id>", ... }`.
 
@@ -138,6 +138,7 @@ Registry: `arcanumlib:chance_modifier`. Each entry is `{ "type": "arcanumlib:<id
 - [4.7 `entity_attribute`](#47-entity_attribute--process-by-an-entity-attribute) — process by an entity attribute
 - [4.8 `stage`](#48-stage--pick-one-of-two-chains-by-stage-requires-astages) — pick one of two chains by stage (requires AStages)
 - [4.9 `predicate`](#49-predicate--pick-one-of-two-chains-by-predicates) — pick one of two chains by predicates
+- [4.10 `luck`](#410-luck--process-by-luck) — process by luck
 
 #### 4.1 `apply` — add or multiply
 - `*operation`: <String> **required**; `mul` means `chance × value`, `add` means `chance + value`.
@@ -161,7 +162,7 @@ Registry: `arcanumlib:chance_modifier`. Each entry is `{ "type": "arcanumlib:<id
 using `add` gives `chance + value`, and the value may be negative to reduce the chance.
 
 > The probability shown in ALI gets the modifiers applied by this mod, but **only the context-free ones** (`apply` / `set_chance` / `clamp` / `invert`):
-> the context ALI hands to plugins is a stub (no tool, no player, no difficulty), so computing `tool_enchantment_level` / `entity_attribute` / `stage` / `predicate`
+> the context ALI hands to plugins is a stub (no tool, no player, no difficulty), so computing `tool_enchantment_level` / `entity_attribute` / `luck` / `stage` / `predicate`
 > from it would only yield "precise-looking but actually default" numbers - those are left out of the display.
 
 In ALI it renders on one line as `Chance modifier : ×N` (`+N` for addition, `-N` when negative):
@@ -391,6 +392,29 @@ Predicate modifier :
 > `Predicates` uses ALI's own condition rendering, so it matches how ALI shows conditions elsewhere. Note that ALI marks a **few** conditions (such as `minecraft:random_chance` and `table_bonus` - exactly the ones its config ignores by default via `ignoredPredicateConditions`) as "advanced": those only appear with vanilla **advanced item tooltips (F3 + H)** on. In that case this mod falls back to listing the predicate ids; every other condition renders normally.
 ---
 
+#### 4.10 `luck` — process by luck
+- `*operation`: <String> **required**, `add` or `mul`.
+- `per_point`: <double> the delta per point of luck, default `0.05`.
+
+```json
+{
+  "type": "arcanumlib:luck",
+  "operation": "mul",
+  "per_point": 0.02
+}
+```
+Every 1 point of luck multiplies the chance by (1 + 0.02); with `add` it is `chance + luck × per_point`.
+
+It reads `LootContext#getLuck()` (**not** a player attribute):
+
+- Chests: the opener's luck (enchantments and effects already included); `RandomizableContainerBlockEntity` passes `player.getLuck()`;
+- Fishing: the fisher's luck plus the rod bonus; `FishingHook` passes `luck + player.getLuck()`;
+- With 0 luck `applyScaled(chance, 0)` returns the chance unchanged, so no luck source means **no change**.
+
+> How it differs from 4.7 `entity_attribute`: that one reads an **attribute** from some entity (it may be `minecraft:generic.luck`);
+> this one reads **the luck already computed in the context**, needs no entity, and includes rod / enchantment bonuses.
+
+
 ### 5. The two operation semantics (a common point of confusion)
 
 The `add` / `mul` enum means **different things** in different modifiers; in the code it is split into two methods:
@@ -398,7 +422,7 @@ The `add` / `mul` enum means **different things** in different modifiers; in the
 | Method | ADD | MULTIPLY | Who uses it |
 |---|---|---|---|
 | `apply(chance, value)` — **absolute semantics** | `chance + value` | `chance × value` | `difficulty_factor` (the tier value itself is the multiplier/addend) |
-| `applyScaled(chance, delta)` — **delta semantics** | `chance + delta` | `chance × (1 + delta)` | `tool_enchantment_level`, `entity_attribute` (delta = level×per_level / attribute value×per_point) |
+| `applyScaled(chance, delta)` — **delta semantics** | `chance + delta` | `chance × (1 + delta)` | `tool_enchantment_level`, `entity_attribute`, `luck` (delta = level×per_level / attribute value×per_point / luck×per_point) |
 
 Plug in numbers to see the difference:
 
@@ -767,7 +791,7 @@ Once registered, it can be used anywhere just like a built-in modifier:
 
 #### 12.4 ALI tooltip fallback
 
-When ALI is installed, this mod's nine modifiers have dedicated rendering; **external modifiers go through the fallback branch** and only show their registry name (for example `mymod:square`).
+When ALI is installed, this mod's ten modifiers have dedicated rendering; **external modifiers go through the fallback branch** and only show their registry name (for example `mymod:square`).
 If you want your own rendering, write an ALI plugin of your own following `compat/ali/AliLootPlugin.java`.
 
 #### 12.5 Other limitations
@@ -800,13 +824,13 @@ If you want your own rendering, write an ALI plugin of your own following `compa
 | Content | File |
 |---|---|
 | The condition itself (evaluation + builder) | `modules/loot/lootCondition/ChanceModifierCondition.java` |
-| The nine modifiers + `Operation` / `EntitySource` | `modules/loot/lootCondition/ChanceModifier.java` |
+| Ten modifiers + `Operation` / `EntitySource` | `modules/loot/lootCondition/ChanceModifier.java` |
 | The stage modifier (requires AStages) | `compat/astages/StageChanceModifier.java` |
 | Modifier registry and registration | `modules/loot/lootCondition/ChanceModifierTypes.java` |
 | Condition type registration | `modules/loot/lootCondition/LootConditionTypes.java` |
 | Enchantment level event | `events/EnchantedLootEvent.java` |
 | The mixins that make the four vanilla mechanics fire this event too | `mixins/{ApplyBonusCount,BonusLevelTableCondition,EnchantedCountIncreaseFunction,LootItemRandomChanceWithEnchantedBonusCondition}Mixin.java` |
-| Official examples (each of the 9 modifiers has a use case) | `test_zombie_modifiers.json` (`apply` / `set_chance` / `invert`) and `test_temple.json`, `test_zombies_tag.json`, `test_zombie_basic.json` (`clamp` / `difficulty_factor` / `tool_enchantment_level` / `entity_attribute`) and `test_stage_modifier.json` (`stage`) and `test_predicate_modifier.json` (`predicate`) under `src/generated/resources/data/arcanumlib/loot_injecter/` |
+| Official examples (covering the use cases of the 9 modifiers) | `test_zombie_modifiers.json` (`apply` / `set_chance` / `invert`) and `test_temple.json`, `test_zombies_tag.json`, `test_zombie_basic.json` (`clamp` / `difficulty_factor` / `tool_enchantment_level` / `entity_attribute`) and `test_stage_modifier.json` (`stage`) and `test_predicate_modifier.json` (`predicate`) under `src/generated/resources/data/arcanumlib/loot_injecter/` |
 
 ---
 

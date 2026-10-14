@@ -14,6 +14,7 @@ import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.ai.attributes.Attribute;
 import net.minecraft.world.entity.ai.attributes.AttributeInstance;
+import net.minecraft.world.entity.ai.attributes.Attributes;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.enchantment.Enchantment;
 import net.minecraft.world.level.storage.loot.LootContext;
@@ -247,7 +248,6 @@ public interface ChanceModifier {
         @Override
         public double apply(double chance, LootContext context) {
             AttributeInstance instance = this.instanceOf(context);
-
             return instance == null ? chance : this.operation.applyScaled(chance, instance.getValue() * this.perPoint);
         }
 
@@ -261,6 +261,32 @@ public interface ChanceModifier {
         }
     }
 
+    /**
+     * 按 {@link LootContext} 的幸运值加工概率：语义与 {@link EntityAttribute} 完全一致，只是"点数"换成上下文的 luck。
+     *
+     * <p>取值来源：{@code context.getLuck()} —— 开箱是开箱者的幸运（附魔 / 效果已算进去），
+     * 钓鱼是钓手的幸运加上钓竿加成。luck 为 0 时 {@code applyScaled(chance, 0)} 原样返回，所以没幸运也不改变概率。
+     */
+    record Luck(Operation operation, double perPoint) implements ChanceModifier {
+        public static Luck of(Operation operation, double perPoint) {
+            return new Luck(operation, perPoint);
+        }
+
+        public static final MapCodec<Luck> CODEC = RecordCodecBuilder.mapCodec(instance -> instance.group(
+                Operation.CODEC.fieldOf("operation").forGetter(Luck::operation),
+                Codec.DOUBLE.optionalFieldOf("per_point", 0.05D).forGetter(Luck::perPoint)
+        ).apply(instance, Luck::new));
+
+        @Override
+        public ChanceModifierType getType() {
+            return ChanceModifierTypes.LUCK.get();
+        }
+
+        @Override
+        public double apply(double chance, LootContext context) {
+            return this.operation.applyScaled(chance, context.getLuck() * this.perPoint);
+        }
+    }
     /** 用哪个上下文实体取属性。 */
     enum EntitySource implements StringRepresentable {
         /** 上下文主角：实体掉落是被击杀者，宝箱/刷怪笼/考古是开箱玩家。 */
