@@ -1,0 +1,14 @@
+{
+  "type": "minecraft:fishing",
+  "pools": [
+    {
+      "bonus_rolls": 0.0,
+      "name": "main",
+      "entries": [
+
+      ],
+      "rolls": 1.0
+    }
+  ],
+  "random_sequence": "arcanumlib:gameplay/fishing/void/fish"
+}

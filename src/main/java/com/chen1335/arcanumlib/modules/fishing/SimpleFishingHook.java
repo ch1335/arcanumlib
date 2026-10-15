@@ -13,7 +13,6 @@ import net.minecraft.network.syncher.EntityDataSerializers;
 import net.minecraft.network.syncher.SynchedEntityData;
 import net.minecraft.server.level.ServerEntity;
 import net.minecraft.server.level.ServerLevel;
-import net.minecraft.sounds.SoundEvents;
 import net.minecraft.stats.Stats;
 import net.minecraft.tags.ItemTags;
 import net.minecraft.util.Mth;
@@ -114,6 +113,9 @@ public abstract class SimpleFishingHook extends Projectile implements IFishingHo
      */
     private float fishLuck;
 
+    protected boolean isRaining = false;
+    protected boolean canSeeSky = false;
+
     protected SimpleFishingHook(EntityType<? extends Projectile> entityType, Level level) {
         this(entityType, level, 0, 0);
     }
@@ -192,6 +194,7 @@ public abstract class SimpleFishingHook extends Projectile implements IFishingHo
 
     @Override
     public float getFishSpeed() {
+
         return this.fishSpeed;
     }
 
@@ -231,7 +234,7 @@ public abstract class SimpleFishingHook extends Projectile implements IFishingHo
      * 什么样的流体算"开阔水面"的一部分（原版要求是水且为水源）。换水体类型时一并重写。
      */
     protected boolean isOpenWaterFluid(BlockPos pos, FluidState fluidState) {
-        return getFishMediaType().isOpenWaterFluid(level(),pos, fluidState);
+        return getFishMediaType().isOpenWaterFluid(level(), pos, fluidState);
     }
 
     /**
@@ -242,33 +245,19 @@ public abstract class SimpleFishingHook extends Projectile implements IFishingHo
     }
 
     /**
-     * 每刻的进度倍率：值越大，引鱼 / 咬钩倒计时减得越快。基础 1，**下雨 +1，看不见天空 -1**，都是确定性的（本类不再像原版那样掷骰：原版雨天只有 25% 概率 +1、被遮挡只有 50% 概率 -1）。
-     * 返回值可用小数：0.5 = 每刻只减一半（等待翻倍），1.5 = 快一半。
-     * 注意 {@code 1 + [下雨] - [看不见天空]} 在下雨且被遮挡时得 1、**不下雨且被遮挡时为 0**（当刻不推进，地下/室内要有别的加成才推进）。
-     */
-    protected float getLureRate(BlockPos posAbove) {
-        float rate = 1.0F;
-        if (this.level().isRainingAt(posAbove)) {
-            rate += 0.25F;
-        }
-        if (!this.level().canSeeSky(posAbove)) {
-            rate -= 0.5F;
-        }
-        return rate;
-    }
-
-    /**
-     * 第一次引鱼的等待区间（原版 100~600 刻）。
+     * 第一次引鱼的等待区间（刻）。默认值取自水体类型（原版 100~600 刻），
+     * 这里只转发，方便子类或水体类型调整节奏。
      */
     protected int getMinLureTicks() {
-        return 100;
+        return this.getFishMediaType().getMinLureTicks(this, level(), blockPosition());
     }
 
     /**
-     * 第一次引鱼的等待区间（原版 100~600 刻）。
+     * 第一次引鱼的等待区间（刻）。默认值取自水体类型（原版 100~600 刻），
+     * 这里只转发，方便子类或水体类型调整节奏。
      */
     protected int getMaxLureTicks() {
-        return 600;
+        return this.getFishMediaType().getMaxLureTicks(this, level(), blockPosition());
     }
 
     /**
@@ -284,6 +273,7 @@ public abstract class SimpleFishingHook extends Projectile implements IFishingHo
     protected int getMaxHookedTicks() {
         return 80;
     }
+
 
     /**
      * 咬钩后允许玩家反应的区间（原版 20~40 刻，超时鱼跑掉）。
@@ -455,7 +445,7 @@ public abstract class SimpleFishingHook extends Projectile implements IFishingHo
             BlockPos blockPos = this.blockPosition();
             FluidState fluidState = this.level().getFluidState(blockPos);
             boolean inMedium = this.canFishAt(this.level(), player, blockPos, fluidState);
-            float fluidHeight = inMedium ? this.getFishMediaType().getFluidHeight(this.level(), blockPos,fluidState) : 0.0F;
+            float fluidHeight = inMedium ? this.getFishMediaType().getFluidHeight(this.level(), blockPos, fluidState) : 0.0F;
             boolean floating = inMedium && this.isFloatingInFluid(fluidState, fluidHeight);
 
             if (this.currentState == FishHookState.FLYING) {
@@ -641,7 +631,11 @@ public abstract class SimpleFishingHook extends Projectile implements IFishingHo
      */
     protected void catchingFish(BlockPos pos) {
         ServerLevel serverLevel = (ServerLevel) this.level();
-        float rate = this.getLureRate(pos.above());
+        BlockPos above = pos.above();
+        if (level().getGameTime() % 20 == 0) {
+            isRaining = this.level().isRainingAt(above);
+            canSeeSky = this.level().canSeeSky(above);
+        }
         if (this.nibble > 0) {
             --this.nibble;
             if (this.nibble <= 0) {
@@ -651,7 +645,7 @@ public abstract class SimpleFishingHook extends Projectile implements IFishingHo
                 this.getEntityData().set(DATA_BITING, false);
             }
         } else if (this.timeUntilHooked > 0) {
-            this.timeUntilHooked -= rate;
+            this.timeUntilHooked -= FishingHooks.getHookRate(this, level(), above, isRaining, canSeeSky);
             if (this.timeUntilHooked > 0) {
                 // 引鱼中：绕着浮标甩出气泡与钓鱼粒子（朝向随机游走）
                 this.fishAngle += (float) this.random.triangle(0.0, 9.188);
@@ -673,7 +667,7 @@ public abstract class SimpleFishingHook extends Projectile implements IFishingHo
                 }
             } else {
                 // 咬钩：水花声 + 一圈气泡/钓鱼粒子，并进入 nibble 阶段
-                this.playSound(SoundEvents.FISHING_BOBBER_SPLASH, 0.25F, 1.0F + (this.random.nextFloat() - this.random.nextFloat()) * 0.4F);
+                this.playSound(this.getSplashSound(), 0.25F, 1.0F + (this.random.nextFloat() - this.random.nextFloat()) * 0.4F);
                 double y = this.getY() + 0.5;
                 serverLevel.sendParticles(this.getBubbleParticle(), this.getX(), y, this.getZ(), (int) (1.0F + this.getBbWidth() * 20.0F), this.getBbWidth(), 0.0, this.getBbWidth(), 0.2F);
                 serverLevel.sendParticles(this.getFishingParticle(), this.getX(), y, this.getZ(), (int) (1.0F + this.getBbWidth() * 20.0F), this.getBbWidth(), 0.0, this.getBbWidth(), 0.2F);
@@ -681,7 +675,7 @@ public abstract class SimpleFishingHook extends Projectile implements IFishingHo
                 this.getEntityData().set(DATA_BITING, true);
             }
         } else if (this.timeUntilLured > 0) {
-            this.timeUntilLured -= rate;
+            this.timeUntilLured -= FishingHooks.getLureRate(this, level(), above, isRaining, canSeeSky);
             // 越接近引鱼成功，水花越频繁
             float chance = 0.15F;
             if (this.timeUntilLured < 20) {
@@ -804,6 +798,7 @@ public abstract class SimpleFishingHook extends Projectile implements IFishingHo
     /**
      * 是否已经咬钩（浮标下沉，玩家现在收竿就能上鱼）。
      */
+    @Override
     public boolean isBiting() {
         return this.biting;
     }
@@ -811,6 +806,7 @@ public abstract class SimpleFishingHook extends Projectile implements IFishingHo
     /**
      * 是否符合"开阔水面"（原版战利品表与成就用它区分小水池与大海）。
      */
+    @Override
     public boolean isOpenWaterFishing() {
         return this.openWater;
     }

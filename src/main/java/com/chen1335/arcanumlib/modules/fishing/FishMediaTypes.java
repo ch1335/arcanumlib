@@ -12,7 +12,7 @@ public class FishMediaTypes {
     public static final IFishMediaType LAVA = getOrCreate("lava", new LavaMedia());
 
     public static final IFishMediaType VOID = getOrCreate("void", new VoidMedia());
-    public static final IFishMediaType DIRT = getOrCreate("dirt", new Dirt());
+    public static final IFishMediaType DIRT = getOrCreate("dirt", new DirtMedia());
 
     public static IFishMediaType getOrCreate(String id, IFishMediaType type) {
         return MAP.computeIfAbsent(id, s -> type);

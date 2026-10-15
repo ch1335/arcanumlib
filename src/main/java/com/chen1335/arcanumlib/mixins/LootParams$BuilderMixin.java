@@ -33,7 +33,10 @@ public class LootParams$BuilderMixin {
                 ItemStack rod = data.getRod();
                 params.put(FishingExtraLootContextParams.FISH_BAIT, bait);
                 if (rod.getItem() instanceof IFishingRod fishingRod) {
-                    fishingRod.modifyLootParams(owner, hook, rod, bait, params);
+                    fishingRod.modifyLootParams(owner, hook, rod, params);
+                    if (bait.getItem() instanceof IFishBait fishBait) {
+                        fishBait.modifyLootParams(owner, hook,bait, params);
+                    }
                 }
             }
         }

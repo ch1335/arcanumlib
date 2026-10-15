@@ -25,7 +25,10 @@ public class FishingEvents {
                     ItemStack bait = LivingGetFishBaitEvent.post(owner, rod, fishingHook, ItemStack.EMPTY).getBait();
                     data.setBait(bait);
                     rodItem.consumeBait(owner, fishingHook, rod, bait);
-                    rodItem.modifyHook(owner, fishingHook, rod, bait);
+                    rodItem.modifyHook(owner, fishingHook, rod);
+                    if (bait.getItem() instanceof IFishBait fishBait) {
+                        fishBait.modifyHook(owner, fishingHook, bait);
+                    }
                     ModifyFishingHookEvent.post(owner, rod, fishingHook, bait);
                 }
             }

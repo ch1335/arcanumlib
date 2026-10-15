@@ -26,6 +26,6 @@ public class TestFishingHook extends SimpleFishingHook {
 
     @Override
     public IFishMediaType getFishMediaType() {
-        return FishMediaTypes.VOID;
+        return FishMediaTypes.LAVA;
     }
 }
