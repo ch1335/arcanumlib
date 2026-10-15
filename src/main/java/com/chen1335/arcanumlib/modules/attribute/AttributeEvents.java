@@ -10,7 +10,6 @@ import net.minecraft.world.damagesource.DamageSource;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.LivingEntity;
-import net.minecraft.world.entity.ai.attributes.AttributeModifier;
 import net.minecraft.world.entity.player.Player;
 import net.neoforged.bus.api.EventPriority;
 import net.neoforged.bus.api.SubscribeEvent;
@@ -69,19 +68,10 @@ public class AttributeEvents {
         } finally {
             modifierList.removeLast();
         }
-        if ( event.getSource().getEntity() instanceof Player player) {
+        if (event.getSource().getEntity() instanceof Player player) {
             player.sendSystemMessage(Component.literal(String.valueOf(event.getAmount())));
         }
     }
 
-    @SubscribeEvent(priority = EventPriority.LOWEST)
-    public static void LivingGetAttributeAdjustmentEvent(LivingGetAttributeAdjustmentEvent event) {
-        if (event.getAttribute() == ArcanumAttributes.DAMAGE_MULTIPLIER) {
-            if (event.getContext() instanceof DamageContext context) {
-                event.getAdjustment().add(AttributeModifier.Operation.ADD_VALUE, 0.5);
-                event.getAdjustment().add(AttributeModifier.Operation.ADD_MULTIPLIED_TOTAL, 1);
-            }
-        }
-    }
 
 }
