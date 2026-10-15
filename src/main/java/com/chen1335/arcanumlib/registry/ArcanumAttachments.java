@@ -1,8 +1,8 @@
 package com.chen1335.arcanumlib.registry;
 
 import com.chen1335.arcanumlib.ArcanumLib;
+import com.chen1335.arcanumlib.common.attachmentTypes.EntityData;
 import com.chen1335.arcanumlib.modules.fishing.FishingHookData;
-import net.minecraft.nbt.CompoundTag;
 import net.neoforged.neoforge.attachment.AttachmentType;
 import net.neoforged.neoforge.registries.DeferredHolder;
 import net.neoforged.neoforge.registries.DeferredRegister;
@@ -29,7 +29,11 @@ public final class ArcanumAttachments {
 
     /** 钓鱼钩上的附件数据；存盘走 {@link FishingHookData#serializeNBT} / {@link FishingHookData#deserializeNBT}。 */
     public static final DeferredHolder<AttachmentType<?>, AttachmentType<FishingHookData>> FISHING_HOOK_DATA =
-            ATTACHMENT_TYPES.register("fishing_hook_data", () -> AttachmentType.<CompoundTag, FishingHookData>serializable(() -> new FishingHookData())
+            ATTACHMENT_TYPES.register("fishing_hook_data", () -> AttachmentType.serializable(FishingHookData::new)
+                    .build());
+
+    public static final DeferredHolder<AttachmentType<?>, AttachmentType<EntityData>> PLAYER_DATA =
+            ATTACHMENT_TYPES.register("player_data", () -> AttachmentType.serializable(EntityData::new)
                     .build());
 
     private ArcanumAttachments() {

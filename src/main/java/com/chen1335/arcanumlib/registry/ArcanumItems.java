@@ -1,7 +1,7 @@
 package com.chen1335.arcanumlib.registry;
 
 import com.chen1335.arcanumlib.ArcanumLib;
-import com.chen1335.arcanumlib.modules.fishing.TestRodItem;
+import com.chen1335.arcanumlib.modules.fishing.test.TestRodItem;
 import com.chen1335.arcanumlib.modules.holder.EntityHolderItem;
 import net.minecraft.world.item.Item;
 import net.neoforged.neoforge.registries.DeferredItem;

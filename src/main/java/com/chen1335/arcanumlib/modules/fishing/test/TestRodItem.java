@@ -1,5 +1,8 @@
-package com.chen1335.arcanumlib.modules.fishing;
+package com.chen1335.arcanumlib.modules.fishing.test;
 
+import com.chen1335.arcanumlib.common.attachmentTypes.EntityData;
+import com.chen1335.arcanumlib.modules.fishing.IFishingHook;
+import com.chen1335.arcanumlib.modules.fishing.IFishingRod;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.sounds.SoundEvents;
 import net.minecraft.sounds.SoundSource;
@@ -23,7 +26,9 @@ import net.neoforged.neoforge.event.EventHooks;
  * {@code FishingHook}，自定义钩子放不进去，所以这里按"同世界的、以本玩家为持有者的钩子"来查。
  */
 public class TestRodItem extends FishingRodItem {
-    /** 搜索半径：原版靠字段引用，没有距离限制，这里给个足够大的范围。 */
+    /**
+     * 搜索半径：原版靠字段引用，没有距离限制，这里给个足够大的范围。
+     */
     private static final double HOOK_SEARCH_RADIUS = 256.0D;
 
     public TestRodItem(Item.Properties properties) {
@@ -33,8 +38,7 @@ public class TestRodItem extends FishingRodItem {
     @Override
     public InteractionResultHolder<ItemStack> use(Level level, Player player, InteractionHand hand) {
         ItemStack stack = player.getItemInHand(hand);
-        TestFishingHook hook = findOwnedHook(level, player);
-
+        IFishingHook hook = EntityData.get(player).fishing;
         if (hook != null) {
             // 收竿：只有服务端能改物品与实体状态
             if (!level.isClientSide) {
@@ -63,14 +67,5 @@ public class TestRodItem extends FishingRodItem {
         }
 
         return InteractionResultHolder.sidedSuccess(stack, level.isClientSide());
-    }
-
-    /** 找出本玩家自己的测试鱼钩（同一世界、持有者是本人）。 */
-    private static TestFishingHook findOwnedHook(Level level, Player player) {
-        return level.getEntitiesOfClass(TestFishingHook.class, player.getBoundingBox().inflate(HOOK_SEARCH_RADIUS))
-                .stream()
-                .filter(candidate -> candidate.getOwner() == player)
-                .findFirst()
-                .orElse(null);
     }
 }

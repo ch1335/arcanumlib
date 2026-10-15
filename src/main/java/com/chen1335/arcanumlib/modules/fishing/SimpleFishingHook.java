@@ -572,6 +572,7 @@ public abstract class SimpleFishingHook extends Projectile implements IFishingHo
      *
      * @param rod 调用方手上的鱼竿；附件里记录过鱼竿时以附件为准
      */
+    @Override
     public int retrieve(ItemStack rod) {
         Player player = this.getPlayerOwner();
         if (this.level().isClientSide || player == null || this.shouldStopFishing(player)) {

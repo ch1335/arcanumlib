@@ -1,7 +1,7 @@
 package com.chen1335.arcanumlib.registry;
 
 import com.chen1335.arcanumlib.ArcanumLib;
-import com.chen1335.arcanumlib.modules.fishing.TestFishingHook;
+import com.chen1335.arcanumlib.modules.fishing.test.TestFishingHook;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.MobCategory;

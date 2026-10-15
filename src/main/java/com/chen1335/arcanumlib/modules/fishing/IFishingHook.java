@@ -45,6 +45,8 @@ public interface IFishingHook extends TraceableEntity, IAttachmentHolder {
 
     boolean isOpenWaterFishing();
 
+    int retrieve(ItemStack stack);
+
     default float getLureRate(IFishingHook fishingHook, Level level, BlockPos blockPos, boolean isRaining, boolean canSeeSky) {
         float lureRate = getFishMediaType().getLureRate(this, level, blockPos, isRaining, canSeeSky);
         FishingHookData data = fishingHook.getData(ArcanumAttachments.FISHING_HOOK_DATA);
