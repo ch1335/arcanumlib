@@ -2,22 +2,23 @@ package com.chen1335.arcanumlib.modules.attribute;
 
 import com.chen1335.arcanumlib.ArcanumLib;
 import com.chen1335.arcanumlib.common.attachmentTypes.EntityData;
+import com.chen1335.arcanumlib.modules.attribute.AttributeAdjustment.AttributeAdjustment;
 import com.chen1335.arcanumlib.modules.attribute.AttributeAdjustment.contexts.DamageContext;
 import com.chen1335.arcanumlib.modules.attribute.events.LivingGetAttributeAdjustmentEvent;
+import net.minecraft.network.chat.Component;
 import net.minecraft.world.damagesource.DamageSource;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.ai.attributes.AttributeModifier;
+import net.minecraft.world.entity.player.Player;
 import net.neoforged.bus.api.EventPriority;
 import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.fml.common.EventBusSubscriber;
 import net.neoforged.neoforge.event.entity.EntityAttributeModificationEvent;
 import net.neoforged.neoforge.event.entity.living.LivingIncomingDamageEvent;
-import org.apache.commons.lang3.mutable.MutableDouble;
 
 import java.util.List;
-import java.util.Map;
 
 /**
  * 属性挂载：自定义属性必须挂到实体类型上，否则 {@code LivingEntity#getAttribute} 返回 null，
@@ -45,27 +46,42 @@ public class AttributeEvents {
         DamageSource source = event.getSource();
         Entity sourceEntity = source.getEntity();
         LivingEntity target = event.getEntity();
+        DamageContext context = new DamageContext(target, source);
         if (sourceEntity instanceof LivingEntity attacker) {
-            AttributeHooks.beforeGetDamageMultiplier(attacker, target, source);
-            Map<AttributeModifier.Operation, MutableDouble> modifier = LivingGetAttributeAdjustmentEvent.post(ArcanumAttributes.DAMAGE_MULTIPLIER, attacker, new DamageContext(target, source));
-            List<Map<AttributeModifier.Operation, MutableDouble>> modifierList = EntityData.get(attacker).adjustmentData.getModifier(ArcanumAttributes.DAMAGE_MULTIPLIER);
+            AttributeAdjustment modifier = LivingGetAttributeAdjustmentEvent.post(ArcanumAttributes.DAMAGE_MULTIPLIER, attacker, context);
+            List<AttributeAdjustment> modifierList = EntityData.get(attacker).adjustmentData.getModifier(ArcanumAttributes.DAMAGE_MULTIPLIER);
 
             modifierList.add(modifier);
-            event.setAmount(event.getAmount() * (float) attacker.getAttributeValue(ArcanumAttributes.DAMAGE_MULTIPLIER));
-            modifierList.remove(modifier);
+            try {
+                event.setAmount(event.getAmount() * (float) attacker.getAttributeValue(ArcanumAttributes.DAMAGE_MULTIPLIER));
+            } finally {
+                // 按位置弹出：按值移除在重入（自伤 / 反弹）时会删掉另一条相等的调整
+                modifierList.removeLast();
+            }
 
-            AttributeHooks.afterGetDamageMultiplier(attacker, target, source);
         }
-        AttributeHooks.beforeGetDamageTakenMultiplier(sourceEntity, target, source);
-        Map<AttributeModifier.Operation, MutableDouble> modifier = LivingGetAttributeAdjustmentEvent.post(ArcanumAttributes.DAMAGE_TAKEN_MULTIPLIER, target, new DamageContext(target, source));
-        List<Map<AttributeModifier.Operation, MutableDouble>> modifierList = EntityData.get(target).adjustmentData.getModifier(ArcanumAttributes.DAMAGE_TAKEN_MULTIPLIER);
+        AttributeAdjustment modifier = LivingGetAttributeAdjustmentEvent.post(ArcanumAttributes.DAMAGE_TAKEN_MULTIPLIER, target, context);
+        List<AttributeAdjustment> modifierList = EntityData.get(target).adjustmentData.getModifier(ArcanumAttributes.DAMAGE_TAKEN_MULTIPLIER);
 
         modifierList.add(modifier);
-        event.setAmount(event.getAmount() * (float) event.getEntity().getAttributeValue(ArcanumAttributes.DAMAGE_TAKEN_MULTIPLIER));
-        modifierList.remove(modifier);
-
-        AttributeHooks.afterGetDamageTakenMultiplier(sourceEntity, target, source);
+        try {
+            event.setAmount(event.getAmount() * (float) event.getEntity().getAttributeValue(ArcanumAttributes.DAMAGE_TAKEN_MULTIPLIER));
+        } finally {
+            modifierList.removeLast();
+        }
+        if ( event.getSource().getEntity() instanceof Player player) {
+            player.sendSystemMessage(Component.literal(String.valueOf(event.getAmount())));
+        }
     }
 
+    @SubscribeEvent(priority = EventPriority.LOWEST)
+    public static void LivingGetAttributeAdjustmentEvent(LivingGetAttributeAdjustmentEvent event) {
+        if (event.getAttribute() == ArcanumAttributes.DAMAGE_MULTIPLIER) {
+            if (event.getContext() instanceof DamageContext context) {
+                event.getAdjustment().add(AttributeModifier.Operation.ADD_VALUE, 0.5);
+                event.getAdjustment().add(AttributeModifier.Operation.ADD_MULTIPLIED_TOTAL, 1);
+            }
+        }
+    }
 
 }

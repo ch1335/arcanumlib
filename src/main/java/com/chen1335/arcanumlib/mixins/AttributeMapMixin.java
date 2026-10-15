@@ -26,10 +26,13 @@ public class AttributeMapMixin implements IAttributeMapExtension {
         arcanumlib$owner = owner;
     }
 
-    @ModifyReturnValue(method = "lambda$getInstance$1", at = @At("RETURN"))
+    @ModifyReturnValue(method = "getInstance", at = @At("RETURN"))
     private AttributeInstance arcanumlib$bindInstanceOwner(AttributeInstance instance) {
         if (instance != null && this.arcanumlib$owner != null) {
-            ((IAttributeInstanceExtension) instance).arcanumlib$setOwner(this.arcanumlib$owner);
+            IAttributeInstanceExtension extension = (IAttributeInstanceExtension) instance;
+            if (extension.arcanumlib$getOwner() == null) {
+                extension.arcanumlib$setOwner(this.arcanumlib$owner);
+            }
         }
 
         return instance;
