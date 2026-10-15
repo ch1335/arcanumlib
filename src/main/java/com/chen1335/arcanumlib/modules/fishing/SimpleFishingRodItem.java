@@ -1,7 +1,6 @@
 package com.chen1335.arcanumlib.modules.fishing;
 
 import com.chen1335.arcanumlib.common.attachmentTypes.EntityData;
-import com.chen1335.arcanumlib.modules.fishing.test.TestFishingHook;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.sounds.SoundEvent;
 import net.minecraft.sounds.SoundEvents;
@@ -33,7 +32,7 @@ public abstract class SimpleFishingRodItem extends FishingRodItem {
         IFishingHook hook = EntityData.get(player).fishing;
         if (hook != null) {
             if (!level.isClientSide) {
-                int damage = retrieve(player,stack);
+                int damage = retrieve(player, stack);
                 ItemStack original = stack.copy();
                 stack.hurtAndBreak(damage, player, LivingEntity.getSlotForHand(hand));
                 if (stack.isEmpty()) {
@@ -51,7 +50,9 @@ public abstract class SimpleFishingRodItem extends FishingRodItem {
                 // 与原版一致：饵钓给的是"减少的等待时间（秒）"，本模组的 fishSpeed 用 tick 计
                 float fishSpeed = EnchantmentHelper.getFishingTimeReduction(serverLevel, stack, player) * 20.0F;
                 float fishLuck = EnchantmentHelper.getFishingLuckBonus(serverLevel, stack, player);
-                serverLevel.addFreshEntity(createHook(player, stack, level, fishLuck, fishSpeed));
+                IFishingHook hook1 = createHook(player, stack, level, fishLuck, fishSpeed);
+                EntityData.get(player).fishing = hook1;
+                serverLevel.addFreshEntity((Entity) hook1);
             }
             player.awardStat(Stats.ITEM_USED.get(this));
             player.gameEvent(GameEvent.ITEM_INTERACT_START);
@@ -60,9 +61,10 @@ public abstract class SimpleFishingRodItem extends FishingRodItem {
         return InteractionResultHolder.sidedSuccess(stack, level.isClientSide());
     }
 
-    protected int retrieve(Player player, ItemStack stack){
+    protected int retrieve(Player player, ItemStack stack) {
         IFishingHook hook = EntityData.get(player).fishing;
         if (hook != null) {
+            EntityData.get(player).fishing = null;
             return hook.retrieve(stack);
         }
         return 0;
@@ -76,5 +78,5 @@ public abstract class SimpleFishingRodItem extends FishingRodItem {
         return SoundEvents.FISHING_BOBBER_THROW;
     }
 
-    protected abstract Entity createHook(Player player, @Nullable ItemStack rod, Level level, float fishLuck, float fishSpeed);
+    protected abstract IFishingHook createHook(Player player, @Nullable ItemStack rod, Level level, float fishLuck, float fishSpeed);
 }

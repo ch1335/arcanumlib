@@ -1,5 +1,6 @@
 package com.chen1335.arcanumlib.modules.fishing.test;
 
+import com.chen1335.arcanumlib.modules.fishing.IFishingHook;
 import com.chen1335.arcanumlib.modules.fishing.SimpleFishingRodItem;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.player.Player;
@@ -22,7 +23,7 @@ public class TestRodItem extends SimpleFishingRodItem {
         super(properties);
     }
 
-    protected Entity createHook(Player player, @Nullable ItemStack rod, Level level, float fishLuck, float fishSpeed) {
+    protected IFishingHook createHook(Player player, @Nullable ItemStack rod, Level level, float fishLuck, float fishSpeed) {
         return new TestFishingHook(player, rod, level, fishLuck, fishSpeed);
     }
 }

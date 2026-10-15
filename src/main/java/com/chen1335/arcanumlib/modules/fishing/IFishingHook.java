@@ -8,6 +8,7 @@ import net.minecraft.server.level.ServerLevel;
 import net.minecraft.sounds.SoundEvent;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.TraceableEntity;
+import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.material.FluidState;
@@ -82,6 +83,11 @@ public interface IFishingHook extends TraceableEntity, IAttachmentHolder {
     }
 
     default void modifyLootParams(LootParams.Builder builder, LivingEntity owner, ItemStack rod, ItemStack bait) {
+    }
+
+
+    default void consumeBait(IFishingRod rodItem, Player player, ItemStack rod, ItemStack bait){
+        rodItem.consumeBait(player, this, rod, bait);
     }
 
     /**

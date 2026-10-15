@@ -1,6 +1,9 @@
 package com.chen1335.arcanumlib.modules.fishing;
 
 import com.chen1335.arcanumlib.ArcanumLib;
+import com.chen1335.arcanumlib.common.attachmentTypes.EntityData;
+import com.chen1335.arcanumlib.modules.fishing.events.LivingGetFishBaitEvent;
+import com.chen1335.arcanumlib.modules.fishing.events.ModifyFishingHookEvent;
 import com.chen1335.arcanumlib.modules.fishing.fishMediaTypes.IFishMediaType;
 import com.chen1335.arcanumlib.registry.ArcanumAttachments;
 import net.minecraft.core.BlockPos;
@@ -60,8 +63,8 @@ import java.util.List;
  * <p>与模块其它部分的衔接（这里刻意不重复实现）：
  * <ul>
  *   <li>鱼竿与鱼饵保存在实体附件 {@code ArcanumAttachments.FISHING_HOOK_DATA} 上。抛竿时本类只负责把玩家
- *       手里的鱼竿写进附件；取鱼饵、消耗鱼饵、派发 {@code LivingGetFishBaitEvent} / {@code ModifyFishingHookEvent}
- *       由 {@code FishingEvents#EntityJoinLevelEvent} 在实体加入世界时统一处理；</li>
+ *       手里的鱼竿写进附件；等到钩子真正接触到介质、开始钓鱼那一刻（{@link #beginFishing}）才去取鱼饵、
+ *       消耗鱼饵、派发 {@code LivingGetFishBaitEvent} / {@code ModifyFishingHookEvent}；</li>
  *   <li>战利品参数用 {@code FishingHooks#buildLootParams} 组装，鱼饵与鱼竿的额外参数由
  *       {@code LootParams$BuilderMixin} 在 {@code create} 时注入（含 {@code FishingExtraLootContextParams.FISH_BAIT}）。</li>
  * </ul>
@@ -135,7 +138,7 @@ public abstract class SimpleFishingHook extends Projectile implements IFishingHo
      * 抛竿构造：把玩家设为拥有者，并把鱼竿（主手优先，其次副手）记进附件。
      *
      * <p>注意 {@code level().isClientSide} 时不会记录鱼竿：客户端的实体是从网络包重建的，
-     * 若在客户端也记录，{@code FishingEvents#EntityJoinLevelEvent} 会在客户端重跑一遍消耗鱼饵的流程。
+     * 若在客户端也记录，客户端会拿着它去执行取饵 / 消耗（客户端同样 tick），所以取饵那一步必须限定在服务端。
      */
     protected SimpleFishingHook(EntityType<? extends Projectile> entityType, Player player, Level level, float fishLuck, float fishSpeed) {
         this(entityType, player, null, level, fishLuck, fishSpeed);
@@ -350,13 +353,31 @@ public abstract class SimpleFishingHook extends Projectile implements IFishingHo
     }
 
     /**
-     * 收竿时是否再处理一次鱼饵。
+     * 入水、开始正式钓鱼时才去取鱼饵并消耗。
      *
-     * <p>默认什么都不做：本模块的 {@code FishingEvents#EntityJoinLevelEvent} 已经在抛竿（实体进入世界）时
-     * 通过 {@link IFishingRod#consumeBait} 消耗过鱼饵，这里再扣一次会重复消耗。
-     * 想让鱼饵"收竿时才消耗"的子类可以重写本方法，并让抛竿阶段跳过消耗。
+     * <p>由 {@link #tick()} 里 {@code FLYING → BOBBING} 的切换调用（只在服务端），靠附件里的标记保证
+     * 一根竿只取一次。这样抛竿失败（直接砸在方块上 / 没接触到介质 / 中途被收）都不会白扣鱼饵。
      */
-    protected void consumeBaitOnRetrieve(Player player, ItemStack rod, ItemStack bait) {
+    protected void beginFishing(Player player) {
+        FishingHookData data = this.getData(ArcanumAttachments.FISHING_HOOK_DATA);
+        if (data.isModified()) {
+            return;
+        }
+        data.setModified(true);
+
+        ItemStack rod = this.getRodStack();
+        if (!(rod.getItem() instanceof IFishingRod rodItem)) {
+            return;
+        }
+
+        ItemStack bait = LivingGetFishBaitEvent.post(player, rod, this, ItemStack.EMPTY).getBait();
+        data.setBait(bait);
+        this.consumeBait(rodItem, player, rod, bait);
+        rodItem.modifyHook(player, this, rod);
+        if (bait.getItem() instanceof IFishBait fishBait) {
+            fishBait.modifyHook(player, this, bait);
+        }
+        ModifyFishingHookEvent.post(player, rod, this, bait);
     }
 
     /**
@@ -386,14 +407,14 @@ public abstract class SimpleFishingHook extends Projectile implements IFishingHo
     }
 
     /**
-     * 附件里记录的鱼饵（抛竿时由 {@code FishingEvents} 写入）。
+     * 附件里记录的鱼饵（入水开始钓鱼时由 {@link #beginFishing} 写入）。
      */
     protected ItemStack getBaitStack() {
         return this.getData(ArcanumAttachments.FISHING_HOOK_DATA).getBait();
     }
 
     /**
-     * 记录鱼竿到附件；{@code FishingEvents} 会据此找鱼饵并派发两个事件。
+     * 记录鱼竿到附件；入水开始钓鱼时 {@link #beginFishing} 会据此找鱼饵并派发两个事件。
      */
     protected void storeRod(ItemStack rod) {
         this.getData(ArcanumAttachments.FISHING_HOOK_DATA).setRod(rod);
@@ -455,9 +476,13 @@ public abstract class SimpleFishingHook extends Projectile implements IFishingHo
                     return;
                 }
                 if (floating) {
-                    // 入水：速度骤减，进入漂浮状态
+                    // 入水：速度骤减，进入漂浮状态。真正开始钓鱼就在这一刻，取饵 / 消耗也放在这里
                     this.setDeltaMovement(this.getDeltaMovement().multiply(0.3, 0.2, 0.3));
                     this.currentState = FishHookState.BOBBING;
+                    if (!this.level().isClientSide) {
+                        // 只在服务端：客户端也会 tick，取饵与消耗都不能在那边发生
+                        this.beginFishing(player);
+                    }
                     return;
                 }
                 this.checkCollision();
@@ -536,6 +561,18 @@ public abstract class SimpleFishingHook extends Projectile implements IFishingHo
         }
     }
 
+    @Override
+    public void remove(Entity.RemovalReason reason) {
+        super.remove(reason);
+        // 清掉玩家身上"当前鱼钩"的指针：否则钩子没了指针还在，玩家会永远卡在收竿分支、再也抛不出竿
+        if (this.getPlayerOwner() != null) {
+            EntityData data = EntityData.get(this.getPlayerOwner());
+            if (data.fishing == this) {
+                data.fishing = null;
+            }
+        }
+    }
+
     // ------------------------------------------------------------------
     // 抛竿与收竿
     // ------------------------------------------------------------------
@@ -587,7 +624,6 @@ public abstract class SimpleFishingHook extends Projectile implements IFishingHo
             this.level().broadcastEntityEvent(this, (byte) 31);
             rodDamage = this.hookedIn instanceof ItemEntity ? 3 : 5;
         } else if (this.nibble > 0) {
-            this.consumeBaitOnRetrieve(player, rodStack, bait);
             rodDamage = this.settleCatch(player, rodStack, bait);
         }
         if (this.onGround()) {
