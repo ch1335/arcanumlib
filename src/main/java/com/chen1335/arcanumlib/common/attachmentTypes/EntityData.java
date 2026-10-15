@@ -22,6 +22,6 @@ public class EntityData {
     public final AdjustmentData adjustmentData = new AdjustmentData();
 
     public static EntityData get(Entity entity) {
-        return entity.getData(ArcanumAttachments.PLAYER_DATA);
+        return entity.getData(ArcanumAttachments.ENTITY_DATA);
     }
 }

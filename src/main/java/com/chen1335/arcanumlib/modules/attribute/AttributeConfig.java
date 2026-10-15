@@ -34,7 +34,7 @@ public final class AttributeConfig {
 
         BONUS_LOOT_PREFIXES = builder
                 .comment("Loot table id path prefixes that get bonus loot. The default only covers",
-                        "entity drops (entities/) and chest loot (chests/).",
+                        "target drops (entities/) and chest loot (chests/).",
                         "Add your own prefixes here if other tables should be boosted too.")
                 .defineListAllowEmpty("bonus_loot_prefixes", List.of("entities/", "chests/"),
                         () -> "entities/", o -> o instanceof String);

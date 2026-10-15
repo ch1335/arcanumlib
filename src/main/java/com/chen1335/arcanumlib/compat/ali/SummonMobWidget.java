@@ -79,7 +79,7 @@ public class SummonMobWidget implements IWidget {
             }
 
             if (this.shown == null) {
-                ArcanumLib.LOGGER.warn("Failed to create a display entity for summon_mob entry: {}",
+                ArcanumLib.LOGGER.warn("Failed to create a display target for summon_mob entry: {}",
                         this.node.getMob());
             }
         }

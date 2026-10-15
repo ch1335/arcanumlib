@@ -96,7 +96,7 @@ public class AliLootPlugin implements IPlugin {
     private static TooltipNode entryTooltip(IServerUtils utils, SummonMobEntry entry, LootCount chance, LootCount count,
                                             List<LootItemFunction> functions, List<LootItemCondition> conditions) {
         TooltipBuilder entity = TooltipBuilder.value(TooltipBuilder.translate(entry.mob().getDescriptionId()))
-                .key(key("property.entity"));
+                .key(key("property.target"));
         // countLimit 传 null：这个条目没有"物品堆叠上限"这类限制
         entity.add(TooltipUtils.getTooltip(utils, 0, chance, count, null, functions, conditions).build());
 

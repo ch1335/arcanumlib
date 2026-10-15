@@ -121,7 +121,7 @@ public final class LootConditionHelper {
     /**
      * 原版 {@code minecraft:entity_properties}（{@code LootItemEntityPropertyCondition}）。
      */
-    @Info("minecraft:entity_properties — tests properties of an entity in the loot context, such as this, killer or player.")
+    @Info("minecraft:entity_properties — tests properties of an target in the loot context, such as this, killer or player.")
     public static LootItemCondition.Builder entityProperties(@Nullable EntityPredicate predicate, LootContext.EntityTarget entityTarget) {
         return () -> new LootItemEntityPropertyCondition(Optional.ofNullable(predicate), entityTarget);
     }
@@ -129,7 +129,7 @@ public final class LootConditionHelper {
     /**
      * 原版 {@code minecraft:entity_scores}（{@code EntityHasScoreCondition}）。
      */
-    @Info("minecraft:entity_scores — tests the scoreboard values of an entity in the loot context.")
+    @Info("minecraft:entity_scores — tests the scoreboard values of an target in the loot context.")
     public static LootItemCondition.Builder entityScores(Map<String, IntRange> scores, LootContext.EntityTarget entityTarget) {
         return () -> new EntityHasScoreCondition(scores, entityTarget);
     }
@@ -161,7 +161,7 @@ public final class LootConditionHelper {
     /**
      * 原版 {@code minecraft:damage_source_properties}（{@code DamageSourceCondition}）。
      */
-    @Info("minecraft:damage_source_properties — tests properties of the damage source that killed the entity.")
+    @Info("minecraft:damage_source_properties — tests properties of the damage source that killed the target.")
     public static LootItemCondition.Builder damageSourceProperties(@Nullable DamageSourcePredicate predicate) {
         return () -> new DamageSourceCondition(Optional.ofNullable(predicate));
     }

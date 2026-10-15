@@ -88,9 +88,9 @@ public final class NumberProviderHelper {
         return new BinomialDistributionGenerator(n, p);
     }
 
-    @Info(value = "Reads a scoreboard value of an entity in the loot context.",
+    @Info(value = "Reads a scoreboard value of an target in the loot context.",
             params = {
-                    @Param(name = "target", value = "which entity to read the score from"),
+                    @Param(name = "target", value = "which target to read the score from"),
                     @Param(name = "score", value = "the objective name"),
                     @Param(name = "scale", value = "the value is multiplied by this")
             })

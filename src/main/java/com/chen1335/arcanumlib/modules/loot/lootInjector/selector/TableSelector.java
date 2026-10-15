@@ -136,7 +136,7 @@ public interface TableSelector {
         }
 
         public static final MapCodec<ByEntityType> CODEC = RecordCodecBuilder.mapCodec(instance -> instance.group(
-                BuiltInRegistries.ENTITY_TYPE.byNameCodec().fieldOf("entity").forGetter(ByEntityType::entity))
+                BuiltInRegistries.ENTITY_TYPE.byNameCodec().fieldOf("target").forGetter(ByEntityType::entity))
                 .apply(instance, ByEntityType::new));
 
         @Override

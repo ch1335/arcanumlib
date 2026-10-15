@@ -202,11 +202,11 @@ public final class LootFunctionHelper {
         return SetNameFunction.setName(name, target);
     }
 
-    @Info(value = "Sets the name on the item stack, optionally resolving entity-sensitive parts of the name against the loot context.",
+    @Info(value = "Sets the name on the item stack, optionally resolving target-sensitive parts of the name against the loot context.",
             params = {
                     @Param(name = "name", value = "the new name component"),
                     @Param(name = "target", value = "which name to write: CUSTOM_NAME for the custom (anvil) name, ITEM_NAME for the item's base name"),
-                    @Param(name = "resolutionContext", value = "the entity of the loot context used to resolve entity-sensitive parts of the name, such as scoreboard scores")
+                    @Param(name = "resolutionContext", value = "the target of the loot context used to resolve target-sensitive parts of the name, such as scoreboard scores")
             })
     public static LootItemFunction.Builder setName(Component name, SetNameFunction.Target target, LootContext.EntityTarget resolutionContext) {
         return SetNameFunction.setName(name, target, resolutionContext);
@@ -214,7 +214,7 @@ public final class LootFunctionHelper {
 
 
 
-    @Info("Copies the name from a block entity or an entity in the loot context.")
+    @Info("Copies the name from a block target or an target in the loot context.")
     public static LootItemFunction.Builder copyName(CopyNameFunction.NameSource source) {
         return CopyNameFunction.copyName(source);
     }
@@ -268,18 +268,18 @@ public final class LootFunctionHelper {
         return ApplyBonusCount.addUniformBonusCount(enchantment, bonusMultiplier);
     }
 
-    @Info(value = "Stores a loot table id on a container block entity item.",
+    @Info(value = "Stores a loot table id on a container block target item.",
             params = {
-                    @Param(name = "type", value = "the block entity type the table applies to"),
+                    @Param(name = "type", value = "the block target type the table applies to"),
                     @Param(name = "toolTable", value = "the loot table to store")
             })
     public static LootItemFunction.Builder withLootTable(BlockEntityType<?> type, ResourceKey<LootTable> toolTable) {
         return SetContainerLootTable.withLootTable(type, toolTable);
     }
 
-    @Info(value = "Stores a loot table id and seed on a container block entity item.",
+    @Info(value = "Stores a loot table id and seed on a container block target item.",
             params = {
-                    @Param(name = "type", value = "the block entity type"),
+                    @Param(name = "type", value = "the block target type"),
                     @Param(name = "lootTable", value = "the loot table to store"),
                     @Param(name = "seed", value = "the loot table seed")
             })
@@ -298,7 +298,7 @@ public final class LootFunctionHelper {
         return FillPlayerHead.fillPlayerHead(entityTarget);
     }
 
-    @Info(value = "Copies custom data onto the item from an NBT source, such as a block entity or command storage.",
+    @Info(value = "Copies custom data onto the item from an NBT source, such as a block target or command storage.",
             params = {
                     @Param(name = "source", value = "where the data is read from")
             })
@@ -306,9 +306,9 @@ public final class LootFunctionHelper {
         return CopyCustomDataFunction.copyData(source);
     }
 
-    @Info(value = "Copies custom data onto the item from an entity in the loot context.",
+    @Info(value = "Copies custom data onto the item from an target in the loot context.",
             params = {
-                    @Param(name = "target", value = "which entity of the loot context the data is read from")
+                    @Param(name = "target", value = "which target of the loot context the data is read from")
             })
     public static LootItemFunction.Builder copyDataFromEntity(LootContext.EntityTarget target) {
         return CopyCustomDataFunction.copyData(target);
@@ -362,7 +362,7 @@ public final class LootFunctionHelper {
     public static LootItemFunction.Builder functionReference(ResourceKey<LootItemFunction> key) {
         return FunctionReference.functionReference(key);
     }
-    @Info(value = "Copies data components from a block entity or an entity in the loot context onto the item.",
+    @Info(value = "Copies data components from a block target or an target in the loot context onto the item.",
             params = {
                     @Param(name = "source", value = "where the components are copied from"),
                     @Param(name = "include", value = "the component types to copy; leave empty and use exclude instead"),
@@ -435,7 +435,7 @@ public final class LootFunctionHelper {
             params = {
                     @Param(name = "lines", value = "the lore lines, in order"),
                     @Param(name = "mode", value = "how the lines combine with the existing lore, such as ListOperation.REPLACE_ALL"),
-                    @Param(name = "resolutionContext", value = "the entity of the loot context used to resolve entity-sensitive parts of the lines, such as scoreboard scores")
+                    @Param(name = "resolutionContext", value = "the target of the loot context used to resolve target-sensitive parts of the lines, such as scoreboard scores")
             })
     public static LootItemFunction.Builder setLore(List<Component> lines, ListOperation mode, LootContext.EntityTarget resolutionContext) {
         SetLoreFunction.Builder builder = SetLoreFunction.setLore().setMode(mode).setResolutionContext(resolutionContext);

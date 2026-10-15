@@ -21,6 +21,7 @@ public final class ArcanumAttributes {
     public static final DeferredHolder<Attribute, Attribute> SEEKING = ATTRIBUTES.register(
             "seeking",
             () -> new PercentageAttribute("attribute.name.arcanumlib.seeking", 0.0D, 0.0D, 100.0D)
+                    .setSentiment(Attribute.Sentiment.POSITIVE)
                     .setSyncable(true));
 
     /**
@@ -30,12 +31,14 @@ public final class ArcanumAttributes {
     public static final DeferredHolder<Attribute, Attribute> FORTUNE = ATTRIBUTES.register(
             "fortune",
             () -> new RangedAttribute("attribute.name.arcanumlib.fortune", 0.0D, 0.0D, 100.0D)
+                    .setSentiment(Attribute.Sentiment.POSITIVE)
                     .setSyncable(true));
 
     /** 抢夺：直接加在「抢夺」附魔的等效等级上，作用于 enchanted_count_increase / random_chance_with_enchanted_bonus。 */
     public static final DeferredHolder<Attribute, Attribute> LOOTING = ATTRIBUTES.register(
             "looting",
             () -> new RangedAttribute("attribute.name.arcanumlib.looting", 0.0D, 0.0D, 100.0D)
+                    .setSentiment(Attribute.Sentiment.POSITIVE)
                     .setSyncable(true));
 
     /**
@@ -46,8 +49,29 @@ public final class ArcanumAttributes {
     public static final DeferredHolder<Attribute, Attribute> BONUS_LOOT = ATTRIBUTES.register(
             "bonus_loot",
             () -> new PercentageAttribute("attribute.name.arcanumlib.bonus_loot", 0.0D, 0.0D, 20.0D)
+                    .setSentiment(Attribute.Sentiment.POSITIVE)
                     .setSyncable(true));
 
+
+    /**
+     * 伤害倍率：造成伤害时乘以该值。默认 100%（1.0）为不变，150% 即多打一半。
+     * 值就是倍率本身，所以上下限用 0 ~ 100（0 = 完全打不出伤害，100 = 100 倍）。
+     */
+    public static final DeferredHolder<Attribute, Attribute> DAMAGE_MULTIPLIER = ATTRIBUTES.register(
+            "damage_multiplier",
+            () -> new PercentageAttribute("attribute.name.arcanumlib.damage_multiplier", 1.0D, 0.0D, 100.0D)
+                    .setSentiment(Attribute.Sentiment.POSITIVE)
+                    .setSyncable(true));
+
+    /**
+     * 受伤倍率：受到伤害时乘以该值。默认 100%（1.0）为不变，50% 即少受一半，150% 即多受一半。
+     * 值就是倍率本身，所以上下限用 0 ~ 100；想给玩家减伤就加负的修饰符（例如 -0.5 → 50%）。
+     */
+    public static final DeferredHolder<Attribute, Attribute> DAMAGE_TAKEN_MULTIPLIER = ATTRIBUTES.register(
+            "damage_taken_multiplier",
+            () -> new PercentageAttribute("attribute.name.arcanumlib.damage_taken_multiplier", 1.0D, 0.0D, 100.0D)
+                    .setSentiment(Attribute.Sentiment.NEGATIVE)
+                    .setSyncable(true));
     private ArcanumAttributes() {
     }
 }

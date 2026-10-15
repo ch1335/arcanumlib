@@ -32,8 +32,8 @@ public final class ArcanumAttachments {
             ATTACHMENT_TYPES.register("fishing_hook_data", () -> AttachmentType.serializable(FishingHookData::new)
                     .build());
 
-    public static final DeferredHolder<AttachmentType<?>, AttachmentType<EntityData>> PLAYER_DATA =
-            ATTACHMENT_TYPES.register("player_data", () -> AttachmentType.<EntityData>builder(() -> new EntityData())
+    public static final DeferredHolder<AttachmentType<?>, AttachmentType<EntityData>> ENTITY_DATA =
+            ATTACHMENT_TYPES.register("entity_data", () -> AttachmentType.<EntityData>builder(EntityData::new)
                     .build());
 
     private ArcanumAttachments() {

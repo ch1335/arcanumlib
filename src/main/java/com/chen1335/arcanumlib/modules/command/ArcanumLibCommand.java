@@ -211,7 +211,7 @@ public final class ArcanumLibCommand {
     /** 原版参数集 id（没有注册表可枚举，这里是 LootContextParamSets 里的全部 23 个）。 */
     private static final List<String> PARAM_SETS = List.of(
             "minecraft:empty", "minecraft:chest", "minecraft:command", "minecraft:selector",
-            "minecraft:fishing", "minecraft:entity", "minecraft:equipment", "minecraft:archaeology",
+            "minecraft:fishing", "minecraft:target", "minecraft:equipment", "minecraft:archaeology",
             "minecraft:gift", "minecraft:barter", "minecraft:vault", "minecraft:advancement_reward",
             "minecraft:advancement_entity", "minecraft:advancement_location", "minecraft:block_use", "minecraft:generic",
             "minecraft:block", "minecraft:shearing", "minecraft:enchanted_damage", "minecraft:enchanted_item",
@@ -276,7 +276,7 @@ public final class ArcanumLibCommand {
      * <p>上下文按 {@code lootContextParamSet} 的类型填充（省略时用表自带的参数集）：
      * <ul>
      *     <li><b>方块类</b>（含 chest）：{@code ORIGIN} 用玩家看向的方块，{@code THIS_ENTITY} / {@code ATTACKING_ENTITY} 用玩家；</li>
-     *     <li><b>实体类</b>（如 entity）：{@code THIS_ENTITY} 用玩家看向的实体、{@code ORIGIN} 用它的位置，
+     *     <li><b>实体类</b>（如 target）：{@code THIS_ENTITY} 用玩家看向的实体、{@code ORIGIN} 用它的位置，
      *         {@code DAMAGE_SOURCE} 用玩家攻击，攻击者三个参数都归玩家；</li>
      *     <li><b>通用类</b>（generic）：看向实体则按实体填，否则按方块填，都没有就用玩家脚下；</li>
      *     <li>其余（fishing / barter / gift 等）：{@code THIS_ENTITY} 就是玩家本人。</li>
@@ -316,7 +316,7 @@ public final class ArcanumLibCommand {
         boolean blockKind = paramSetId != null && paramSetId.getPath().equals("chest")
                 || paramSet.isAllowed(LootContextParams.BLOCK_STATE)
                 || paramSet.isAllowed(LootContextParams.BLOCK_ENTITY);
-        // 实体掉落类：既允许 THIS_ENTITY 又允许 DAMAGE_SOURCE（entity 与 generic），
+        // 实体掉落类：既允许 THIS_ENTITY 又允许 DAMAGE_SOURCE（target 与 generic），
         // 这样 fishing / barter 这类"自己要实体但不需要伤害来源"的表不会被误判
         boolean entityKind = paramSet.isAllowed(LootContextParams.THIS_ENTITY)
                 && paramSet.isAllowed(LootContextParams.DAMAGE_SOURCE);
@@ -337,7 +337,7 @@ public final class ArcanumLibCommand {
             if (useEntity) {
                 origin = looked.position();
                 builder.withParameter(LootContextParams.THIS_ENTITY, looked);
-                kind = "entity";
+                kind = "target";
             } else if (useBlock) {
                 origin = Vec3.atCenterOf(pos);
 
@@ -382,7 +382,7 @@ public final class ArcanumLibCommand {
             }
 
             // 实体类已经指向"看向的实体"，其余情况 THIS_ENTITY 就是玩家本人
-            if (paramSet.isAllowed(LootContextParams.THIS_ENTITY) && !"entity".equals(kind)) {
+            if (paramSet.isAllowed(LootContextParams.THIS_ENTITY) && !"target".equals(kind)) {
                 builder.withParameter(LootContextParams.THIS_ENTITY, player);
             }
         }

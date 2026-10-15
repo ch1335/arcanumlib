@@ -21,7 +21,7 @@ import net.neoforged.neoforge.common.ItemAbilities;
 public class SimpleFishingHookRenderer extends EntityRenderer<SimpleFishingHook> {
 
     private static final ResourceLocation TEXTURE_LOCATION =
-            ResourceLocation.withDefaultNamespace("textures/entity/fishing_hook.png");
+            ResourceLocation.withDefaultNamespace("textures/target/fishing_hook.png");
 
     private static final RenderType RENDER_TYPE = RenderType.entityCutout(TEXTURE_LOCATION);
 

@@ -49,7 +49,7 @@ public final class TableSelectorHelper {
     }
 
     /** 对应记录 {@code TableSelector.EntityTagTable}（json 类型见该类的注册项）。 */
-    @Info("Matches tables rolled for an entity that carries the given entity type tag.")
+    @Info("Matches tables rolled for an target that carries the given target type tag.")
     public static TableSelector entityTagTable(TagKey<EntityType<?>> tag) {
         return new TableSelector.EntityTagTable(tag);
     }
@@ -61,7 +61,7 @@ public final class TableSelectorHelper {
     }
 
     /** 对应记录 {@code TableSelector.ByEntityType}（json 类型见该类的注册项）。 */
-    @Info("Matches tables rolled for the given entity type.")
+    @Info("Matches tables rolled for the given target type.")
     public static TableSelector byEntityType(EntityType<?> entity) {
         return new TableSelector.ByEntityType(entity);
     }

@@ -235,7 +235,7 @@ public interface ChanceModifier {
 
         public static final MapCodec<EntityAttribute> CODEC = RecordCodecBuilder.mapCodec(instance -> instance.group(
                 BuiltInRegistries.ATTRIBUTE.holderByNameCodec().fieldOf("attribute").forGetter(EntityAttribute::attribute),
-                EntitySource.CODEC.optionalFieldOf("entity", EntitySource.ATTACKING_ENTITY).forGetter(EntityAttribute::source),
+                EntitySource.CODEC.optionalFieldOf("target", EntitySource.ATTACKING_ENTITY).forGetter(EntityAttribute::source),
                 Operation.CODEC.fieldOf("operation").forGetter(EntityAttribute::operation),
                 Codec.DOUBLE.optionalFieldOf("per_point", 0.05D).forGetter(EntityAttribute::perPoint)
         ).apply(instance, EntityAttribute::new));

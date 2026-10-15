@@ -5,20 +5,13 @@ import com.chen1335.arcanumlib.modules.holder.EntityHolderItem;
 import com.chen1335.arcanumlib.modules.holder.EntityHolderPayload;
 import com.llamalad7.mixinextras.injector.wrapoperation.Operation;
 import com.llamalad7.mixinextras.injector.wrapoperation.WrapOperation;
-import com.llamalad7.mixinextras.sugar.Local;
 import it.unimi.dsi.fastutil.objects.ObjectArrayList;
-import net.minecraft.core.BlockPos;
-import net.minecraft.server.level.ServerLevel;
-import net.minecraft.world.Container;
-import net.minecraft.world.entity.Entity;
 import net.minecraft.world.item.ItemStack;
-import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.storage.loot.LootContext;
 import net.minecraft.world.level.storage.loot.LootTable;
 import net.minecraft.world.level.storage.loot.parameters.LootContextParams;
 import net.minecraft.world.phys.Vec3;
 import org.spongepowered.asm.mixin.Mixin;
-import org.spongepowered.asm.mixin.Unique;
 import org.spongepowered.asm.mixin.injection.At;
 
 import java.util.Iterator;
@@ -44,8 +37,7 @@ public class LootTableFillMixin {
             )
     )
     private ObjectArrayList<ItemStack> arcanumlib$extractEntityHolders(LootTable table, LootContext context,
-                                                                      Operation<ObjectArrayList<ItemStack>> original,
-                                                                      @Local(argsOnly = true) Container container) {
+                                                                       Operation<ObjectArrayList<ItemStack>> original) {
         ObjectArrayList<ItemStack> generated = original.call(table, context);
         if (generated.isEmpty()) {
             return generated;
@@ -64,7 +56,7 @@ public class LootTableFillMixin {
             EntityHolderPayload payload = EntityHolderItem.payloadOf(stack);
             Vec3 paramOrNull = context.getParamOrNull(LootContextParams.ORIGIN);
             if (payload != null && paramOrNull != null) {
-                EntityHolderHandler.spawn(context.getLevel(), payload, paramOrNull.add(0,0.5,0));
+                EntityHolderHandler.spawn(context.getLevel(), payload, paramOrNull.add(0, 0.5, 0));
             }
         }
 

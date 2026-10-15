@@ -19,7 +19,7 @@ import net.minecraft.world.entity.EntityType;
  */
 public record EntityHolderPayload(EntityType<?> entity, CompoundTag nbt, int count) {
     public static final Codec<EntityHolderPayload> CODEC = RecordCodecBuilder.create(instance -> instance.group(
-            BuiltInRegistries.ENTITY_TYPE.byNameCodec().fieldOf("entity").forGetter(EntityHolderPayload::entity),
+            BuiltInRegistries.ENTITY_TYPE.byNameCodec().fieldOf("target").forGetter(EntityHolderPayload::entity),
             CompoundTag.CODEC.optionalFieldOf("nbt", new CompoundTag()).forGetter(EntityHolderPayload::nbt),
             Codec.INT.optionalFieldOf("count", 1).forGetter(EntityHolderPayload::count)
     ).apply(instance, EntityHolderPayload::new));
