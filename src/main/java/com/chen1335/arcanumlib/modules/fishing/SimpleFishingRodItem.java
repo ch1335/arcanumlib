@@ -21,7 +21,7 @@ import net.neoforged.neoforge.event.EventHooks;
 
 import javax.annotation.Nullable;
 
-public class SimpleFishingRodItem extends FishingRodItem {
+public abstract class SimpleFishingRodItem extends FishingRodItem {
 
     public SimpleFishingRodItem(Properties properties) {
         super(properties);
@@ -76,7 +76,5 @@ public class SimpleFishingRodItem extends FishingRodItem {
         return SoundEvents.FISHING_BOBBER_THROW;
     }
 
-    protected Entity createHook(Player player, @Nullable ItemStack rod, Level level, float fishLuck, float fishSpeed) {
-        return new TestFishingHook(player, rod, level, fishLuck, fishSpeed);
-    }
+    protected abstract Entity createHook(Player player, @Nullable ItemStack rod, Level level, float fishLuck, float fishSpeed);
 }
