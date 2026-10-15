@@ -52,4 +52,5 @@ public abstract class AttributeInstanceMixin implements IAttributeInstanceExtens
             arcanumlib$cachedValue = value;
         }
     }
+
 }

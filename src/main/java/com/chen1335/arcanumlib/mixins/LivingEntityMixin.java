@@ -39,4 +39,5 @@ public class LivingEntityMixin {
     private void init(EntityType<?> entityType, Level level, CallbackInfo ci) {
         ((IAttributeMapExtension) this.attributes).arcanumlib$setOwner((LivingEntity) (Object) this);
     }
+
 }
