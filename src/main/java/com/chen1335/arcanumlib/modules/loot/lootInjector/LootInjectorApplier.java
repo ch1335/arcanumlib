@@ -12,6 +12,7 @@ import net.minecraft.resources.RegistryOps;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.world.level.storage.loot.LootTable;
+import net.neoforged.neoforge.common.conditions.ICondition;
 
 import java.util.ArrayList;
 import java.util.Comparator;
@@ -52,6 +53,23 @@ public final class LootInjectorApplier {
         // 运行时注册：数据包 json 之外，代码与 KubeJS 脚本可以在这一步补注入器；
         // 必须放在"空表就返回"之前，否则只有脚本注入器时会一条都不生效
         List<LootInjector> injectors = LootInjectorRegisterEvent.post(registries, parsed);
+
+        // 条件不满足的注入器视为未加载：上下文用原版/NeoForge 给的那份（内部就是 ConditionContext + TagManager），
+        // 所以标签类条件也能正确判定。代码与 KubeJS 注册进来的注入器同样要过这一关。
+        ICondition.IContext conditionContext = server.getServerResources().managers().getConditionContext();
+        List<LootInjector> active = new ArrayList<>(injectors.size());
+        for (LootInjector injector : injectors) {
+            if (injector.conditionsMatch(conditionContext)) {
+                active.add(injector);
+            } else {
+                ArcanumLib.LOGGER.debug("Loot injector {} skipped: conditions not met", injector.id());
+            }
+        }
+        if (active.size() != injectors.size()) {
+            ArcanumLib.LOGGER.info("Loot injection: {} injector(s) skipped because their conditions were not met",
+                    injectors.size() - active.size());
+        }
+        injectors = active;
 
         if (injectors.isEmpty()) {
             return;
