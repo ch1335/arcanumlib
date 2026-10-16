@@ -42,9 +42,9 @@ During mob spawn, the weight of **rare** mobs is multiplied by `1 + Seeking valu
 - **The bonus ratio is not capped**: the formula itself has no upper limit; it is only clamped by the attribute range `0~100` — that is, at most ×101.
 - **How to turn it off**: set the threshold in the config to `0`.
 
-> **It is an integer weight**: the bonus is `round(base weight × Seeking value)`.
-> So for a mob with a very low base weight (for example weight 1), you only see a change once the Seeking value reaches `0.5` or more — anything below `0.5` is rounded away to 0, which means no effect at all.
-> The larger the weight, the smoother it behaves.
+> **The bonus is rounded at random**: bonus = `base weight × Seeking value`; the integer part always applies and the
+> fraction adds one more point with that probability. Base weight 7 with Seeking `0.5` gives `3.5`, so +3 always and +1
+> with a 50% chance (3.5 on average). Nothing is rounded away, and larger weights are smoother.
 
 ---
 

@@ -18,4 +18,7 @@ public interface IntrusiveBaseWeightAccessor {
     @Mutable
     @Accessor("weight")
     void arcanumlib$setWeight(Weight weight);
+
+    @Accessor("weight")
+    Weight arcanumlib$getWeight();
 }

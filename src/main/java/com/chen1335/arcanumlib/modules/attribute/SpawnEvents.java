@@ -1,6 +1,7 @@
 package com.chen1335.arcanumlib.modules.attribute;
 
 import com.chen1335.arcanumlib.ArcanumLib;
+import com.chen1335.arcanumlib.mixins.IWeightAccessor;
 import com.chen1335.arcanumlib.mixins.IntrusiveBaseWeightAccessor;
 import net.minecraft.core.BlockPos;
 import net.minecraft.server.level.ServerLevel;
@@ -8,6 +9,7 @@ import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.util.random.Weight;
 import net.minecraft.world.entity.ai.attributes.AttributeInstance;
 import net.minecraft.world.level.biome.MobSpawnSettings;
+import net.neoforged.bus.api.EventPriority;
 import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.fml.common.EventBusSubscriber;
 import net.neoforged.neoforge.event.level.LevelEvent;
@@ -27,14 +29,18 @@ import java.util.Map;
 @EventBusSubscriber(modid = ArcanumLib.MODID)
 public class SpawnEvents {
 
-    /** 与 {@code NaturalSpawner.SPAWN_DISTANCE_BLOCK} 一致：刷怪只发生在玩家 128 格内。 */
+    /**
+     * 与 {@code NaturalSpawner.SPAWN_DISTANCE_BLOCK} 一致：刷怪只发生在玩家 128 格内。
+     */
     public static final double SEEKING_RADIUS = 128.0D;
 
-    /** 原实例 → 追加项。引用必须稳定，换实例 contains 校验就过不了。 */
+    /**
+     * 原实例 → 追加项。引用必须稳定，换实例 contains 校验就过不了。
+     */
     private static final Map<MobSpawnSettings.SpawnerData, MobSpawnSettings.SpawnerData> EXTRA_ENTRIES =
             new IdentityHashMap<>();
 
-    @SubscribeEvent
+    @SubscribeEvent(priority = EventPriority.LOW)
     public static void onPotentialSpawns(LevelEvent.PotentialSpawns event) {
         if (!(event.getLevel() instanceof ServerLevel level)) {
             return;
@@ -65,30 +71,44 @@ public class SpawnEvents {
                 continue;
             }
 
-            int extra = (int) Math.round(data.getWeight().asInt() * seeking);
+            // 概率取整：整数部分必定加，小数部分按该比例再随机 +1（长期平均正好等于 权重 × 寻觅值）
+            double bonus = data.getWeight().asInt() * seeking;
+            int extra = (int) Math.floor(bonus);
+            if (level.random.nextDouble() < bonus - extra) {
+                extra++;
+            }
             if (extra <= 0) {
                 continue;
             }
 
+            // lambda 捕获要求 effectively final，所以复制一份
+            int boostedWeight = extra;
             MobSpawnSettings.SpawnerData boosted = EXTRA_ENTRIES.computeIfAbsent(data,
-                    key -> new MobSpawnSettings.SpawnerData(key.type, extra, key.minCount, key.maxCount));
+                    key -> {
+                        MobSpawnSettings.SpawnerData spawnerData = new MobSpawnSettings.SpawnerData(key.type, 0, key.minCount, key.maxCount);
+                        ((IWeightAccessor) ((IntrusiveBaseWeightAccessor) spawnerData).arcanumlib$getWeight()).arcanumlib$setValue(boostedWeight);
+                        return spawnerData;
+                    });
 
-            // 只在真变化时才写：Weight.of 除 1 以外每次都要 new
             if (boosted.getWeight().asInt() != extra) {
-                ((IntrusiveBaseWeightAccessor) boosted).arcanumlib$setWeight(Weight.of(extra));
+                ((IWeightAccessor) ((IntrusiveBaseWeightAccessor) boosted).arcanumlib$getWeight()).arcanumlib$setValue(extra);
             }
 
             event.addSpawnerData(boosted);
         }
     }
 
-    /** 生物实例随世界加载变化，服停时清一次，免得跨存档留着旧引用。 */
+    /**
+     * 生物实例随世界加载变化，服停时清一次，免得跨存档留着旧引用。
+     */
     @SubscribeEvent
     public static void onServerStopped(ServerStoppedEvent event) {
         EXTRA_ENTRIES.clear();
     }
 
-    /** 取范围内所有玩家的寻觅值里最高的那个：刷怪没有「贡献者」概念，只能按最强值算。 */
+    /**
+     * 取范围内所有玩家的寻觅值里最高的那个：刷怪没有「贡献者」概念，只能按最强值算。
+     */
     private static double seeking(ServerLevel level, BlockPos pos) {
         double radiusSqr = SEEKING_RADIUS * SEEKING_RADIUS;
         double best = 0.0D;
@@ -108,7 +128,9 @@ public class SpawnEvents {
         return best;
     }
 
-    /** 有效权重 = 权重 × 平均每次刷新的数量，向上取整；用整数算避免浮点误差多进一位。 */
+    /**
+     * 有效权重 = 权重 × 平均每次刷新的数量，向上取整；用整数算避免浮点误差多进一位。
+     */
     private static int effectiveWeight(MobSpawnSettings.SpawnerData data) {
         int weight = Math.max(data.getWeight().asInt(), 0);
         int sum = data.minCount + data.maxCount;
@@ -116,7 +138,9 @@ public class SpawnEvents {
         return (weight * sum + 1) / 2;
     }
 
-    /** 该生物的有效权重占整张表的比例是否低于阈值。 */
+    /**
+     * 该生物的有效权重占整张表的比例是否低于阈值。
+     */
     private static boolean isRare(int weight, int total) {
         double threshold = AttributeConfig.threshold();
 
