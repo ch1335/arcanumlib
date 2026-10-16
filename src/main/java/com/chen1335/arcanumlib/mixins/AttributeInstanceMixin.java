@@ -26,7 +26,6 @@ import javax.annotation.Nullable;
 
 import java.util.List;
 
-@Debug(export = true)
 @Mixin(AttributeInstance.class)
 public abstract class AttributeInstanceMixin implements IAttributeInstanceExtension {
 

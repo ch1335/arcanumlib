@@ -3,11 +3,14 @@ package com.chen1335.arcanumlib.modules.attribute;
 import com.chen1335.arcanumlib.ArcanumLib;
 import com.chen1335.arcanumlib.modules.attribute.AttributeAdjustment.AdjustmentHelper;
 import com.chen1335.arcanumlib.modules.attribute.AttributeAdjustment.contexts.DamageContext;
+import com.chen1335.arcanumlib.modules.attribute.events.LivingGetAttributeAdjustmentEvent;
 import com.chen1335.arcanumlib.registry.ArcanumTags;
+import dev.shadowsoffire.apothic_attributes.api.ALObjects;
 import net.minecraft.world.damagesource.DamageSource;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.LivingEntity;
+import net.minecraft.world.entity.ai.attributes.AttributeModifier;
 import net.neoforged.bus.api.EventPriority;
 import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.fml.common.EventBusSubscriber;
@@ -58,5 +61,4 @@ public class AttributeEvents {
         event.setNewDamage(event.getNewDamage() * (float) AdjustmentHelper.getAttributeWithAdjusted(
                 target, ArcanumAttributes.DAMAGE_TAKEN_MULTIPLIER, context));
     }
-
 }

@@ -16,7 +16,9 @@ public final class AttributeAdjustment {
     private double addMultipliedBase;
     private double addMultipliedTotal = 1.0D;
 
-    /** 读某一种运算当前的调整值。 */
+    /**
+     * 读某一种运算当前的调整值。
+     */
     public double get(AttributeModifier.Operation operation) {
         return switch (operation) {
             case ADD_VALUE -> this.addValue;
@@ -25,7 +27,9 @@ public final class AttributeAdjustment {
         };
     }
 
-    /** 覆盖某一种运算的调整值。 */
+    /**
+     * 覆盖某一种运算的调整值。
+     */
     public void set(AttributeModifier.Operation operation, double value) {
         switch (operation) {
             case ADD_VALUE -> this.addValue = value;
@@ -34,8 +38,19 @@ public final class AttributeAdjustment {
         }
     }
 
-    /** 累加某一种运算的调整值（监听方最常用的写法）。 */
+    /**
+     * 累加某一种运算的调整值（监听方最常用的写法）。
+     */
     public void add(AttributeModifier.Operation operation, double value) {
         this.set(operation, this.get(operation) + value);
+    }
+
+
+    public enum Operation {
+        ADD_VALUE,
+        ADD_MULTIPLIED_BASE,
+        ADD_MULTIPLIED_TOTAL,
+        ADD_FINAL,
+        SET_VALUE
     }
 }

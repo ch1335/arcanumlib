@@ -108,8 +108,8 @@ The event carries a context object that describes the situation the read happens
 
 | Context | Situation | Carries |
 |---|---|---|
-| `DamageContext` | Reading damage multipliers, armor or armor toughness during damage resolution | The victim, the damage source and the current damage value |
-| `AttackingContext` | An attacker reading attack damage | The attacker and the target |
+| `DamageContext` | Reading damage multipliers, armor, armor toughness or the ApothicAttributes pierce, shred, crit chance, crit damage and projectile damage attributes during damage resolution | The victim, the damage source and the current damage value |
+| `AttackingContext` | An attacker reading attack damage or crit damage | The attacker and the target |
 | `LootInfoContext` | Reading attributes during loot resolution | The loot context of this roll |
 
 ### Reading values
@@ -126,22 +126,55 @@ double armor = AdjustmentHelper.getAttributeWithAdjusted(entity, Attributes.ARMO
 
 | Attribute | Context | When |
 |---|---|---|
-| `arcanumlib:damage_multiplier` | `DamageContext` | When dealing damage |
-| `arcanumlib:damage_taken_multiplier` | `DamageContext` | When taking damage |
-| `minecraft:armor` | `DamageContext` | Armor reduction |
-| `minecraft:armor_toughness` | `DamageContext` | Armor reduction |
+| `arcanumlib:damage_multiplier` | `DamageContext` | When the damage correction bonus is calculated |
+| `arcanumlib:damage_taken_multiplier` | `DamageContext` | When the incoming damage reduction is calculated |
+| `minecraft:armor` | `DamageContext` | When armor reduction is calculated |
+| `minecraft:armor_toughness` | `DamageContext` | When armor toughness reduction is calculated |
 | `minecraft:attack_damage` | `AttackingContext` | Player attacks |
-| `arcanumlib:fortune` | `LootInfoContext` | Adding the effective Fortune level during loot resolution |
-| `arcanumlib:looting` | `LootInfoContext` | Adding the effective Looting level during loot resolution |
+| `arcanumlib:fortune` | `LootInfoContext` | When adding the effective Fortune level during loot resolution |
+| `arcanumlib:looting` | `LootInfoContext` | When adding the effective Looting level during loot resolution |
 | `arcanumlib:bonus_loot` | `LootInfoContext` | Rolling bonus loot |
+| `apothic_attributes:armor_pierce` | `DamageContext` | When armor pierce is calculated (requires ApothicAttributes to be loaded) |
+| `apothic_attributes:armor_shred` | `DamageContext` | When armor shred is calculated (requires ApothicAttributes to be loaded) |
+| `apothic_attributes:prot_pierce` | `DamageContext` | When protection pierce is calculated (requires ApothicAttributes to be loaded) |
+| `apothic_attributes:prot_shred` | `DamageContext` | When protection shred is calculated (requires ApothicAttributes to be loaded) |
+| `apothic_attributes:crit_chance` | `DamageContext` | When the critical hit decision is made (requires ApothicAttributes to be loaded) |
+| `apothic_attributes:crit_damage` | `DamageContext` / `AttackingContext` | When the crit strike is resolved (DamageContext) and when a vanilla critical hit is decided (AttackingContext) (requires ApothicAttributes to be loaded) |
+| `apothic_attributes:projectile_damage` | `DamageContext` | When projectile damage is calculated (requires ApothicAttributes to be loaded) |
 
 Reads of any other attribute do not go through this mechanism.
+
+### Example
+
+A listener tells the situations apart through `IContext`. The example below means: when a wooden sword hits a zombie, the attack damage gets a correction equal to +20.
+
+```java
+@SubscribeEvent
+public static void onAdjustAttribute(LivingGetAttributeAdjustmentEvent event) {
+    // only care about the attack damage attribute
+    if (event.getAttribute().value() != Attributes.ATTACK_DAMAGE.value()) {
+        return;
+    }
+    // the context has to be "an attacker reading attack damage"
+    if (!(event.getContext() instanceof AttackingContext context)) {
+        return;
+    }
+    LivingEntity attacker = context.attacker();
+    if (attacker.getMainHandItem().is(Items.WOODEN_SWORD) && context.target().getType() == EntityType.ZOMBIE) {
+        // ADD_VALUE matches the modifier operation of the same name: equal to +20 attack damage
+        event.getAdjustment().add(AttributeModifier.Operation.ADD_VALUE, 20.0D);
+    }
+}
+```
+
+- An `ADD_VALUE` adjustment is part of the base value and therefore also feeds the two later stages;
+- The example only applies in the **player attack** situation (`AttackingContext`), so it leaves the zombie own attributes untouched.
 
 ### Notes
 
 - Adjustments are neither saved nor synced, and they stop applying when the read finishes;
-- An attribute calculation fires the event again on every recomputation, so a listener must return a deterministic delta and must not rely on random numbers or on state that changes over time;
-- A listener must not add or remove attribute modifiers from the event callback, as that triggers another attribute recomputation and therefore recursion.
+- An attribute calculation fires the event again on every recomputation, so the adjustment is asked for anew each time and may be non-deterministic (for example it can rely on random numbers or on state that changes over time);
+- A listener may add or remove attribute modifiers from the event callback, but doing so serves no purpose beyond making things more complicated.
 
 ---
 
@@ -203,7 +236,6 @@ It covers every operation that makes an attribute recompute: changing the base v
 
 - **Read only**: it cannot be cancelled and the value cannot be changed - use attribute modifiers for that;
 - **The same value fires once**: only a real change is posted, so sync and NBT loading do not spam it;
-- It works for **every attribute**, not only the four from this mod.
 
 ```java
 @SubscribeEvent
@@ -269,3 +301,5 @@ Server config `serverconfig/arcanumlib/attribute.toml` (in a singleplayer world 
 | The entry point for reading adjusted values | `modules/attribute/AttributeAdjustment/AdjustmentHelper.java` |
 | The adjustment event | `modules/attribute/events/LivingGetAttributeAdjustmentEvent.java` |
 | Where it is wired in: the three stages of an attribute calculation | `mixins/AttributeInstanceMixin.java` |
+| Where it is wired in: the armor / protection formulas of ApothicAttributes | `mixins/apothic_attributes/ALCombatRulesMixin.java` |
+| Where it is wired in: the critical strike resolution of ApothicAttributes | `mixins/apothic_attributes/AttributeEventsMixin.java` |
