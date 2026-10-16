@@ -10,8 +10,6 @@ import net.minecraft.core.Holder;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.ai.attributes.Attribute;
 import net.minecraft.world.entity.ai.attributes.AttributeInstance;
-import net.minecraft.world.entity.ai.attributes.AttributeModifier;
-import org.spongepowered.asm.mixin.Debug;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.Unique;
@@ -23,7 +21,6 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
 import javax.annotation.Nullable;
-
 import java.util.List;
 
 @Mixin(AttributeInstance.class)
@@ -90,7 +87,7 @@ public abstract class AttributeInstanceMixin implements IAttributeInstanceExtens
             return base;
         }
         for (AttributeAdjustment adjustment : adjustments) {
-            base += adjustment.get(AttributeModifier.Operation.ADD_VALUE);
+            base += adjustment.get(AttributeAdjustment.Operation.ADD_VALUE);
         }
         return base;
     }
@@ -106,12 +103,18 @@ public abstract class AttributeInstanceMixin implements IAttributeInstanceExtens
             return total;
         }
         for (AttributeAdjustment adjustment : adjustments) {
-            total += d0 * adjustment.get(AttributeModifier.Operation.ADD_MULTIPLIED_BASE);
+            total += d0 * adjustment.get(AttributeAdjustment.Operation.ADD_MULTIPLIED_BASE);
         }
         return total;
     }
 
 
+    /**
+     * 总倍率、{@code ADD_FINAL} 与 {@code SET_VALUE} 三个阶段的临时调整：直接改 {@code sanitizeValue(d1)} 的入参。
+     *
+     * <p>对每条调整依次执行：先乘总倍率，再加 {@code ADD_FINAL}，最后若给出了 {@code SET_VALUE}（非 {@code NaN}）则覆盖。
+     * 因此 {@code SET_VALUE} 与顺序有关：后出现的调整会继续作用在其结果上。时机在 {@code sanitizeValue} 之前，上下限照旧生效。
+     */
     @ModifyArg(method = "calculateValue",
             at = @At(value = "INVOKE",
                     target = "Lnet/minecraft/world/entity/ai/attributes/Attribute;sanitizeValue(D)D"),
@@ -122,7 +125,16 @@ public abstract class AttributeInstanceMixin implements IAttributeInstanceExtens
             return total;
         }
         for (AttributeAdjustment adjustment : adjustments) {
-            total *= adjustment.get(AttributeModifier.Operation.ADD_MULTIPLIED_TOTAL);
+            total *= adjustment.get(AttributeAdjustment.Operation.ADD_MULTIPLIED_TOTAL);
+        }
+        for (AttributeAdjustment adjustment : adjustments) {
+            total += adjustment.get(AttributeAdjustment.Operation.ADD_FINAL);
+        }
+        for (AttributeAdjustment adjustment : adjustments) {
+            double setValue = adjustment.get(AttributeAdjustment.Operation.SET_VALUE);
+            if (!Double.isNaN(setValue)) {
+                total = setValue;
+            }
         }
         return total;
     }

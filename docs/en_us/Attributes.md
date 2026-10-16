@@ -89,18 +89,21 @@ with the world, while an adjustment writes no persistent state and applies only 
 ### How it works
 
 Before reading certain attributes this mod fires `LivingGetAttributeAdjustmentEvent`; a listener writes its
-deltas into the carrier provided by the event, keyed by operation, and they then take part in that attribute
-calculation. The three operations mean the same as for attribute modifiers; their neutral values are:
+into the carrier provided by the event, keyed by operation, and they take part in that attribute calculation. The
+first three operations mean the same as for attribute modifiers; the last two are stages this mod adds. Neutral values:
 
 | Operation | Meaning | Neutral value |
 |---|---|---|
 | `ADD_VALUE` | Added directly to the attribute base value | `0` |
 | `ADD_MULTIPLIED_BASE` | Added on top of the adjusted base value | `0` |
 | `ADD_MULTIPLIED_TOTAL` | Multiplies the final value | `1` |
+| `ADD_FINAL` | Added right after the total multipliers | `0` |
+| `SET_VALUE` | Replaces the value outright; `NaN` means "do not replace" | `NaN` |
 
-The stages run in the vanilla order: the `ADD_VALUE` delta is part of the base value and therefore also feeds the
-later stages, while the `ADD_MULTIPLIED_BASE` delta is added next and is affected by `ADD_MULTIPLIED_TOTAL`; order
-does not matter within one operation, and adjustments happen before the attribute clamps the value to its range.
+The order is `ADD_VALUE` -> `ADD_MULTIPLIED_BASE` -> `ADD_MULTIPLIED_TOTAL` -> `ADD_FINAL` -> `SET_VALUE`: the
+`ADD_VALUE` delta is part of the base value and therefore feeds every later stage, the `ADD_MULTIPLIED_BASE` delta
+is added next and is affected by the total multipliers, and `SET_VALUE` depends on order (a later adjustment keeps
+operating on its result) while the other operations do not. All of them happen before the attribute clamps the value.
 
 ### Contexts
 
@@ -162,7 +165,7 @@ public static void onAdjustAttribute(LivingGetAttributeAdjustmentEvent event) {
     LivingEntity attacker = context.attacker();
     if (attacker.getMainHandItem().is(Items.WOODEN_SWORD) && context.target().getType() == EntityType.ZOMBIE) {
         // ADD_VALUE matches the modifier operation of the same name: equal to +20 attack damage
-        event.getAdjustment().add(AttributeModifier.Operation.ADD_VALUE, 20.0D);
+        event.getAdjustment().add(AttributeAdjustment.Operation.ADD_VALUE, 20.0D);
     }
 }
 ```
