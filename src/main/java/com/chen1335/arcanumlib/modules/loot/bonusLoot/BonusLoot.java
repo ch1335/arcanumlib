@@ -1,6 +1,8 @@
 package com.chen1335.arcanumlib.modules.loot.bonusLoot;
 
 import com.chen1335.arcanumlib.modules.attribute.ArcanumAttributes;
+import com.chen1335.arcanumlib.modules.attribute.AttributeAdjustment.AdjustmentHelper;
+import com.chen1335.arcanumlib.modules.attribute.AttributeAdjustment.contexts.LootInfoContext;
 import com.chen1335.arcanumlib.modules.attribute.AttributeConfig;
 import com.chen1335.arcanumlib.modules.loot.bonusLoot.event.BonusLootCheckEvent;
 import com.chen1335.arcanumlib.modules.loot.bonusLoot.event.ModifyBonusLootEvent;
@@ -39,7 +41,9 @@ import java.util.function.Consumer;
  */
 public final class BonusLoot {
 
-    /** 额外掉落倍率的硬上限：属性值再大也只按 20 倍算。 */
+    /**
+     * 额外掉落倍率的硬上限：属性值再大也只按 20 倍算。
+     */
     private static final float MAX_RATIO = 20.0F;
 
     /**
@@ -87,9 +91,6 @@ public final class BonusLoot {
         }
 
         float ratio = ratioFor(context);
-        if (ratio <= 0.0F) {
-            return original;
-        }
 
         // 即将增幅：给监听者一次修正倍率（或整个取消）的机会
         ModifyBonusLootEvent event = ModifyBonusLootEvent.post(context, lootTableId, ratio);
@@ -144,10 +145,12 @@ public final class BonusLoot {
 
         AttributeInstance attribute = source.getAttribute(ArcanumAttributes.BONUS_LOOT);
 
-        return attribute == null ? 0.0F : (float) attribute.getValue();
+        return attribute == null ? 0.0F : (float) AdjustmentHelper.getAttributeWithAdjusted(source, ArcanumAttributes.BONUS_LOOT, new LootInfoContext(context));
     }
 
-    /** 按 {@code ratio} 往 {@code original} 里追加若干份额外摇取。 */
+    /**
+     * 按 {@code ratio} 往 {@code original} 里追加若干份额外摇取。
+     */
     private static void addExtraRolls(LootTable table, ObjectArrayList<ItemStack> original, LootContext context, float ratio) {
         // ── 整数部分：整份摇取并全部收取 ──────────────────────────────────────
         // ratio = 1.5 时摇 1 次，2.3 时摇 2 次；每份都用独立 context，但共享同一个 RandomSource，
