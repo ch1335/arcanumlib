@@ -9,9 +9,10 @@ ArcanumLib provides 4 **player attributes**, all with a default base value of `0
 2. [Seeking (`arcanumlib:seeking`)](#seeking-arcanumlibseeking)
 3. [Fortune / Looting (`arcanumlib:fortune` / `arcanumlib:looting`)](#fortune--looting-arcanumlibfortune--arcanumliblooting)
 4. [Bonus Loot (`arcanumlib:bonus_loot`)](#bonus-loot-arcanumlibbonus_loot)
-5. [Events](#events)
-6. [Config](#config)
-7. [Related source](#related-source)
+5. [Attribute Adjustment](#attribute-adjustment)
+6. [Events](#events)
+7. [Config](#config)
+8. [Related source](#related-source)
 
 ---
 
@@ -76,6 +77,71 @@ After a loot table has been rolled, the **ratio** from the attribute makes the *
 
 > **How it differs from an injector**: an injector changes the **structure of the table** (add pools, add entries, change weights — see [Loot Injector](Loot-Injector.md));
 > bonus loot leaves the table alone and just **rolls it more times**, so it coexists with global loot modifiers and chance entries by nature.
+
+---
+
+## Attribute Adjustment
+
+An attribute adjustment applies a one-off delta at the moment an attribute value is read. It differs from
+an attribute modifier in lifetime: a modifier is written into the attribute instance, is synced and is saved
+with the world, while an adjustment writes no persistent state and applies only to that single read.
+
+### How it works
+
+Before reading certain attributes this mod fires `LivingGetAttributeAdjustmentEvent`; a listener writes its
+deltas into the carrier provided by the event, keyed by operation, and they then take part in that attribute
+calculation. The three operations mean the same as for attribute modifiers; their neutral values are:
+
+| Operation | Meaning | Neutral value |
+|---|---|---|
+| `ADD_VALUE` | Added directly to the attribute base value | `0` |
+| `ADD_MULTIPLIED_BASE` | Added on top of the adjusted base value | `0` |
+| `ADD_MULTIPLIED_TOTAL` | Multiplies the final value | `1` |
+
+The stages run in the vanilla order: the `ADD_VALUE` delta is part of the base value and therefore also feeds the
+later stages, while the `ADD_MULTIPLIED_BASE` delta is added next and is affected by `ADD_MULTIPLIED_TOTAL`; order
+does not matter within one operation, and adjustments happen before the attribute clamps the value to its range.
+
+### Contexts
+
+The event carries a context object that describes the situation the read happens in, so a listener can decide whether and how much to adjust.
+
+| Context | Situation | Carries |
+|---|---|---|
+| `DamageContext` | Reading damage multipliers, armor or armor toughness during damage resolution | The victim, the damage source and the current damage value |
+| `AttackingContext` | An attacker reading attack damage | The attacker and the target |
+| `LootInfoContext` | Reading attributes during loot resolution | The loot context of this roll |
+
+### Reading values
+
+To read an attribute value that includes temporary adjustments, use `AdjustmentHelper.getAttributeWithAdjusted`:
+it registers the adjustment, reads the attribute and removes the adjustment again. When the read has to be done by
+the caller (for example to keep another mod wrapper on that call), use the overload taking a `DoubleSupplier`.
+
+```java
+double armor = AdjustmentHelper.getAttributeWithAdjusted(entity, Attributes.ARMOR, new DamageContext(entity, source, damage));
+```
+
+### Instrumented attributes
+
+| Attribute | Context | When |
+|---|---|---|
+| `arcanumlib:damage_multiplier` | `DamageContext` | When dealing damage |
+| `arcanumlib:damage_taken_multiplier` | `DamageContext` | When taking damage |
+| `minecraft:armor` | `DamageContext` | Armor reduction |
+| `minecraft:armor_toughness` | `DamageContext` | Armor reduction |
+| `minecraft:attack_damage` | `AttackingContext` | Player attacks |
+| `arcanumlib:fortune` | `LootInfoContext` | Adding the effective Fortune level during loot resolution |
+| `arcanumlib:looting` | `LootInfoContext` | Adding the effective Looting level during loot resolution |
+| `arcanumlib:bonus_loot` | `LootInfoContext` | Rolling bonus loot |
+
+Reads of any other attribute do not go through this mechanism.
+
+### Notes
+
+- Adjustments are neither saved nor synced, and they stop applying when the read finishes;
+- An attribute calculation fires the event again on every recomputation, so a listener must return a deterministic delta and must not rely on random numbers or on state that changes over time;
+- A listener must not add or remove attribute modifiers from the event callback, as that triggers another attribute recomputation and therefore recursion.
 
 ---
 
@@ -154,6 +220,24 @@ public static void onAttributeChanged(LivingAttributeChangeEvent event) {
 
 ---
 
+
+### `LivingGetAttributeAdjustmentEvent` (attribute adjustment)
+
+Fired right before the value of a certain attribute is read (Java side, on `NeoForge.EVENT_BUS`). A listener
+writes deltas by operation; they only apply to that single read. See [Attribute Adjustment](#attribute-adjustment).
+
+| Method | Description |
+|---|---|
+| `getAttribute()` | The attribute being read |
+| `getOwner()` | The entity the attribute belongs to |
+| `getContext()` | The context of this read |
+| `getAdjustment()` | The adjustment carrier; read or accumulate by operation (`get` / `set` / `add`) |
+
+- It cannot be cancelled: deltas are accumulated by operation rather than vetoed as a whole;
+- It only fires for instrumented attribute reads; other reads never see this event.
+
+---
+
 ## Config
 
 Server config `serverconfig/arcanumlib/attribute.toml` (in a singleplayer world it lives under `saves/<world>/serverconfig/`):
@@ -181,3 +265,7 @@ Server config `serverconfig/arcanumlib/attribute.toml` (in a singleplayer world 
 | Injected into `LootTable` | `mixins/LootTableBonusLootMixin.java` |
 | Attribute value change event (fires for any value change) | `modules/attribute/events/LivingAttributeChangeEvent.java` |
 | Where it fires: hooked on `AttributeInstance#setDirty` | `mixins/AttributeInstanceMixin.java` |
+| The adjustment carrier (one field per operation) | `modules/attribute/AttributeAdjustment/AttributeAdjustment.java` |
+| The entry point for reading adjusted values | `modules/attribute/AttributeAdjustment/AdjustmentHelper.java` |
+| The adjustment event | `modules/attribute/events/LivingGetAttributeAdjustmentEvent.java` |
+| Where it is wired in: the three stages of an attribute calculation | `mixins/AttributeInstanceMixin.java` |

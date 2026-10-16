@@ -42,7 +42,7 @@ public class AttributeEvents {
         DamageSource source = event.getSource();
         Entity sourceEntity = source.getEntity();
         LivingEntity target = event.getEntity();
-        DamageContext context = new DamageContext(target, source);
+        DamageContext context = new DamageContext(target, source, event.getAmount());
         // 带 IGNORE_DAMAGE_MULTIPLIER 标签的伤害类型不吃攻击方的 DAMAGE_MULTIPLIER
         if (sourceEntity instanceof LivingEntity attacker && !source.is(ArcanumTags.Damage.IGNORE_DAMAGE_MULTIPLIER)) {
             event.setAmount(event.getAmount() * (float) AdjustmentHelper.getAttributeWithAdjusted(
@@ -54,7 +54,7 @@ public class AttributeEvents {
     public static void LivingDamageEvent$Pre(LivingDamageEvent.Pre event) {
         DamageSource source = event.getSource();
         LivingEntity target = event.getEntity();
-        DamageContext context = new DamageContext(target, source);
+        DamageContext context = new DamageContext(target, source, event.getNewDamage());
         event.setNewDamage(event.getNewDamage() * (float) AdjustmentHelper.getAttributeWithAdjusted(
                 target, ArcanumAttributes.DAMAGE_TAKEN_MULTIPLIER, context));
     }

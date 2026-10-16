@@ -4,5 +4,5 @@ import com.chen1335.arcanumlib.modules.attribute.events.LivingGetAttributeAdjust
 import net.minecraft.world.damagesource.DamageSource;
 import net.minecraft.world.entity.LivingEntity;
 
-public record DamageContext(LivingEntity target, DamageSource source) implements LivingGetAttributeAdjustmentEvent.IContext {
+public record DamageContext(LivingEntity target, DamageSource source, float damage) implements LivingGetAttributeAdjustmentEvent.IContext {
 }

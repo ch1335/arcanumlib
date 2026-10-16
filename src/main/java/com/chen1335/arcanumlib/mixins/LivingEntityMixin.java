@@ -61,7 +61,7 @@ public abstract class LivingEntityMixin implements IArcanumLibLivingEntityExtens
     private float arcanumlib$adjustArmorAndToughness(LivingEntity entity, float damage, DamageSource source,
                                                      float armorValue, float armorToughness, Operation<Float> original) {
         LivingEntity self = (LivingEntity) (Object) this;
-        DamageContext context = new DamageContext(self, source);
+        DamageContext context = new DamageContext(self, source,damage);
         // 必须重新读一次：原版这两个实参在调用前就求值完了，直接透传的话临时调整进不去。
         // 护甲保留原版的 (int) 截断（原版传的是 int getArmorValue()）；想让护甲吃小数就把 (int) 去掉。
         return original.call(entity, damage, source,
