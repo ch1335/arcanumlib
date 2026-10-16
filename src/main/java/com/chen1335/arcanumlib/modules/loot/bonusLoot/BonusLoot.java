@@ -1,5 +1,6 @@
 package com.chen1335.arcanumlib.modules.loot.bonusLoot;
 
+import com.chen1335.arcanumlib.mixinsAPI.IArcanumLibLivingEntityExtension;
 import com.chen1335.arcanumlib.modules.attribute.ArcanumAttributes;
 import com.chen1335.arcanumlib.modules.attribute.AttributeAdjustment.AdjustmentHelper;
 import com.chen1335.arcanumlib.modules.attribute.AttributeAdjustment.contexts.LootInfoContext;
@@ -11,6 +12,8 @@ import net.minecraft.Util;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.util.Mth;
 import net.minecraft.util.RandomSource;
+import net.minecraft.world.damagesource.DamageSource;
+import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.ai.attributes.AttributeInstance;
 import net.minecraft.world.item.ItemStack;
@@ -77,9 +80,6 @@ public final class BonusLoot {
             return original;
         }
 
-        if (original.isEmpty()) {
-            return original;
-        }
 
         ResourceLocation lootTableId = context.getQueriedLootTableId();
         if (LootTableIdCondition.UNKNOWN_LOOT_TABLE.equals(lootTableId) || !lootTableId.equals(table.getLootTableId())) {
@@ -155,14 +155,27 @@ public final class BonusLoot {
         // ── 整数部分：整份摇取并全部收取 ──────────────────────────────────────
         // ratio = 1.5 时摇 1 次，2.3 时摇 2 次；每份都用独立 context，但共享同一个 RandomSource，
         // 随机序列连续推进，因此几份战利品不会摇出完全相同的内容。
+        DamageSource damageSource = context.getParamOrNull(LootContextParams.DAMAGE_SOURCE);
+        Entity attacker = context.getParamOrNull(LootContextParams.ATTACKING_ENTITY);
+        Entity target = context.getParamOrNull(LootContextParams.THIS_ENTITY);
+
         for (int pass = Mth.floor(ratio); pass > 0; pass--) {
             table.getRandomItems(secondaryContext(context), original::add);
+            if (damageSource != null && attacker != null && target != null && target != attacker) {
+                ((IArcanumLibLivingEntityExtension) target).arcanumlib$dropCustomDeathLoot(context.getLevel(), damageSource, ((IArcanumLibLivingEntityExtension) target).arcanumlib$lastHurtByPlayerTime() > 0);
+            }
         }
 
         // ── 小数部分：再摇一份，拆成单件后按剩余比例取前 N 件 ──────────────────
         float remainder = Mth.frac(ratio);
         if (remainder <= 0.0F) {
             return;
+        }
+
+        if (context.getRandom().nextFloat() < remainder) {
+            if (damageSource != null && attacker != null && target != null && target != attacker) {
+                ((IArcanumLibLivingEntityExtension) target).arcanumlib$dropCustomDeathLoot(context.getLevel(), damageSource, ((IArcanumLibLivingEntityExtension) target).arcanumlib$lastHurtByPlayerTime() > 0);
+            }
         }
 
         ObjectArrayList<ItemStack> draw = new ObjectArrayList<>();

@@ -1,10 +1,12 @@
 package com.chen1335.arcanumlib.mixins;
 
+import com.chen1335.arcanumlib.mixinsAPI.IArcanumLibLivingEntityExtension;
 import com.chen1335.arcanumlib.mixinsAPI.IAttributeMapExtension;
 import com.chen1335.arcanumlib.modules.attribute.AttributeAdjustment.AdjustmentHelper;
 import com.chen1335.arcanumlib.modules.attribute.AttributeAdjustment.contexts.DamageContext;
 import com.llamalad7.mixinextras.injector.wrapoperation.Operation;
 import com.llamalad7.mixinextras.injector.wrapoperation.WrapOperation;
+import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.damagesource.DamageSource;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.LivingEntity;
@@ -15,12 +17,14 @@ import org.objectweb.asm.Opcodes;
 import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
+import org.spongepowered.asm.mixin.gen.Accessor;
+import org.spongepowered.asm.mixin.gen.Invoker;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
 @Mixin(LivingEntity.class)
-public class LivingEntityMixin {
+public abstract class LivingEntityMixin implements IArcanumLibLivingEntityExtension {
     @Shadow
     @Final
     private AttributeMap attributes;
@@ -46,20 +50,7 @@ public class LivingEntityMixin {
         ((IAttributeMapExtension) this.attributes).arcanumlib$setOwner((LivingEntity) (Object) this);
     }
 
-    /**
-     * 护甲与护甲韧性走同一套临时调整：实现见 {@link AttributeHooks#beforeGetArmorAndToughness}，
-     * 这里只负责包住 {@code getDamageAfterArmorAbsorb} 里那一次 {@code CombatRules.getDamageAfterAbsorb(...)} 调用。
-     *
-     * <p>两个要点：
-     * <p>两个要点：
-     * <ul>
-     *   <li>临时调整的注册与弹出统一交给 {@link AdjustmentHelper#getAttributeWithAdjusted}（内部按位置弹出，重入安全）；</li>
-     *   <li>原版的两个实参（护甲值、护甲韧性）在调用前就已经求值完毕，所以必须**重新读一次**这两个属性
-     *       再传给 {@code original.call}，否则临时调整根本进不去。</li>
-     * </ul>
-     *
-     * <p>锚点在那次调用上，因此 {@code BYPASSES_ARMOR} 的伤害不会触发本逻辑。
-     */
+
     @WrapOperation(
             method = "getDamageAfterArmorAbsorb",
             at = @At(
@@ -77,5 +68,14 @@ public class LivingEntityMixin {
                 (float) (int) AdjustmentHelper.getAttributeWithAdjusted(self, Attributes.ARMOR, context),
                 (float) AdjustmentHelper.getAttributeWithAdjusted(self, Attributes.ARMOR_TOUGHNESS, context));
     }
+
+    @Invoker("dropCustomDeathLoot")
+    @Override
+    public abstract void arcanumlib$dropCustomDeathLoot(ServerLevel level, DamageSource damageSource, boolean recentlyHit);
+
+
+    @Accessor("lastHurtByPlayerTime")
+    @Override
+    public abstract int arcanumlib$lastHurtByPlayerTime();
 
 }
