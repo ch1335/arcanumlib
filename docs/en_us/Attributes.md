@@ -1,7 +1,7 @@
 # Attributes provided by this mod
 
-ArcanumLib provides 4 **player attributes**, all with a default base value of `0` — in other words,
-**they do nothing at all by default**. You have to raise them with attribute modifiers, the `/attribute` command, or item attributes.
+ArcanumLib provides 6 attributes. Four of them are **player attributes** whose default base value is `0` — in other
+words **they do nothing at all by default** — and the other two are damage ratios whose default is 100% (no change).
 
 ## Table of Contents
 
@@ -24,9 +24,11 @@ ArcanumLib provides 4 **player attributes**, all with a default base value of `0
 | `arcanumlib:fortune` | Fortune | numeric | 0 | 0 ~ 100 | Added to the effective level of the **Fortune** enchantment |
 | `arcanumlib:looting` | Looting | numeric | 0 | 0 ~ 100 | Added to the effective level of the **Looting** enchantment |
 | `arcanumlib:bonus_loot` | Bonus Loot | percentage | 0 | 0 ~ 20 | **Rolls entity drops and chest loot extra times** by the ratio |
+| `arcanumlib:damage_multiplier` | Damage Multiplier | percentage | 1 (100%) | 0 ~ 100 | Multiplies the damage dealt |
+| `arcanumlib:damage_taken_multiplier` | Damage Taken Multiplier | percentage | 1 (100%) | 0 ~ 100 | Multiplies the damage taken |
 
-- All four are attached to `minecraft:player`, and all three are **synced attributes** (the client reads the same value);
-- The lower end of the range is 0 for all of them, so they can **only be raised, never lowered**.
+- The first four are attached to `minecraft:player` and the last two to **every living entity**; all six are **synced attributes** (the client reads the same value);
+- The lower end of the range is 0 for all of them; for the two ratios `0` means full immunity and `1` (100%) means no change.
 
 ---
 

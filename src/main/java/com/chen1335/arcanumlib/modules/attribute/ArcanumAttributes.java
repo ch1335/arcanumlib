@@ -64,7 +64,7 @@ public final class ArcanumAttributes {
                     .setSyncable(true));
 
     /**
-     * 受伤倍率：受到伤害时乘以该值。默认 100%（1.0）为不变，50% 即少受一半，150% 即多受一半。
+     * 受到伤害：受到伤害时乘以该值。默认 100%（1.0）为不变，50% 即少受一半，150% 即多受一半。
      * 值就是倍率本身，所以上下限用 0 ~ 100；想给玩家减伤就加负的修饰符（例如 -0.5 → 50%）。
      */
     public static final DeferredHolder<Attribute, Attribute> DAMAGE_TAKEN_MULTIPLIER = ATTRIBUTES.register(
