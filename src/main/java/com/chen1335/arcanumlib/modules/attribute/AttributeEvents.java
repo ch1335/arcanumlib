@@ -3,6 +3,7 @@ package com.chen1335.arcanumlib.modules.attribute;
 import com.chen1335.arcanumlib.ArcanumLib;
 import com.chen1335.arcanumlib.modules.attribute.AttributeAdjustment.AdjustmentHelper;
 import com.chen1335.arcanumlib.modules.attribute.AttributeAdjustment.contexts.DamageContext;
+import com.chen1335.arcanumlib.registry.ArcanumTags;
 import net.minecraft.world.damagesource.DamageSource;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.EntityType;
@@ -11,6 +12,7 @@ import net.neoforged.bus.api.EventPriority;
 import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.fml.common.EventBusSubscriber;
 import net.neoforged.neoforge.event.entity.EntityAttributeModificationEvent;
+import net.neoforged.neoforge.event.entity.living.LivingDamageEvent;
 import net.neoforged.neoforge.event.entity.living.LivingIncomingDamageEvent;
 
 
@@ -36,18 +38,25 @@ public class AttributeEvents {
     }
 
     @SubscribeEvent(priority = EventPriority.LOW)
-    public static void onAttributeModification(LivingIncomingDamageEvent event) {
+    public static void LivingIncomingDamageEvent(LivingIncomingDamageEvent event) {
         DamageSource source = event.getSource();
         Entity sourceEntity = source.getEntity();
         LivingEntity target = event.getEntity();
         DamageContext context = new DamageContext(target, source);
-        if (sourceEntity instanceof LivingEntity attacker) {
+        // 带 IGNORE_DAMAGE_MULTIPLIER 标签的伤害类型不吃攻击方的 DAMAGE_MULTIPLIER
+        if (sourceEntity instanceof LivingEntity attacker && !source.is(ArcanumTags.Damage.IGNORE_DAMAGE_MULTIPLIER)) {
             event.setAmount(event.getAmount() * (float) AdjustmentHelper.getAttributeWithAdjusted(
                     attacker, ArcanumAttributes.DAMAGE_MULTIPLIER, context));
         }
-        event.setAmount(event.getAmount() * (float) AdjustmentHelper.getAttributeWithAdjusted(
-                target, ArcanumAttributes.DAMAGE_TAKEN_MULTIPLIER, context));
     }
 
+    @SubscribeEvent(priority = EventPriority.HIGH)
+    public static void LivingDamageEvent$Pre(LivingDamageEvent.Pre event) {
+        DamageSource source = event.getSource();
+        LivingEntity target = event.getEntity();
+        DamageContext context = new DamageContext(target, source);
+        event.setNewDamage(event.getNewDamage() * (float) AdjustmentHelper.getAttributeWithAdjusted(
+                target, ArcanumAttributes.DAMAGE_TAKEN_MULTIPLIER, context));
+    }
 
 }
