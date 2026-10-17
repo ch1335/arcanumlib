@@ -26,6 +26,14 @@ import java.util.function.DoubleSupplier;
  */
 public final class AdjustmentScope implements AutoCloseable {
 
+    /** 当前打开的作用域数量：为 0 时说明没有任何临时调整生效，属性读取可以直接跳过查询。 */
+    private static int activeScopes = 0;
+
+    /** 是否有任何作用域处于打开状态；为 false 时属性读取完全不需要查询临时调整。 */
+    public static boolean isActive() {
+        return activeScopes != 0;
+    }
+
     /** 本次已挂上的调整；按引用保存，关闭时逐个移除（同一属性多次读取也不会串）。 */
     private final List<Applied> applied = new ArrayList<>();
 
@@ -41,6 +49,8 @@ public final class AdjustmentScope implements AutoCloseable {
      */
     public static AdjustmentScope open(LivingGetAttributeAdjustmentEvent.IContext context) {
         AdjustmentScope scope = new AdjustmentScope();
+        // 先计数再挂：中途抛异常时会走 scope.close()，把计数抵消回去
+        activeScopes++;
         Map<LivingEntity, Map<Holder<Attribute>, AttributeAdjustment>> posted =
                 LivingGetAttributeAdjustmentEvent.post(context);
 
@@ -91,6 +101,7 @@ public final class AdjustmentScope implements AutoCloseable {
         }
 
         this.closed = true;
+        activeScopes--;
         // 逆序移除，与挂上的顺序相反
         for (int i = this.applied.size() - 1; i >= 0; i--) {
             Applied entry = this.applied.get(i);

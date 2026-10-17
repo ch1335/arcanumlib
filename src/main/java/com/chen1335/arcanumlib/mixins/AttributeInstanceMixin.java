@@ -2,6 +2,7 @@ package com.chen1335.arcanumlib.mixins;
 
 import com.chen1335.arcanumlib.common.attachmentTypes.EntityData;
 import com.chen1335.arcanumlib.mixinsAPI.IAttributeInstanceExtension;
+import com.chen1335.arcanumlib.modules.attribute.AttributeAdjustment.AdjustmentScope;
 import com.chen1335.arcanumlib.modules.attribute.AttributeAdjustment.AttributeAdjustment;
 import com.chen1335.arcanumlib.modules.attribute.events.LivingAttributeChangeEvent;
 import com.llamalad7.mixinextras.injector.ModifyExpressionValue;
@@ -52,7 +53,6 @@ public abstract class AttributeInstanceMixin implements IAttributeInstanceExtens
         arcanumlib$owner = owner;
     }
 
-
     @Inject(method = "setDirty", at = @At("RETURN"))
     private void onAttributeValueChanged(CallbackInfo ci) {
         double value = getValue();
@@ -63,8 +63,13 @@ public abstract class AttributeInstanceMixin implements IAttributeInstanceExtens
         }
     }
 
+    /** {@code calculateValue} 期间解析好的那一份；三个阶段钩子直接复用它，省掉各查一次。 */
+    @Unique
+    @Nullable
+    private List<AttributeAdjustment> arcanumlib$calculatedAdjustments = null;
+
     /**
-     * 当前生效的临时调整列表；没有就在返回 null，让三个钩子直接跳过。
+     * 当前生效的临时调整列表；没有就返回 null，让三个钩子直接跳过。
      *
      * <p>必须用 {@code getModifierOrNull}：属性计算是超热路径，{@code getModifier} 会顺手建空列表，
      * 等于每次重算都往每个实体的表里塞一条空记录。
@@ -77,12 +82,17 @@ public abstract class AttributeInstanceMixin implements IAttributeInstanceExtens
                 : EntityData.get(arcanumlib$owner).adjustmentData.getModifierOrNull(getAttribute());
     }
 
+    /** 计算开始时解析一次；没有活跃作用域就直接置空，三个阶段钩子都能早退。 */
+    @Inject(method = "calculateValue", at = @At("HEAD"))
+    private void arcanumlib$resolveAdjustments(CallbackInfoReturnable<Double> cir) {
+        this.arcanumlib$calculatedAdjustments = AdjustmentScope.isActive() ? arcanumlib$adjustments() : null;
+    }
 
     @ModifyExpressionValue(method = "calculateValue",
             at = @At(value = "INVOKE",
                     target = "Lnet/minecraft/world/entity/ai/attributes/AttributeInstance;getBaseValue()D"))
     private double arcanumlib$afterAddValue(double base) {
-        List<AttributeAdjustment> adjustments = arcanumlib$adjustments();
+        List<AttributeAdjustment> adjustments = arcanumlib$calculatedAdjustments;
         if (adjustments == null) {
             return base;
         }
@@ -92,13 +102,12 @@ public abstract class AttributeInstanceMixin implements IAttributeInstanceExtens
         return base;
     }
 
-
     @ModifyVariable(method = "calculateValue",
             at = @At(value = "INVOKE", ordinal = 2,
                     target = "Lnet/minecraft/world/entity/ai/attributes/AttributeInstance;getModifiersOrEmpty(Lnet/minecraft/world/entity/ai/attributes/AttributeModifier$Operation;)Ljava/util/Collection;"),
             name = "d1")
     private double arcanumlib$afterAddMultipliedBase(double total, @Local(name = "d0") double d0) {
-        List<AttributeAdjustment> adjustments = arcanumlib$adjustments();
+        List<AttributeAdjustment> adjustments = arcanumlib$calculatedAdjustments;
         if (adjustments == null) {
             return total;
         }
@@ -107,7 +116,6 @@ public abstract class AttributeInstanceMixin implements IAttributeInstanceExtens
         }
         return total;
     }
-
 
     /**
      * 总倍率、{@code ADD_FINAL} 与 {@code SET_VALUE} 三个阶段的临时调整：直接改 {@code sanitizeValue(d1)} 的入参。
@@ -120,7 +128,7 @@ public abstract class AttributeInstanceMixin implements IAttributeInstanceExtens
                     target = "Lnet/minecraft/world/entity/ai/attributes/Attribute;sanitizeValue(D)D"),
             index = 0)
     private double arcanumlib$afterAddMultipliedTotal(double total) {
-        List<AttributeAdjustment> adjustments = arcanumlib$adjustments();
+        List<AttributeAdjustment> adjustments = arcanumlib$calculatedAdjustments;
         if (adjustments == null) {
             return total;
         }
@@ -141,6 +149,11 @@ public abstract class AttributeInstanceMixin implements IAttributeInstanceExtens
 
     @Inject(method = "getValue", at = @At("HEAD"), cancellable = true)
     private void arcanumlib$getValue(CallbackInfoReturnable<Double> cir) {
+        // 没有活跃作用域 ⇒ 一定没有临时调整，跳过那次查询
+        if (!AdjustmentScope.isActive()) {
+            return;
+        }
+
         List<AttributeAdjustment> adjustments = arcanumlib$adjustments();
         if (adjustments != null && !adjustments.isEmpty()) {
             cir.setReturnValue(calculateValue());
