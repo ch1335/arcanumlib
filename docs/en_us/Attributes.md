@@ -117,7 +117,7 @@ The event carries a context object that describes the situation the read happens
 |---|---|---|
 | `DamageContext` | Reading attributes during damage resolution | The victim, the damage source and the current damage value |
 | `AttackingContext` | An attacker reading attributes; currently **only player direct attacks** (`Player#attack`) - projectiles, mob melee and other paths do not fire it | The attacker and the target |
-| `LootInfoContext` | Reading attributes during loot resolution | The loot context of this roll |
+| `LootInfoContext` | Reading attributes during loot resolution | The loot context of this roll and its **parameter set** (`LootContextParamSet`) |
 | `LivingHurtContext` | Reading attributes throughout a hurt (from the head of `hurt` to its return) | The victim, the damage source and the current damage value |
 | `LivingDamageContext` | Reading attributes during damage resolution (around the `actuallyHurt` call) | The victim, the damage source and the current damage value |
 

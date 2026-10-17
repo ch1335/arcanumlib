@@ -3,14 +3,14 @@ package com.chen1335.arcanumlib.modules.loot.lootInjector.selector;
 import com.chen1335.arcanumlib.modules.loot.lootInjector.LootInjectorOps;
 import com.chen1335.arcanumlib.modules.loot.lootInjector.event.CustomPoolSelectorEvent;
 import com.mojang.serialization.Codec;
-import java.util.Optional;
-import net.minecraft.nbt.CompoundTag;
 import com.mojang.serialization.MapCodec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
 import net.minecraft.core.HolderLookup;
+import net.minecraft.nbt.CompoundTag;
 import net.minecraft.world.level.storage.loot.LootPool;
 
 import java.util.List;
+import java.util.Optional;
 
 /**
  * 池选择器：把池和它的下标传进来就地判断。带 index 是因为"按位置选"和"按内容选"都要用，两者可叠加。

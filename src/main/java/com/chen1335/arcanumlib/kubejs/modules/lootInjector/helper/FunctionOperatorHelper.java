@@ -1,11 +1,12 @@
 package com.chen1335.arcanumlib.kubejs.modules.lootInjector.helper;
 
-import dev.latvian.mods.kubejs.typings.Info;
 import com.chen1335.arcanumlib.modules.loot.lootInjector.operator.ConditionOperator;
 import com.chen1335.arcanumlib.modules.loot.lootInjector.operator.FunctionOperator;
 import com.chen1335.arcanumlib.modules.loot.lootInjector.selector.ConditionSelector;
-import java.util.List;
+import dev.latvian.mods.kubejs.typings.Info;
 import net.minecraft.world.level.storage.loot.functions.LootItemFunction;
+
+import java.util.List;
 
 /**
  * {@code FunctionOperator} 的脚本工厂：把 json 里的这个类别写成一行 Java 调用。

@@ -1,16 +1,15 @@
 package com.chen1335.arcanumlib.modules.loot.lootInjector.selector;
 
-import com.google.common.collect.Sets;
 import com.chen1335.arcanumlib.modules.loot.lootInjector.LootInjectorOps;
 import com.chen1335.arcanumlib.modules.loot.lootInjector.event.CustomTableSelectorEvent;
+import com.google.common.collect.Sets;
 import com.mojang.serialization.Codec;
-import java.util.Optional;
-import net.minecraft.nbt.CompoundTag;
 import com.mojang.serialization.MapCodec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
 import net.minecraft.core.HolderLookup;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.core.registries.Registries;
+import net.minecraft.nbt.CompoundTag;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.tags.TagKey;
@@ -21,6 +20,7 @@ import net.minecraft.world.level.storage.loot.LootTable;
 
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 

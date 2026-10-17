@@ -1,19 +1,10 @@
 package com.chen1335.arcanumlib.kubejs;
 
-import com.chen1335.arcanumlib.kubejs.modules.lootInjector.event.EntryCustomKubeEvent;
-import com.chen1335.arcanumlib.kubejs.modules.lootInjector.event.LootInjectorApplyKubeEvent;
-import com.chen1335.arcanumlib.kubejs.modules.lootInjector.event.PoolCustomKubeEvent;
-import com.chen1335.arcanumlib.kubejs.modules.lootInjector.event.RegisterLootInjectorKubeEvent;
-import com.chen1335.arcanumlib.kubejs.modules.lootInjector.event.TableCustomKubeEvent;
-import com.chen1335.arcanumlib.kubejs.modules.lootInjector.event.CustomConditionSelectorKubeEvent;
-import com.chen1335.arcanumlib.kubejs.modules.lootInjector.event.CustomEntrySelectorKubeEvent;
-import com.chen1335.arcanumlib.kubejs.modules.lootInjector.event.CustomFunctionSelectorKubeEvent;
-import com.chen1335.arcanumlib.kubejs.modules.lootInjector.event.CustomPoolSelectorKubeEvent;
-import com.chen1335.arcanumlib.kubejs.modules.lootInjector.event.CustomTableSelectorKubeEvent;
-import dev.latvian.mods.kubejs.event.EventGroup;
-import dev.latvian.mods.kubejs.event.EventHandler;
 import com.chen1335.arcanumlib.kubejs.modules.bonusLoot.BonusLootCheckKubeEvent;
 import com.chen1335.arcanumlib.kubejs.modules.bonusLoot.ModifyBonusLootKubeEvent;
+import com.chen1335.arcanumlib.kubejs.modules.lootInjector.event.*;
+import dev.latvian.mods.kubejs.event.EventGroup;
+import dev.latvian.mods.kubejs.event.EventHandler;
 
 /**
  * ArcanumLib 的脚本事件组：脚本里写 {@code ArcanumLibEvents.xxx(event => ...)} 就能监听。

@@ -1,10 +1,10 @@
 package com.chen1335.arcanumlib.kubejs.modules.lootInjector.event;
 
 import dev.latvian.mods.kubejs.event.KubeEvent;
+import net.minecraft.core.HolderLookup;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.level.storage.loot.LootTable;
-import net.minecraft.core.HolderLookup;
 
 /**
  * 脚本事件 {@code ArcanumLibEvents.customTableSelector}：判定表选择器 {@code custom} 时触发。参数与 Java 侧 {@code CustomTableSelectorEvent} 对齐。

@@ -1,17 +1,5 @@
 package com.chen1335.arcanumlib.kubejs.modules.lootInjector.helper;
 
-import net.minecraft.world.effect.MobEffect;
-import net.minecraft.world.level.levelgen.structure.Structure;
-import net.minecraft.world.level.saveddata.maps.MapDecorationType;
-
-import net.minecraft.world.item.DyeColor;
-import net.minecraft.world.level.block.entity.BannerPattern;
-import net.minecraft.world.level.block.state.properties.Property;
-import net.minecraft.world.level.storage.loot.entries.LootPoolEntryContainer;
-
-import net.minecraft.world.entity.ai.attributes.Attribute;
-import net.minecraft.world.entity.ai.attributes.AttributeModifier;
-
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.mojang.serialization.JsonOps;
@@ -27,15 +15,24 @@ import net.minecraft.resources.RegistryOps;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.tags.TagKey;
+import net.minecraft.world.effect.MobEffect;
+import net.minecraft.world.entity.ai.attributes.Attribute;
+import net.minecraft.world.entity.ai.attributes.AttributeModifier;
+import net.minecraft.world.item.DyeColor;
 import net.minecraft.world.item.Instrument;
 import net.minecraft.world.item.alchemy.Potion;
 import net.minecraft.world.item.enchantment.Enchantment;
 import net.minecraft.world.level.block.Block;
+import net.minecraft.world.level.block.entity.BannerPattern;
 import net.minecraft.world.level.block.entity.BlockEntityType;
+import net.minecraft.world.level.block.state.properties.Property;
+import net.minecraft.world.level.levelgen.structure.Structure;
+import net.minecraft.world.level.saveddata.maps.MapDecorationType;
 import net.minecraft.world.level.storage.loot.ContainerComponentManipulator;
 import net.minecraft.world.level.storage.loot.IntRange;
 import net.minecraft.world.level.storage.loot.LootContext;
 import net.minecraft.world.level.storage.loot.LootTable;
+import net.minecraft.world.level.storage.loot.entries.LootPoolEntryContainer;
 import net.minecraft.world.level.storage.loot.functions.*;
 import net.minecraft.world.level.storage.loot.providers.nbt.NbtProvider;
 import net.minecraft.world.level.storage.loot.providers.number.NumberProvider;

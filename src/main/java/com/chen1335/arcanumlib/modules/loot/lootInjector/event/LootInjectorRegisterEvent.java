@@ -8,14 +8,7 @@ import net.minecraft.resources.ResourceLocation;
 import net.neoforged.bus.api.Event;
 import net.neoforged.neoforge.common.NeoForge;
 
-import java.util.ArrayList;
-import java.util.Comparator;
-import java.util.HashSet;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
-import java.util.Set;
+import java.util.*;
 
 /**
  * 收集注入器时触发：除了数据包里的 json，还能在**运行时**用代码或脚本注册注入器。

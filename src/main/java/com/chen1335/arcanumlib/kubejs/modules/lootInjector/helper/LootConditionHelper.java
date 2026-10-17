@@ -4,7 +4,6 @@ import com.chen1335.arcanumlib.compat.astages.HasStageCondition;
 import com.chen1335.arcanumlib.compat.astages.StagePattern;
 import com.chen1335.arcanumlib.modules.loot.lootCondition.ChanceModifier;
 import com.chen1335.arcanumlib.modules.loot.lootCondition.ChanceModifierCondition;
-import org.jetbrains.annotations.Nullable;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.mojang.serialization.JsonOps;
@@ -23,6 +22,7 @@ import net.minecraft.world.level.storage.loot.IntRange;
 import net.minecraft.world.level.storage.loot.LootContext;
 import net.minecraft.world.level.storage.loot.predicates.*;
 import net.minecraft.world.level.storage.loot.providers.number.NumberProvider;
+import org.jetbrains.annotations.Nullable;
 
 import java.util.List;
 import java.util.Map;

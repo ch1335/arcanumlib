@@ -1,10 +1,10 @@
 package com.chen1335.arcanumlib.kubejs.modules.lootInjector.event;
 
 import dev.latvian.mods.kubejs.event.KubeEvent;
+import net.minecraft.core.HolderLookup;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.world.level.storage.loot.LootPool;
 import net.minecraft.world.level.storage.loot.entries.LootPoolEntryContainer;
-import net.minecraft.core.HolderLookup;
 
 /**
  * 脚本事件 {@code ArcanumLibEvents.customEntrySelector}：判定条目选择器 {@code custom} 时触发。参数与 Java 侧 {@code CustomEntrySelectorEvent} 对齐。

@@ -1,10 +1,10 @@
 package com.chen1335.arcanumlib.kubejs.modules.lootInjector.event;
 
 import dev.latvian.mods.kubejs.event.KubeEvent;
+import net.minecraft.core.HolderLookup;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.world.level.storage.loot.LootPool;
 import net.minecraft.world.level.storage.loot.LootTable;
-import net.minecraft.core.HolderLookup;
 
 /**
  * 脚本事件 {@code ArcanumLibEvents.poolCustom}：json 里写了 {@code arcanumlib:pool_custom} 时触发，作用对象是"当前池"。参数与 Java 侧 {@code PoolCustomOpEvent} 对齐。

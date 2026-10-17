@@ -1,9 +1,9 @@
 package com.chen1335.arcanumlib.kubejs.modules.lootInjector.event;
 
 import dev.latvian.mods.kubejs.event.KubeEvent;
+import net.minecraft.core.HolderLookup;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.world.level.storage.loot.predicates.LootItemCondition;
-import net.minecraft.core.HolderLookup;
 
 /**
  * 脚本事件 {@code ArcanumLibEvents.customConditionSelector}：判定条件选择器 {@code custom} 时触发。参数与 Java 侧 {@code CustomConditionSelectorEvent} 对齐。

@@ -1,11 +1,12 @@
 package com.chen1335.arcanumlib.kubejs.modules.lootInjector.event;
 
 import dev.latvian.mods.kubejs.event.KubeEvent;
+import net.minecraft.core.HolderLookup;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.world.level.storage.loot.LootPool;
 import net.minecraft.world.level.storage.loot.entries.LootPoolEntryContainer;
+
 import java.util.List;
-import net.minecraft.core.HolderLookup;
 
 /**
  * 脚本事件 {@code ArcanumLibEvents.entryCustom}：json 里写了 {@code arcanumlib:entry_custom} 时触发。参数与 Java 侧 {@code EntryCustomOpEvent} 对齐。

@@ -71,6 +71,7 @@ Top-level ops                     → acts on the whole table (TableOperator)
     └── ops                          → acts on "each matched pool" (PoolOperator)
         ├── remove_pool
         ├── add_entry
+        ├── clear_pool / set_rolls / set_bonus_rolls
         ├── set_condition / add_condition / remove_condition
         ├── set_function / add_function / remove_function
         ├── pool_custom
@@ -666,6 +667,9 @@ Written inside `modify_pool.ops`. Registry: `arcanumlib:pool_operator`.
 - [8.6 `set_condition`](#86-set_condition--replace-the-pools-own-condition-list) — Replace the pool's own condition list
 - [8.7 `add_condition`](#87-add_condition--append-to-the-pools-own-condition-list) — Append to the pool's own condition list
 - [8.8 `remove_condition`](#88-remove_condition--remove-the-pools-own-conditions-by-condition-type-id) — Remove the pool's own conditions by condition type id
+- [8.13 `clear_pool`](#813-clear_pool--clear-the-entries-of-the-current-pool-but-keep-the-pool) — Clear the entries of **the current pool** (the pool stays)
+- [8.14 `set_rolls`](#814-set_rolls--set-the-rolls-of-the-current-pool) — Set the rolls of **the current pool**
+- [8.15 `set_bonus_rolls`](#815-set_bonus_rolls--set-the-bonusrolls-of-the-current-pool) — Set the bonusRolls of **the current pool**
 - [8.9 `set_function`](#89-set_function--replace-the-pools-own-function-list) — Replace the pool's own function list
 - [8.10 `add_function`](#810-add_function--append-to-the-pools-own-function-list) — Append to the pool's own function list
 - [8.11 `remove_function`](#811-remove_function--remove-the-pools-own-functions-by-function-type-id) — Remove the pool's own functions by function type id
@@ -854,6 +858,42 @@ Written inside `modify_pool.ops`. Registry: `arcanumlib:pool_operator`.
 ```
 
 ---
+
+#### 8.13 `clear_pool` — Clear the entries of **the current pool** (the pool stays)
+- No parameters.
+- Only `entries` are cleared; the pool remains, so later ops can refill it with `add_entry`.
+
+```json
+{
+  "type": "arcanumlib:clear_pool"
+}
+```
+
+#### 8.14 `set_rolls` — Set the rolls of **the current pool**
+- `*rolls`: <number provider> how many times the pool rolls.
+
+```json
+{
+  "type": "arcanumlib:set_rolls",
+  "rolls": {
+    "type": "minecraft:constant",
+    "value": 3
+  }
+}
+```
+
+#### 8.15 `set_bonus_rolls` — Set the bonusRolls of **the current pool**
+- `*bonusRolls`: <number provider> extra rolls granted by luck.
+
+```json
+{
+  "type": "arcanumlib:set_bonus_rolls",
+  "bonusRolls": {
+    "type": "minecraft:constant",
+    "value": 1
+  }
+}
+```
 
 ## 9. Entry Selectors (15)
 

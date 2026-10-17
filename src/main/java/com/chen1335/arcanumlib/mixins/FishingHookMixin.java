@@ -1,6 +1,5 @@
 package com.chen1335.arcanumlib.mixins;
 
-import com.chen1335.arcanumlib.modules.fishing.IFishingHook;
 import com.chen1335.arcanumlib.registry.ArcanumAttachments;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.entity.EntityType;

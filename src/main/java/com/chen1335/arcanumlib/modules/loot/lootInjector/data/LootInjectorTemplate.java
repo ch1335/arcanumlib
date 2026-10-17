@@ -2,8 +2,8 @@ package com.chen1335.arcanumlib.modules.loot.lootInjector.data;
 
 import com.chen1335.arcanumlib.modules.loot.lootEntry.AllOfEntry;
 import com.chen1335.arcanumlib.modules.loot.lootInjector.LootInjector;
-import com.chen1335.arcanumlib.modules.loot.lootInjector.operator.TableOperator;
 import com.chen1335.arcanumlib.modules.loot.lootInjector.LootInjectorReloadListener;
+import com.chen1335.arcanumlib.modules.loot.lootInjector.operator.TableOperator;
 import com.chen1335.arcanumlib.modules.loot.lootInjector.selector.TableSelector;
 import net.minecraft.core.HolderLookup;
 import net.minecraft.data.PackOutput;

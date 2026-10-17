@@ -14,14 +14,7 @@ import net.minecraft.server.MinecraftServer;
 import net.minecraft.world.level.storage.loot.LootTable;
 import net.neoforged.neoforge.common.conditions.ICondition;
 
-import java.util.ArrayList;
-import java.util.Comparator;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
-import java.util.Set;
+import java.util.*;
 
 /** 解析注入器定义并应用到战利品表上。时机在服务端启动 / 数据包 reload 之后，那时 registry access 一定可用。 */
 public final class LootInjectorApplier {

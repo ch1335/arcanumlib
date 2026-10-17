@@ -1,30 +1,31 @@
 package com.chen1335.arcanumlib.modules.loot.lootInjector.operator;
 
 import com.chen1335.arcanumlib.modules.loot.lootInjector.LootInjectorOps;
-import com.chen1335.arcanumlib.modules.loot.lootInjector.selector.EntrySelector;
 import com.chen1335.arcanumlib.modules.loot.lootInjector.event.PoolCustomOpEvent;
 import com.chen1335.arcanumlib.modules.loot.lootInjector.selector.ConditionSelector;
+import com.chen1335.arcanumlib.modules.loot.lootInjector.selector.EntrySelector;
 import com.chen1335.arcanumlib.modules.loot.lootInjector.selector.FunctionSelector;
 import com.mojang.serialization.Codec;
-import net.minecraft.nbt.CompoundTag;
-import java.util.Optional;
 import com.mojang.serialization.MapCodec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
 import net.minecraft.Util;
 import net.minecraft.core.HolderLookup;
 import net.minecraft.core.registries.BuiltInRegistries;
+import net.minecraft.nbt.CompoundTag;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.level.storage.loot.LootPool;
 import net.minecraft.world.level.storage.loot.LootTable;
 import net.minecraft.world.level.storage.loot.entries.LootPoolEntries;
 import net.minecraft.world.level.storage.loot.entries.LootPoolEntryContainer;
-import net.minecraft.world.level.storage.loot.entries.LootPoolSingletonContainer;
 import net.minecraft.world.level.storage.loot.functions.LootItemFunction;
 import net.minecraft.world.level.storage.loot.functions.LootItemFunctions;
 import net.minecraft.world.level.storage.loot.predicates.LootItemCondition;
+import net.minecraft.world.level.storage.loot.providers.number.NumberProvider;
+import net.minecraft.world.level.storage.loot.providers.number.NumberProviders;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 
 /**
  * 池级操作：作用于"当前池"，只能出现在 {@link TableOperator.ModifyPool} 的子 {@code ops} 里。
@@ -106,6 +107,49 @@ public interface PoolOperator {
                     op.apply(pool, entries, current, registries);
                 }
             }
+        }
+    }
+
+    /** 清空"当前池"的 entries，但池本身保留（还可以被后面的 op 继续填充）。 */
+    record ClearPool() implements PoolOperator {
+        @Override
+        public PoolOperatorType getType() {
+            return LootInjectorOps.POOL_CLEAR_POOL.get();
+        }
+        public static final MapCodec<ClearPool> CODEC = MapCodec.unit(ClearPool::new);
+        @Override
+        public void apply(LootTable table, int poolIndex, LootPool pool, HolderLookup.Provider registries) {
+            mutableEntries(pool).clear();
+        }
+    }
+
+    /** 直接设置池的 rolls（摇取次数）。 */
+    record SetRolls(NumberProvider rolls) implements PoolOperator {
+        @Override
+        public PoolOperatorType getType() {
+            return LootInjectorOps.POOL_SET_ROLLS.get();
+        }
+        public static final MapCodec<SetRolls> CODEC = RecordCodecBuilder.mapCodec(instance -> instance.group(
+                NumberProviders.CODEC.fieldOf("rolls").forGetter(SetRolls::rolls))
+                .apply(instance, SetRolls::new));
+        @Override
+        public void apply(LootTable table, int poolIndex, LootPool pool, HolderLookup.Provider registries) {
+            pool.setRolls(this.rolls);
+        }
+    }
+
+    /** 直接设置池的 bonusRolls（幸运带来的额外摇取次数）。 */
+    record SetBonusRolls(NumberProvider bonusRolls) implements PoolOperator {
+        @Override
+        public PoolOperatorType getType() {
+            return LootInjectorOps.POOL_SET_BONUS_ROLLS.get();
+        }
+        public static final MapCodec<SetBonusRolls> CODEC = RecordCodecBuilder.mapCodec(instance -> instance.group(
+                NumberProviders.CODEC.fieldOf("bonusRolls").forGetter(SetBonusRolls::bonusRolls))
+                .apply(instance, SetBonusRolls::new));
+        @Override
+        public void apply(LootTable table, int poolIndex, LootPool pool, HolderLookup.Provider registries) {
+            pool.setBonusRolls(this.bonusRolls);
         }
     }
 

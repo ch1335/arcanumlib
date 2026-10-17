@@ -1,5 +1,6 @@
 package com.chen1335.arcanumlib.mixins;
 
+import com.chen1335.arcanumlib.mixinsAPI.ILootParamsExtension;
 import com.chen1335.arcanumlib.modules.fishing.*;
 import com.chen1335.arcanumlib.registry.ArcanumAttachments;
 import net.minecraft.world.entity.LivingEntity;
@@ -35,10 +36,11 @@ public class LootParams$BuilderMixin {
                 if (rod.getItem() instanceof IFishingRod fishingRod) {
                     fishingRod.modifyLootParams(owner, hook, rod, params);
                     if (bait.getItem() instanceof IFishBait fishBait) {
-                        fishBait.modifyLootParams(owner, hook,bait, params);
+                        fishBait.modifyLootParams(owner, hook, bait, params);
                     }
                 }
             }
         }
+        ((ILootParamsExtension) cir.getReturnValue()).arcanumlib$setParamSet(paramSet);
     }
 }

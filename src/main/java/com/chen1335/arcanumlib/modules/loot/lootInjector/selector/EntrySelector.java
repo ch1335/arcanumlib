@@ -3,25 +3,21 @@ package com.chen1335.arcanumlib.modules.loot.lootInjector.selector;
 import com.chen1335.arcanumlib.modules.loot.lootInjector.LootInjectorOps;
 import com.chen1335.arcanumlib.modules.loot.lootInjector.event.CustomEntrySelectorEvent;
 import com.mojang.serialization.Codec;
-import java.util.Optional;
-import net.minecraft.nbt.CompoundTag;
 import com.mojang.serialization.MapCodec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
 import net.minecraft.core.HolderLookup;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.core.registries.Registries;
+import net.minecraft.nbt.CompoundTag;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.tags.TagKey;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.level.storage.loot.LootPool;
-import net.minecraft.world.level.storage.loot.entries.CompositeEntryBase;
-import net.minecraft.world.level.storage.loot.entries.LootItem;
-import net.minecraft.world.level.storage.loot.entries.LootPoolEntryContainer;
-import net.minecraft.world.level.storage.loot.entries.LootPoolSingletonContainer;
-import net.minecraft.world.level.storage.loot.entries.TagEntry;
+import net.minecraft.world.level.storage.loot.entries.*;
 
 import java.util.List;
+import java.util.Optional;
 
 /**
  * 条目选择器：把条目和它在池内的下标传进来就地判断。读条目内容全靠 AT（物品/标签/权重在单例基类，条件在容器基类）。

@@ -1,7 +1,6 @@
 package com.chen1335.arcanumlib.registry;
 
 import com.chen1335.arcanumlib.ArcanumLib;
-import com.chen1335.arcanumlib.modules.fishing.test.TestRodItem;
 import com.chen1335.arcanumlib.modules.holder.EntityHolderItem;
 import net.minecraft.world.item.Item;
 import net.neoforged.neoforge.registries.DeferredItem;
@@ -22,8 +21,6 @@ public final class ArcanumItems {
             EntityHolderItem::new, new Item.Properties().stacksTo(16));
 
     /** 测试鱼竿：只为驱动 SimpleFishingHook，贴图直接用原版钓鱼竿。耐久同原版（64）。 */
-    public static final DeferredItem<Item> TEST_ROD = register("test_rod",
-            TestRodItem::new, new Item.Properties().durability(64));
 
     private ArcanumItems() {
     }

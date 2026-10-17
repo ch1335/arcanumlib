@@ -4,19 +4,19 @@ import com.chen1335.arcanumlib.modules.loot.lootInjector.LootInjectorOps;
 import com.chen1335.arcanumlib.modules.loot.lootInjector.event.CustomConditionSelectorEvent;
 import com.google.gson.JsonElement;
 import com.mojang.serialization.Codec;
-import java.util.Optional;
-import net.minecraft.nbt.CompoundTag;
 import com.mojang.serialization.Dynamic;
 import com.mojang.serialization.JsonOps;
 import com.mojang.serialization.MapCodec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
 import net.minecraft.core.HolderLookup;
 import net.minecraft.core.registries.BuiltInRegistries;
+import net.minecraft.nbt.CompoundTag;
 import net.minecraft.resources.RegistryOps;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.level.storage.loot.predicates.LootItemCondition;
 
 import java.util.List;
+import java.util.Optional;
 
 /**
  * 条件选择器：在某个列表的条件里挑出要动的条件。

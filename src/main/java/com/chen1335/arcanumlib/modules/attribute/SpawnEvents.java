@@ -6,7 +6,6 @@ import com.chen1335.arcanumlib.mixins.IntrusiveBaseWeightAccessor;
 import net.minecraft.core.BlockPos;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
-import net.minecraft.util.random.Weight;
 import net.minecraft.world.entity.ai.attributes.AttributeInstance;
 import net.minecraft.world.level.biome.MobSpawnSettings;
 import net.neoforged.bus.api.EventPriority;

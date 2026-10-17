@@ -1,9 +1,9 @@
 package com.chen1335.arcanumlib.kubejs.modules.lootInjector.event;
 
 import dev.latvian.mods.kubejs.event.KubeEvent;
+import net.minecraft.core.HolderLookup;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.world.level.storage.loot.functions.LootItemFunction;
-import net.minecraft.core.HolderLookup;
 
 /**
  * 脚本事件 {@code ArcanumLibEvents.customFunctionSelector}：判定函数选择器 {@code custom} 时触发。参数与 Java 侧 {@code CustomFunctionSelectorEvent} 对齐。

@@ -44,7 +44,6 @@
   "arcanumlib.command.simulate.header": "Simulated %2$s x%1$s: %3$s items in total; ratio = item count / total items, probability = item count / attempts",
   "arcanumlib.command.simulate.need_context": "This loot table needs extra context parameters and cannot be simulated: %1$s",
   "arcanumlib.command.simulate.not_found": "Unknown loot table: %1$s",
-  "arcanumlib.test.stage.chapter_1": "Chapter 1",
   "attribute.name.arcanumlib.bonus_loot": "Bonus Loot",
   "attribute.name.arcanumlib.bonus_loot.desc": "Chance for extra loot from entity drops and chests",
   "attribute.name.arcanumlib.damage_multiplier": "Damage Multiplier",

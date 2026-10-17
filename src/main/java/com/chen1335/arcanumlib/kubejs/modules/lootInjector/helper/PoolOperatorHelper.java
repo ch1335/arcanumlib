@@ -1,21 +1,22 @@
 package com.chen1335.arcanumlib.kubejs.modules.lootInjector.helper;
 
-import dev.latvian.mods.kubejs.typings.Info;
-import org.jetbrains.annotations.Nullable;
+import com.chen1335.arcanumlib.modules.loot.lootInjector.operator.ConditionOperator;
 import com.chen1335.arcanumlib.modules.loot.lootInjector.operator.EntryOperator;
 import com.chen1335.arcanumlib.modules.loot.lootInjector.operator.FunctionOperator;
-import com.chen1335.arcanumlib.modules.loot.lootInjector.operator.ConditionOperator;
 import com.chen1335.arcanumlib.modules.loot.lootInjector.operator.PoolOperator;
 import com.chen1335.arcanumlib.modules.loot.lootInjector.selector.ConditionSelector;
 import com.chen1335.arcanumlib.modules.loot.lootInjector.selector.EntrySelector;
 import com.chen1335.arcanumlib.modules.loot.lootInjector.selector.FunctionSelector;
-import java.util.List;
-import java.util.Optional;
+import dev.latvian.mods.kubejs.typings.Info;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.level.storage.loot.entries.LootPoolEntryContainer;
 import net.minecraft.world.level.storage.loot.functions.LootItemFunction;
 import net.minecraft.world.level.storage.loot.predicates.LootItemCondition;
+import org.jetbrains.annotations.Nullable;
+
+import java.util.List;
+import java.util.Optional;
 
 /**
  * {@code PoolOperator} 的脚本工厂：把 json 里的这个类别写成一行 Java 调用。

@@ -1,10 +1,11 @@
 package com.chen1335.arcanumlib.mixins;
 
+import com.chen1335.arcanumlib.mixinsAPI.ILootContextExtension;
+import com.chen1335.arcanumlib.modules.attribute.AttributeAdjustment.AdjustmentScope;
+import com.chen1335.arcanumlib.modules.attribute.AttributeAdjustment.contexts.LootInfoContext;
 import com.chen1335.arcanumlib.modules.holder.EntityHolderHandler;
 import com.chen1335.arcanumlib.modules.holder.EntityHolderItem;
 import com.chen1335.arcanumlib.modules.holder.EntityHolderPayload;
-import com.chen1335.arcanumlib.modules.attribute.AttributeAdjustment.AdjustmentScope;
-import com.chen1335.arcanumlib.modules.attribute.AttributeAdjustment.contexts.LootInfoContext;
 import com.chen1335.arcanumlib.modules.loot.bonusLoot.BonusLoot;
 import com.llamalad7.mixinextras.injector.ModifyReturnValue;
 import com.llamalad7.mixinextras.injector.wrapoperation.Operation;
@@ -30,9 +31,12 @@ import java.util.Iterator;
  * 给符合条件的战利品表追加额外掉落，逻辑见 {@link BonusLoot}。
  */
 @Mixin(LootTable.class)
+@Debug(export = true)
 public abstract class LootTableMixin {
 
-    /** 本次战利品结算期间打开的调整作用域；表里引用表（嵌套结算）时按栈弹出。 */
+    /**
+     * 本次战利品结算期间打开的调整作用域；表里引用表（嵌套结算）时按栈弹出。
+     */
     @Unique
     private final Deque<AdjustmentScope> arcanumlib$lootScopes = new ArrayDeque<>();
 
@@ -47,13 +51,16 @@ public abstract class LootTableMixin {
             at = @At("HEAD")
     )
     private void arcanumlib$openLootAdjustments(LootContext context, CallbackInfoReturnable<ObjectArrayList<ItemStack>> cir) {
-        this.arcanumlib$lootScopes.push(AdjustmentScope.open(new LootInfoContext(context)));
+        this.arcanumlib$lootScopes.push(AdjustmentScope.open(new LootInfoContext(context, ((ILootContextExtension) context).arcanumlib$getParamSet())));
     }
 
-    /** 返回时关闭作用域：弹出最内层那一个，按引用移除本次挂上的全部调整。 */
+    /**
+     * 返回时关闭作用域：弹出最内层那一个，按引用移除本次挂上的全部调整。
+     */
     @Inject(
             method = "getRandomItems(Lnet/minecraft/world/level/storage/loot/LootContext;)Lit/unimi/dsi/fastutil/objects/ObjectArrayList;",
-            at = @At("RETURN")
+            at = @At("RETURN"),
+            order = 1100
     )
     private void arcanumlib$closeLootAdjustments(LootContext context, CallbackInfoReturnable<ObjectArrayList<ItemStack>> cir) {
         if (!this.arcanumlib$lootScopes.isEmpty()) {

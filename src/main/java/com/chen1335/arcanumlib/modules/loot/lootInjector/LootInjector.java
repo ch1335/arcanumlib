@@ -1,7 +1,7 @@
 package com.chen1335.arcanumlib.modules.loot.lootInjector;
 
-import com.chen1335.arcanumlib.modules.loot.lootInjector.selector.TableSelector;
 import com.chen1335.arcanumlib.modules.loot.lootInjector.operator.TableOperator;
+import com.chen1335.arcanumlib.modules.loot.lootInjector.selector.TableSelector;
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
 import net.minecraft.resources.ResourceLocation;

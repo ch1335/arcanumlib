@@ -4,14 +4,13 @@ import com.chen1335.arcanumlib.modules.loot.lootInjector.LootInjectorOps;
 import com.chen1335.arcanumlib.modules.loot.lootInjector.event.CustomFunctionSelectorEvent;
 import com.google.gson.JsonElement;
 import com.mojang.serialization.Codec;
-import java.util.Optional;
-import net.minecraft.nbt.CompoundTag;
 import com.mojang.serialization.Dynamic;
 import com.mojang.serialization.JsonOps;
 import com.mojang.serialization.MapCodec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
 import net.minecraft.core.HolderLookup;
 import net.minecraft.core.registries.BuiltInRegistries;
+import net.minecraft.nbt.CompoundTag;
 import net.minecraft.resources.RegistryOps;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.level.storage.loot.functions.LootItemConditionalFunction;
@@ -19,6 +18,7 @@ import net.minecraft.world.level.storage.loot.functions.LootItemFunction;
 import net.minecraft.world.level.storage.loot.functions.LootItemFunctions;
 
 import java.util.List;
+import java.util.Optional;
 
 /**
  * 函数选择器：在某个容器的函数列表里挑出要动的函数。

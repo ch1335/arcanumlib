@@ -1,10 +1,10 @@
 package com.chen1335.arcanumlib.kubejs.modules.lootInjector.event;
 
+import com.chen1335.arcanumlib.modules.loot.lootInjector.LootInjector;
 import dev.latvian.mods.kubejs.event.KubeEvent;
+import net.minecraft.core.HolderLookup;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.level.storage.loot.LootTable;
-import com.chen1335.arcanumlib.modules.loot.lootInjector.LootInjector;
-import net.minecraft.core.HolderLookup;
 
 /**
  * 脚本事件 {@code ArcanumLibEvents.lootInjectorApply}：每条注入器被应用到某张表**之前**触发。参数与 Java 侧 {@code LootInjectorApplyEvent} 对齐。

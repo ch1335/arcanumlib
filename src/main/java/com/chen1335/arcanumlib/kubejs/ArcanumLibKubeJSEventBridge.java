@@ -1,33 +1,14 @@
 package com.chen1335.arcanumlib.kubejs;
 
-import com.chen1335.arcanumlib.ArcanumLib;
-import com.chen1335.arcanumlib.modules.loot.lootInjector.event.CustomTableSelectorEvent;
-import com.chen1335.arcanumlib.modules.loot.lootInjector.event.CustomPoolSelectorEvent;
-import com.chen1335.arcanumlib.modules.loot.lootInjector.event.CustomFunctionSelectorEvent;
-import com.chen1335.arcanumlib.modules.loot.lootInjector.event.CustomEntrySelectorEvent;
-import com.chen1335.arcanumlib.modules.loot.lootInjector.event.CustomConditionSelectorEvent;
-import com.chen1335.arcanumlib.kubejs.modules.lootInjector.event.CustomTableSelectorKubeEvent;
-import com.chen1335.arcanumlib.kubejs.modules.lootInjector.event.CustomPoolSelectorKubeEvent;
-import com.chen1335.arcanumlib.kubejs.modules.lootInjector.event.CustomFunctionSelectorKubeEvent;
-import com.chen1335.arcanumlib.kubejs.modules.lootInjector.event.CustomEntrySelectorKubeEvent;
-import com.chen1335.arcanumlib.kubejs.modules.lootInjector.event.CustomConditionSelectorKubeEvent;
-import dev.latvian.mods.kubejs.event.EventResult;
-import com.chen1335.arcanumlib.kubejs.modules.lootInjector.event.EntryCustomKubeEvent;
-import com.chen1335.arcanumlib.kubejs.modules.lootInjector.event.LootInjectorApplyKubeEvent;
-import com.chen1335.arcanumlib.kubejs.modules.lootInjector.event.PoolCustomKubeEvent;
-import com.chen1335.arcanumlib.kubejs.modules.lootInjector.event.RegisterLootInjectorKubeEvent;
-import com.chen1335.arcanumlib.kubejs.modules.lootInjector.event.TableCustomKubeEvent;
-import com.chen1335.arcanumlib.modules.loot.bonusLoot.event.BonusLootCheckEvent;
-import com.chen1335.arcanumlib.modules.loot.bonusLoot.event.ModifyBonusLootEvent;
-import com.chen1335.arcanumlib.modules.loot.lootInjector.event.EntryCustomOpEvent;
-import com.chen1335.arcanumlib.modules.loot.lootInjector.event.LootInjectorApplyEvent;
-import com.chen1335.arcanumlib.modules.loot.lootInjector.event.LootInjectorRegisterEvent;
-import com.chen1335.arcanumlib.modules.loot.lootInjector.event.PoolCustomOpEvent;
-import com.chen1335.arcanumlib.modules.loot.lootInjector.event.TableCustomOpEvent;
-import net.neoforged.bus.api.EventPriority;
-import net.neoforged.bus.api.SubscribeEvent;
 import com.chen1335.arcanumlib.kubejs.modules.bonusLoot.BonusLootCheckKubeEvent;
 import com.chen1335.arcanumlib.kubejs.modules.bonusLoot.ModifyBonusLootKubeEvent;
+import com.chen1335.arcanumlib.kubejs.modules.lootInjector.event.*;
+import com.chen1335.arcanumlib.modules.loot.bonusLoot.event.BonusLootCheckEvent;
+import com.chen1335.arcanumlib.modules.loot.bonusLoot.event.ModifyBonusLootEvent;
+import com.chen1335.arcanumlib.modules.loot.lootInjector.event.*;
+import dev.latvian.mods.kubejs.event.EventResult;
+import net.neoforged.bus.api.EventPriority;
+import net.neoforged.bus.api.SubscribeEvent;
 
 /**
  * 把本模组的 NeoForge 事件转发成 KubeJS 脚本事件。

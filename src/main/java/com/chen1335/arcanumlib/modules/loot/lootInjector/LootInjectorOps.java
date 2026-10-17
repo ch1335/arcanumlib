@@ -1,36 +1,18 @@
 package com.chen1335.arcanumlib.modules.loot.lootInjector;
-import com.mojang.serialization.Codec;
-import com.mojang.serialization.MapCodec;
-import net.minecraft.nbt.CompoundTag;
-import net.minecraft.nbt.TagParser;
-import java.util.Optional;
 
 import com.chen1335.arcanumlib.ArcanumLib;
-import com.chen1335.arcanumlib.modules.loot.lootInjector.selector.EntrySelector;
-import com.chen1335.arcanumlib.modules.loot.lootInjector.selector.EntrySelectorType;
-import com.chen1335.arcanumlib.modules.loot.lootInjector.selector.PoolSelector;
-import com.chen1335.arcanumlib.modules.loot.lootInjector.selector.PoolSelectorType;
-import com.chen1335.arcanumlib.modules.loot.lootInjector.selector.TableSelector;
-import com.chen1335.arcanumlib.modules.loot.lootInjector.selector.ConditionSelector;
-import com.chen1335.arcanumlib.modules.loot.lootInjector.selector.ConditionSelectorType;
-import com.chen1335.arcanumlib.modules.loot.lootInjector.selector.FunctionSelector;
-import com.chen1335.arcanumlib.modules.loot.lootInjector.selector.FunctionSelectorType;
-import com.chen1335.arcanumlib.modules.loot.lootInjector.selector.TableSelectorType;
-import com.chen1335.arcanumlib.modules.loot.lootInjector.operator.EntryOperator;
-import com.chen1335.arcanumlib.modules.loot.lootInjector.operator.ConditionOperator;
-import com.chen1335.arcanumlib.modules.loot.lootInjector.operator.ConditionOperatorType;
-import com.chen1335.arcanumlib.modules.loot.lootInjector.operator.EntryOperatorType;
-import com.chen1335.arcanumlib.modules.loot.lootInjector.operator.FunctionOperator;
-import com.chen1335.arcanumlib.modules.loot.lootInjector.operator.FunctionOperatorType;
-import com.chen1335.arcanumlib.modules.loot.lootInjector.operator.PoolOperator;
-import com.chen1335.arcanumlib.modules.loot.lootInjector.operator.PoolOperatorType;
-import com.chen1335.arcanumlib.modules.loot.lootInjector.operator.TableOperator;
-import com.chen1335.arcanumlib.modules.loot.lootInjector.operator.TableOperatorType;
+import com.chen1335.arcanumlib.modules.loot.lootInjector.operator.*;
+import com.chen1335.arcanumlib.modules.loot.lootInjector.selector.*;
+import com.mojang.serialization.MapCodec;
 import net.minecraft.core.Registry;
+import net.minecraft.nbt.CompoundTag;
+import net.minecraft.nbt.TagParser;
 import net.minecraft.resources.ResourceKey;
 import net.neoforged.neoforge.registries.DeferredHolder;
 import net.neoforged.neoforge.registries.DeferredRegister;
 import net.neoforged.neoforge.registries.RegistryBuilder;
+
+import java.util.Optional;
 
 /**
 * 注入操作的类型注册表：表级 / 池级 / 条目级三套，同一 id（如 {@code set_function}）三级各注册一份，json 靠嵌套层级区分。
@@ -92,6 +74,12 @@ public final class LootInjectorOps {
             POOL_OPERATOR_TYPES.register("add_entry", () -> new PoolOperatorType(PoolOperator.AddEntry.CODEC));
     public static final DeferredHolder<PoolOperatorType, PoolOperatorType> POOL_MODIFY_ENTRY =
             POOL_OPERATOR_TYPES.register("modify_entry", () -> new PoolOperatorType(PoolOperator.ModifyEntry.CODEC));
+    public static final DeferredHolder<PoolOperatorType, PoolOperatorType> POOL_CLEAR_POOL =
+            POOL_OPERATOR_TYPES.register("clear_pool", () -> new PoolOperatorType(PoolOperator.ClearPool.CODEC));
+    public static final DeferredHolder<PoolOperatorType, PoolOperatorType> POOL_SET_ROLLS =
+            POOL_OPERATOR_TYPES.register("set_rolls", () -> new PoolOperatorType(PoolOperator.SetRolls.CODEC));
+    public static final DeferredHolder<PoolOperatorType, PoolOperatorType> POOL_SET_BONUS_ROLLS =
+            POOL_OPERATOR_TYPES.register("set_bonus_rolls", () -> new PoolOperatorType(PoolOperator.SetBonusRolls.CODEC));
     public static final DeferredHolder<PoolOperatorType, PoolOperatorType> POOL_SET_CONDITION =
             POOL_OPERATOR_TYPES.register("set_condition", () -> new PoolOperatorType(PoolOperator.SetCondition.CODEC));
     public static final DeferredHolder<PoolOperatorType, PoolOperatorType> POOL_ADD_CONDITION =

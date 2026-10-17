@@ -1,15 +1,12 @@
 package com.chen1335.arcanumlib.mixins;
 
 import com.chen1335.arcanumlib.mixinsAPI.IArcanumLibLivingEntityExtension;
+import com.chen1335.arcanumlib.mixinsAPI.IAttributeMapExtension;
 import com.chen1335.arcanumlib.modules.attribute.AttributeAdjustment.AdjustmentScope;
 import com.chen1335.arcanumlib.modules.attribute.AttributeAdjustment.contexts.LivingDamageContext;
 import com.chen1335.arcanumlib.modules.attribute.AttributeAdjustment.contexts.LivingHurtContext;
 import com.llamalad7.mixinextras.injector.wrapoperation.Operation;
 import com.llamalad7.mixinextras.injector.wrapoperation.WrapOperation;
-import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
-
-import javax.annotation.Nullable;
-import com.chen1335.arcanumlib.mixinsAPI.IAttributeMapExtension;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.damagesource.DamageSource;
 import net.minecraft.world.entity.EntityType;
@@ -17,12 +14,16 @@ import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.ai.attributes.AttributeMap;
 import net.minecraft.world.level.Level;
 import org.objectweb.asm.Opcodes;
-import org.spongepowered.asm.mixin.*;
+import org.spongepowered.asm.mixin.Final;
+import org.spongepowered.asm.mixin.Mixin;
+import org.spongepowered.asm.mixin.Shadow;
+import org.spongepowered.asm.mixin.Unique;
 import org.spongepowered.asm.mixin.gen.Accessor;
 import org.spongepowered.asm.mixin.gen.Invoker;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
+import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
 import javax.annotation.Nullable;
 

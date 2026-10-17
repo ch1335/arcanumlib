@@ -16,7 +16,7 @@ import java.util.concurrent.CompletableFuture;
 /**
  * 生成本模组的属性标签。
  *
- * <p>目前只有 {@code arcanumlib:ignore_attribute_multiplier}：打上它的属性不参与「全属性倍率」。
+ * <p>目前只有 {@code arcanumlib:ignore_attribute_multiplier}：打上它的属性不参与「全属性修正」。
  */
 public class ArcanumAttributeTagsProvider extends IntrinsicHolderTagsProvider<Attribute> {
 
@@ -29,7 +29,7 @@ public class ArcanumAttributeTagsProvider extends IntrinsicHolderTagsProvider<At
 
     @Override
     protected void addTags(HolderLookup.Provider provider) {
-        // 移动速度与跳跃高度不参与全属性倍率：这两条一旦被放大，走位与跳跃手感会直接失控
+        // 移动速度与跳跃高度不参与全属性修正：这两条一旦被放大，走位与跳跃手感会直接失控
         this.tag(ArcanumTags.Attribute.IGNORE_ATTRIBUTE_MULTIPLIER)
                 .add(Attributes.MOVEMENT_SPEED.value())
                 .add(Attributes.JUMP_STRENGTH.value());

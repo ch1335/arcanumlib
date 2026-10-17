@@ -1,8 +1,8 @@
 package com.chen1335.arcanumlib.kubejs.modules.lootInjector.helper;
 
+import com.chen1335.arcanumlib.modules.loot.lootEntry.AllOfEntry;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
-import com.chen1335.arcanumlib.modules.loot.lootEntry.AllOfEntry;
 import com.mojang.serialization.JsonOps;
 import dev.latvian.mods.kubejs.typings.Info;
 import dev.latvian.mods.kubejs.typings.Param;
@@ -15,17 +15,7 @@ import net.minecraft.tags.TagKey;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.level.ItemLike;
 import net.minecraft.world.level.storage.loot.LootTable;
-import net.minecraft.world.level.storage.loot.entries.AlternativesEntry;
-import net.minecraft.world.level.storage.loot.entries.DynamicLoot;
-import net.minecraft.world.level.storage.loot.entries.EmptyLootItem;
-import net.minecraft.world.level.storage.loot.entries.EntryGroup;
-import net.minecraft.world.level.storage.loot.entries.LootItem;
-import net.minecraft.world.level.storage.loot.entries.LootPoolEntries;
-import net.minecraft.world.level.storage.loot.entries.LootPoolEntryContainer;
-import net.minecraft.world.level.storage.loot.entries.LootPoolSingletonContainer;
-import net.minecraft.world.level.storage.loot.entries.NestedLootTable;
-import net.minecraft.world.level.storage.loot.entries.SequentialEntry;
-import net.minecraft.world.level.storage.loot.entries.TagEntry;
+import net.minecraft.world.level.storage.loot.entries.*;
 
 import java.util.ArrayList;
 import java.util.List;

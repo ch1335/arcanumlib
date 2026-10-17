@@ -1,15 +1,15 @@
 package com.chen1335.arcanumlib.kubejs.modules.lootInjector.helper;
 
-import dev.latvian.mods.kubejs.typings.Info;
-import org.jetbrains.annotations.Nullable;
 import com.chen1335.arcanumlib.modules.loot.lootInjector.selector.EntrySelector;
-
-import java.util.List;
-import java.util.Optional;
+import dev.latvian.mods.kubejs.typings.Info;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.tags.TagKey;
 import net.minecraft.world.item.Item;
+import org.jetbrains.annotations.Nullable;
+
+import java.util.List;
+import java.util.Optional;
 
 /**
  * {@code EntrySelector} 的脚本工厂：把 json 里的这个类别写成一行 Java 调用。

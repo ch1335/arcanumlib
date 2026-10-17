@@ -1,21 +1,20 @@
 package com.chen1335.arcanumlib.modules.loot.lootInjector.operator;
 
+import com.chen1335.arcanumlib.ArcanumLib;
 import com.chen1335.arcanumlib.modules.loot.lootInjector.LootInjectorOps;
 import com.chen1335.arcanumlib.modules.loot.lootInjector.event.EntryCustomOpEvent;
-import com.chen1335.arcanumlib.ArcanumLib;
-import com.chen1335.arcanumlib.modules.loot.lootInjector.selector.EntrySelector;
 import com.chen1335.arcanumlib.modules.loot.lootInjector.selector.ConditionSelector;
+import com.chen1335.arcanumlib.modules.loot.lootInjector.selector.EntrySelector;
 import com.chen1335.arcanumlib.modules.loot.lootInjector.selector.FunctionSelector;
 import com.google.gson.JsonElement;
 import com.mojang.serialization.Codec;
-import net.minecraft.nbt.CompoundTag;
-import java.util.Optional;
 import com.mojang.serialization.JsonOps;
 import com.mojang.serialization.MapCodec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
 import net.minecraft.Util;
 import net.minecraft.core.HolderLookup;
 import net.minecraft.core.registries.BuiltInRegistries;
+import net.minecraft.nbt.CompoundTag;
 import net.minecraft.resources.RegistryOps;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.level.storage.loot.LootPool;
@@ -29,6 +28,7 @@ import net.minecraft.world.level.storage.loot.predicates.LootItemCondition;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 
 /**
  * 条目级操作：作用于"当前条目"，只能出现在 {@link PoolOperator.ModifyEntry} 的子 {@code ops} 里。
