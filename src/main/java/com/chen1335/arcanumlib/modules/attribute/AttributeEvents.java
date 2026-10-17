@@ -66,6 +66,6 @@ public class AttributeEvents {
     @SubscribeEvent(priority = EventPriority.HIGH)
     public static void PlayerTickEvent$Post(PlayerTickEvent.Post event) {
         PlayerData data = event.getEntity().getData(ArcanumAttachments.PLAYER_DATA);
-        data.seeking = event.getEntity().getAttributeValue(ArcanumAttributes.SEEKING);
+        data.tick(event.getEntity());
     }
 }

@@ -34,11 +34,11 @@ public final class ArcanumAttachments {
                     .build());
 
     public static final DeferredHolder<AttachmentType<?>, AttachmentType<EntityData>> ENTITY_DATA =
-            ATTACHMENT_TYPES.register("entity_data", () -> AttachmentType.<EntityData>builder(EntityData::new)
+            ATTACHMENT_TYPES.register("entity_data", () -> AttachmentType.builder(EntityData::new)
                     .build());
 
     public static final DeferredHolder<AttachmentType<?>, AttachmentType<PlayerData>> PLAYER_DATA =
-            ATTACHMENT_TYPES.register("entity_data", () -> AttachmentType.builder(PlayerData::new)
+            ATTACHMENT_TYPES.register("player_data", () -> AttachmentType.builder(PlayerData::new)
                     .build());
 
 

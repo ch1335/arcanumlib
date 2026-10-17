@@ -59,7 +59,8 @@ public class SpawnEvents {
         }
 
         List<MobSpawnSettings.SpawnerData> list = event.getSpawnerDataList();
-        if (list.isEmpty() || AttributeConfig.threshold() <= 0.0D) {
+        double threshold = AttributeConfig.threshold();
+        if (list.isEmpty() || threshold <= 0.0D) {
             return;
         }
 
@@ -77,9 +78,10 @@ public class SpawnEvents {
             return;
         }
 
-        for (MobSpawnSettings.SpawnerData data : List.copyOf(list)) {
+        // addSpawnerData 只往尾部追加，所以用索引循环就够了
+        for (MobSpawnSettings.SpawnerData data : list) {
             // 稀有判定按「权重 × 平均数量」：只刷 1 只的怪不该和一次刷 4 只的一样常见
-            if (!isRare(effectiveWeight(data), total)) {
+            if (!isRare(effectiveWeight(data), total, threshold)) {
                 continue;
             }
 
@@ -185,9 +187,7 @@ public class SpawnEvents {
     /**
      * 该生物的有效权重占整张表的比例是否低于阈值。
      */
-    private static boolean isRare(int weight, int total) {
-        double threshold = AttributeConfig.threshold();
-
+    private static boolean isRare(int weight, int total, double threshold) {
         return threshold > 0.0D && total > 0 && (double) Math.max(weight, 0) / total < threshold;
     }
 }
