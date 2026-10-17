@@ -1,0 +1,22 @@
+{
+  "ops": [
+    {
+      "type": "arcanumlib:modify_pool",
+      "ops": [
+        {
+          "type": "arcanumlib:modify_entry",
+          "entrySelector": {
+            "type": "arcanumlib:item",
+            "item": "minecraft:dragon_egg"
+          },
+          "ops": [
+            {
+              "type": "arcanumlib:remove_entry"
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "priority": 1500
+}

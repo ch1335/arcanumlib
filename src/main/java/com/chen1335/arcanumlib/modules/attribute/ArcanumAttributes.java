@@ -72,6 +72,20 @@ public final class ArcanumAttributes {
             () -> new PercentageAttribute("attribute.name.arcanumlib.damage_taken_multiplier", 1.0D, 0.0D, 100.0D)
                     .setSentiment(Attribute.Sentiment.NEGATIVE)
                     .setSyncable(true));
+
+    /**
+     * 全属性倍率：提高你的大多数属性。默认 100%（1.0）为不变，150% 即大多数属性多一半。
+     * 值就是倍率本身，所以上下限用 0 ~ 100。
+     *
+     * <p>目前只完成注册，还没有挂到任何实体上。
+     */
+    public static final DeferredHolder<Attribute, Attribute> ALL_ATTRIBUTE_MULTIPLIER = ATTRIBUTES.register(
+            "all_attribute_multiplier",
+            () -> new PercentageAttribute("attribute.name.arcanumlib.all_attribute_multiplier", 1.0D, 0.0D, 100.0D)
+                    .setSentiment(Attribute.Sentiment.POSITIVE)
+                    .setSyncable(true));
+
+
     private ArcanumAttributes() {
     }
 }

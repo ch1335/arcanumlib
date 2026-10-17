@@ -1,0 +1,36 @@
+{
+  "ops": [
+    {
+      "type": "arcanumlib:modify_pool",
+      "ops": [
+        {
+          "type": "arcanumlib:modify_entry",
+          "ops": [
+            {
+              "type": "arcanumlib:remove_entry"
+            }
+          ]
+        }
+      ],
+      "poolSelector": {
+        "type": "arcanumlib:all_of",
+        "conditions": [
+          {
+            "type": "arcanumlib:name",
+            "name": "arcanumlib_test_alt"
+          },
+          {
+            "type": "arcanumlib:total_weight",
+            "max": 2,
+            "min": 2
+          }
+        ]
+      }
+    }
+  ],
+  "priority": 1060,
+  "tableSelector": {
+    "type": "arcanumlib:id",
+    "id": "minecraft:chests/simple_dungeon"
+  }
+}

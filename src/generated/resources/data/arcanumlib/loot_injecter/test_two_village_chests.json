@@ -1,0 +1,41 @@
+{
+  "ops": [
+    {
+      "type": "arcanumlib:add_pool",
+      "pool": {
+        "bonus_rolls": 0.0,
+        "entries": [
+          {
+            "type": "arcanumlib:all_of",
+            "children": [
+              {
+                "type": "minecraft:item",
+                "conditions": [
+                  {
+                    "base_chance": 0.25,
+                    "condition": "arcanumlib:chance_modifiers"
+                  }
+                ],
+                "name": "minecraft:gold_nugget"
+              }
+            ]
+          }
+        ],
+        "rolls": 1.0
+      }
+    }
+  ],
+  "tableSelector": {
+    "type": "arcanumlib:any_of",
+    "conditions": [
+      {
+        "type": "arcanumlib:id",
+        "id": "minecraft:chests/village/village_temple"
+      },
+      {
+        "type": "arcanumlib:id",
+        "id": "minecraft:chests/village/village_toolsmith"
+      }
+    ]
+  }
+}

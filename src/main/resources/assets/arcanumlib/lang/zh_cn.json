@@ -51,6 +51,8 @@
   "attribute.name.arcanumlib.damage_multiplier.desc": "造成伤害时乘以该倍率",
   "attribute.name.arcanumlib.damage_taken_multiplier": "受到伤害",
   "attribute.name.arcanumlib.damage_taken_multiplier.desc": "受到伤害时乘以该倍率",
+  "attribute.name.arcanumlib.all_attribute_multiplier": "全属性倍率",
+  "attribute.name.arcanumlib.all_attribute_multiplier.desc": "提高你的大多数属性",
   "attribute.name.arcanumlib.fortune": "时运",
   "attribute.name.arcanumlib.fortune.desc": "提高时运附魔的等效等级",
   "attribute.name.arcanumlib.looting": "抢夺",

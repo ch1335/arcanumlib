@@ -1,0 +1,17 @@
+{
+  "ops": [
+    {
+      "type": "arcanumlib:modify_pool",
+      "ops": [
+        {
+          "type": "arcanumlib:remove_pool"
+        }
+      ]
+    }
+  ],
+  "priority": 1200,
+  "tableSelector": {
+    "type": "arcanumlib:block_tag",
+    "tag": "minecraft:logs"
+  }
+}

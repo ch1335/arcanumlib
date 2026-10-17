@@ -1,0 +1,99 @@
+{
+  "ops": [
+    {
+      "type": "arcanumlib:add_pool",
+      "pool": {
+        "bonus_rolls": 0.0,
+        "entries": [
+          {
+            "type": "minecraft:item",
+            "conditions": [
+              {
+                "chance_modifiers": [
+                  {
+                    "type": "arcanumlib:predicate",
+                    "fail": [
+                      {
+                        "type": "arcanumlib:apply",
+                        "operation": "add",
+                        "value": 0.05
+                      }
+                    ],
+                    "predicates": [
+                      {
+                        "condition": "minecraft:killed_by_player"
+                      },
+                      {
+                        "condition": "minecraft:inverted",
+                        "term": {
+                          "condition": "minecraft:killed_by_player"
+                        }
+                      },
+                      {
+                        "condition": "minecraft:weather_check",
+                        "raining": true
+                      },
+                      {
+                        "condition": "minecraft:match_tool",
+                        "predicate": {
+                          "items": "minecraft:iron_sword"
+                        }
+                      },
+                      {
+                        "condition": "minecraft:any_of",
+                        "terms": [
+                          {
+                            "condition": "minecraft:killed_by_player"
+                          },
+                          {
+                            "condition": "minecraft:weather_check",
+                            "raining": true
+                          }
+                        ]
+                      },
+                      {
+                        "condition": "minecraft:entity_properties",
+                        "entity": "this",
+                        "predicate": {
+                          "type": "minecraft:zombie"
+                        }
+                      }
+                    ],
+                    "success": [
+                      {
+                        "type": "arcanumlib:apply",
+                        "operation": "mul",
+                        "value": 3.0
+                      }
+                    ]
+                  },
+                  {
+                    "type": "arcanumlib:predicate",
+                    "predicates": [
+                      {
+                        "condition": "minecraft:killed_by_player"
+                      }
+                    ],
+                    "success": [
+                      {
+                        "type": "arcanumlib:clamp",
+                        "max": 0.9
+                      }
+                    ]
+                  }
+                ],
+                "condition": "arcanumlib:chance_modifiers"
+              }
+            ],
+            "name": "minecraft:gold_ingot"
+          }
+        ],
+        "rolls": 1.0
+      }
+    }
+  ],
+  "tableSelector": {
+    "type": "arcanumlib:id",
+    "id": "minecraft:entities/zombie"
+  }
+}

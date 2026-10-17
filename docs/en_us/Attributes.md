@@ -1,7 +1,7 @@
 # Attributes provided by this mod
 
-ArcanumLib provides 6 attributes. Four of them are **player attributes** whose default base value is `0` — in other
-words **they do nothing at all by default** — and the other two are damage ratios whose default is 100% (no change).
+ArcanumLib provides 7 attributes. Four of them are **player attributes** whose default base value is `0` — in other
+words **they do nothing at all by default**; two more are damage ratios (100% by default) and one all-attribute ratio is registered but not attached to any entity yet.
 
 ## Table of Contents
 
@@ -26,9 +26,11 @@ words **they do nothing at all by default** — and the other two are damage rat
 | `arcanumlib:bonus_loot` | Bonus Loot | percentage | 0 | 0 ~ 20 | **Rolls entity drops and chest loot extra times** by the ratio |
 | `arcanumlib:damage_multiplier` | Damage Multiplier | percentage | 1 (100%) | 0 ~ 100 | Multiplies the damage dealt |
 | `arcanumlib:damage_taken_multiplier` | Damage Taken Multiplier | percentage | 1 (100%) | 0 ~ 100 | Multiplies the damage taken |
+| `arcanumlib:all_attribute_multiplier` | All Attribute Multiplier | percentage | 1 (100%) | 0 ~ 100 | Improves most of your attributes |
 
-- The first four are attached to `minecraft:player` and the last two to **every living entity**; all six are **synced attributes** (the client reads the same value);
-- The lower end of the range is 0 for all of them; for the two ratios `0` means full immunity and `1` (100%) means no change.
+- The first four are attached to `minecraft:player` and the next two to **every living entity**; all seven are **synced attributes**; `all_attribute_multiplier` is registered but not attached to any entity yet;
+- The lower end of the range is 0 for all of them; for the three ratios `0` means zeroed out and `1` (100%) means no change.
+- The `arcanumlib:ignore_attribute_multiplier` attribute tag: attributes carrying it are **not** affected by the all-attribute multiplier; by default it contains **movement speed** and **jump strength** (data-generated, overridable by datapacks).
 
 ---
 

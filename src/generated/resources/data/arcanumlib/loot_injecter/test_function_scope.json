@@ -1,0 +1,103 @@
+{
+  "ops": [
+    {
+      "type": "arcanumlib:modify_pool",
+      "ops": [
+        {
+          "type": "arcanumlib:modify_entry",
+          "ops": [
+            {
+              "type": "arcanumlib:modify_function",
+              "functionSelector": {
+                "type": "arcanumlib:index",
+                "index": 0
+              },
+              "ops": [
+                {
+                  "type": "arcanumlib:remove_function"
+                }
+              ]
+            },
+            {
+              "type": "arcanumlib:modify_function",
+              "functionSelector": {
+                "type": "arcanumlib:has_condition",
+                "conditionType": "minecraft:random_chance"
+              },
+              "ops": [
+                {
+                  "type": "arcanumlib:modify_condition",
+                  "conditionSelector": {
+                    "type": "arcanumlib:condition_type",
+                    "conditionType": "minecraft:random_chance"
+                  },
+                  "ops": [
+                    {
+                      "type": "arcanumlib:remove_condition"
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "poolSelector": {
+        "type": "arcanumlib:name",
+        "name": "arcanumlib_test_fn"
+      }
+    },
+    {
+      "type": "arcanumlib:modify_pool",
+      "ops": [
+        {
+          "type": "arcanumlib:modify_entry",
+          "ops": [
+            {
+              "type": "arcanumlib:modify_condition",
+              "conditionSelector": {
+                "type": "arcanumlib:index",
+                "index": 0
+              },
+              "ops": [
+                {
+                  "type": "arcanumlib:replace_condition",
+                  "condition": {
+                    "chance": 1.0,
+                    "condition": "minecraft:random_chance"
+                  }
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "poolSelector": {
+        "type": "arcanumlib:name",
+        "name": "arcanumlib_test_cond"
+      }
+    },
+    {
+      "type": "arcanumlib:modify_pool",
+      "ops": [
+        {
+          "type": "arcanumlib:modify_condition",
+          "ops": [
+            {
+              "type": "arcanumlib:remove_condition"
+            }
+          ]
+        }
+      ],
+      "poolSelector": {
+        "type": "arcanumlib:name",
+        "name": "arcanumlib_test_poolcond"
+      }
+    }
+  ],
+  "priority": 1120,
+  "tableSelector": {
+    "type": "arcanumlib:id",
+    "id": "minecraft:chests/simple_dungeon"
+  }
+}

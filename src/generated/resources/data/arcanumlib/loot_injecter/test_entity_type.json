@@ -1,0 +1,32 @@
+{
+  "ops": [
+    {
+      "type": "arcanumlib:add_pool",
+      "pool": {
+        "bonus_rolls": 0.0,
+        "entries": [
+          {
+            "type": "arcanumlib:all_of",
+            "children": [
+              {
+                "type": "minecraft:item",
+                "conditions": [
+                  {
+                    "base_chance": 0.1,
+                    "condition": "arcanumlib:chance_modifiers"
+                  }
+                ],
+                "name": "minecraft:rotten_flesh"
+              }
+            ]
+          }
+        ],
+        "rolls": 1.0
+      }
+    }
+  ],
+  "tableSelector": {
+    "type": "arcanumlib:entity_type",
+    "target": "minecraft:zombie"
+  }
+}

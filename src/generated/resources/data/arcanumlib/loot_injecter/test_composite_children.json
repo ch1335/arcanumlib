@@ -1,0 +1,46 @@
+{
+  "ops": [
+    {
+      "type": "arcanumlib:modify_pool",
+      "ops": [
+        {
+          "type": "arcanumlib:modify_entry",
+          "entrySelector": {
+            "type": "arcanumlib:entry_type",
+            "entryType": "minecraft:alternatives"
+          },
+          "ops": [
+            {
+              "type": "arcanumlib:move_child",
+              "entrySelector": {
+                "type": "arcanumlib:index",
+                "index": 0
+              },
+              "position": "last"
+            },
+            {
+              "type": "arcanumlib:add_child",
+              "entry": {
+                "type": "minecraft:item",
+                "name": "minecraft:diamond"
+              },
+              "index": 0
+            },
+            {
+              "type": "arcanumlib:remove_child",
+              "entrySelector": {
+                "type": "arcanumlib:item",
+                "item": "minecraft:oak_sapling"
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "priority": 1200,
+  "tableSelector": {
+    "type": "arcanumlib:id",
+    "id": "minecraft:blocks/oak_leaves"
+  }
+}

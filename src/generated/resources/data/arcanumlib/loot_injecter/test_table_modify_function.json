@@ -1,0 +1,38 @@
+{
+  "ops": [
+    {
+      "type": "arcanumlib:modify_function",
+      "functionSelector": {
+        "type": "arcanumlib:all_of",
+        "selectors": [
+          {
+            "type": "arcanumlib:function_type",
+            "functionType": "minecraft:set_count"
+          },
+          {
+            "type": "arcanumlib:not",
+            "selector": {
+              "type": "arcanumlib:index",
+              "index": 99
+            }
+          }
+        ]
+      },
+      "ops": [
+        {
+          "type": "arcanumlib:replace_function",
+          "function": {
+            "add": true,
+            "count": 5.0,
+            "function": "minecraft:set_count"
+          }
+        }
+      ]
+    }
+  ],
+  "priority": 1100,
+  "tableSelector": {
+    "type": "arcanumlib:id",
+    "id": "minecraft:chests/woodland_mansion"
+  }
+}

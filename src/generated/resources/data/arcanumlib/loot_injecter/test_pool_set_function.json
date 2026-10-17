@@ -1,0 +1,28 @@
+{
+  "ops": [
+    {
+      "type": "arcanumlib:modify_pool",
+      "ops": [
+        {
+          "type": "arcanumlib:set_function",
+          "functions": [
+            {
+              "add": true,
+              "count": 3.0,
+              "function": "minecraft:set_count"
+            }
+          ]
+        }
+      ],
+      "poolSelector": {
+        "type": "arcanumlib:name",
+        "name": "arcanumlib_test_setfunc"
+      }
+    }
+  ],
+  "priority": 1090,
+  "tableSelector": {
+    "type": "arcanumlib:id",
+    "id": "minecraft:chests/simple_dungeon"
+  }
+}

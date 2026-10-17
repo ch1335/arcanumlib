@@ -1,0 +1,40 @@
+{
+  "ops": [
+    {
+      "type": "arcanumlib:add_pool",
+      "pool": {
+        "bonus_rolls": 0.0,
+        "entries": [
+          {
+            "type": "minecraft:item",
+            "conditions": [
+              {
+                "condition": "arcanumlib:has_stage",
+                "stage": {
+                  "type": "wildcard",
+                  "pattern": "chapter_*"
+                }
+              },
+              {
+                "check_server_stages": true,
+                "condition": "arcanumlib:has_stage",
+                "desc": "arcanumlib.test.stage.chapter_1",
+                "stage": "chapter_1"
+              },
+              {
+                "chance": 1.0,
+                "condition": "minecraft:random_chance"
+              }
+            ],
+            "name": "minecraft:diamond"
+          }
+        ],
+        "rolls": 1.0
+      }
+    }
+  ],
+  "tableSelector": {
+    "type": "arcanumlib:id",
+    "id": "minecraft:entities/zombie"
+  }
+}

@@ -1,0 +1,38 @@
+{
+  "ops": [
+    {
+      "type": "arcanumlib:table_custom",
+      "custom_id": "test_table_custom"
+    },
+    {
+      "type": "arcanumlib:modify_pool",
+      "ops": [
+        {
+          "type": "arcanumlib:pool_custom",
+          "custom_id": "test_pool_custom"
+        },
+        {
+          "type": "arcanumlib:modify_entry",
+          "entrySelector": {
+            "type": "arcanumlib:custom",
+            "custom_id": "test_entry"
+          },
+          "ops": [
+            {
+              "type": "arcanumlib:entry_custom",
+              "custom_id": "test_entry_custom"
+            }
+          ]
+        }
+      ],
+      "poolSelector": {
+        "type": "arcanumlib:custom",
+        "custom_id": "test_pool"
+      }
+    }
+  ],
+  "tableSelector": {
+    "type": "arcanumlib:custom",
+    "custom_id": "test_table"
+  }
+}

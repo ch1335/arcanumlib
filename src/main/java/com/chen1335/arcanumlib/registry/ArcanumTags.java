@@ -10,6 +10,18 @@ import net.minecraft.world.damagesource.DamageType;
  */
 public final class ArcanumTags {
 
+    public static class Attribute {
+        /**
+         * 带这个标签的属性不吃 {@code ALL_ATTRIBUTE_MULTIPLIER}（全属性倍率）。
+         *
+         * <p>默认是空标签，也就是不改变原行为；需要排除的属性往
+         * {@code data/arcanumlib/tags/attribute/ignore_attribute_multiplier.json} 里加即可（数据包也能改）。
+         */
+        public static final TagKey<net.minecraft.world.entity.ai.attributes.Attribute> IGNORE_ATTRIBUTE_MULTIPLIER =
+                TagKey.create(Registries.ATTRIBUTE, ArcanumLib.id("ignore_attribute_multiplier"));
+
+    }
+
     public static class Damage {
         /**
          * 带这个标签的伤害类型不吃 {@code DAMAGE_MULTIPLIER}（造成伤害那一侧）。
