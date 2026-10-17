@@ -14,6 +14,7 @@ import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.fml.common.EventBusSubscriber;
 import net.neoforged.neoforge.event.level.LevelEvent;
 import net.neoforged.neoforge.event.server.ServerStoppedEvent;
+import net.neoforged.neoforge.event.tick.ServerTickEvent;
 
 import java.util.IdentityHashMap;
 import java.util.List;
@@ -39,6 +40,17 @@ public class SpawnEvents {
      */
     private static final Map<MobSpawnSettings.SpawnerData, MobSpawnSettings.SpawnerData> EXTRA_ENTRIES =
             new IdentityHashMap<>();
+
+    /**
+     * 每 tick 刷新一次：玩家 → 寻觅值。刷怪事件里只读这里，不再每次去读属性。
+     *
+     * <p>刷怪尝试每 tick 有数千次，而 {@code getInstance} + {@code getValue} 虽不贵，乘上
+     * 「事件次数 × 全服玩家数」就成了热点，所以统一挪到每 tick 一次。
+     */
+    private static final Map<ServerPlayer, Double> SEEKING_CACHE = new IdentityHashMap<>();
+
+    /** 本 tick 是否有任何玩家带寻觅值；没有时刷怪事件直接返回，连玩家列表都不遍历。 */
+    private static boolean hasAnySeeking = false;
 
     @SubscribeEvent(priority = EventPriority.LOW)
     public static void onPotentialSpawns(LevelEvent.PotentialSpawns event) {
@@ -99,30 +111,62 @@ public class SpawnEvents {
     }
 
     /**
+     * 每 tick 刷新寻觅缓存：只有这一步读属性，刷怪事件里只剩距离比较。
+     *
+     * <p>用 {@code Pre} 而不是 {@code Post}：缓存要在本 tick 的刷怪开始之前就绪。
+     */
+    @SubscribeEvent
+    public static void onServerTick(ServerTickEvent.Pre event) {
+        SEEKING_CACHE.clear();
+        hasAnySeeking = false;
+
+        for (ServerLevel level : event.getServer().getAllLevels()) {
+            for (ServerPlayer player : level.players()) {
+                // 走 getInstance 而不是 getAttributeValue：后者对没挂上的属性会抛异常
+                AttributeInstance instance = player.getAttributes().getInstance(ArcanumAttributes.SEEKING);
+                double value = instance == null ? 0.0D : instance.getValue();
+                if (value > 0.0D) {
+                    SEEKING_CACHE.put(player, value);
+                    hasAnySeeking = true;
+                }
+            }
+        }
+    }
+
+    /**
      * 生物实例随世界加载变化，服停时清一次，免得跨存档留着旧引用。
      */
     @SubscribeEvent
     public static void onServerStopped(ServerStoppedEvent event) {
         EXTRA_ENTRIES.clear();
+        SEEKING_CACHE.clear();
+        hasAnySeeking = false;
     }
 
     /**
      * 取范围内所有玩家的寻觅值里最高的那个：刷怪没有「贡献者」概念，只能按最强值算。
+     *
+     * <p>只读 {@link #SEEKING_CACHE}；缓存值不大于当前最高值时直接跳过，连距离都不比。
      */
     private static double seeking(ServerLevel level, BlockPos pos) {
+        if (!hasAnySeeking) {
+            return 0.0D;
+        }
+
         double radiusSqr = SEEKING_RADIUS * SEEKING_RADIUS;
         double best = 0.0D;
 
         for (ServerPlayer player : level.players()) {
+            Double cached = SEEKING_CACHE.get(player);
+            if (cached == null || cached <= best) {
+                continue;
+            }
+
             if (player.distanceToSqr(pos.getX() + 0.5D, pos.getY() + 0.5D, pos.getZ() + 0.5D) > radiusSqr) {
                 continue;
             }
 
-            // 走 getInstance 而不是 getAttributeValue：后者对没挂上的属性会抛异常，不该在刷怪循环里赌这个
-            AttributeInstance instance = player.getAttributes().getInstance(ArcanumAttributes.SEEKING);
-            if (instance != null) {
-                best = Math.max(best, instance.getValue());
-            }
+            best = cached;
         }
 
         return best;

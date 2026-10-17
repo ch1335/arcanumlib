@@ -2,6 +2,7 @@ package com.chen1335.arcanumlib.registry;
 
 import com.chen1335.arcanumlib.ArcanumLib;
 import com.chen1335.arcanumlib.common.attachmentTypes.EntityData;
+import com.chen1335.arcanumlib.common.attachmentTypes.PlayerData;
 import com.chen1335.arcanumlib.modules.fishing.FishingHookData;
 import net.neoforged.neoforge.attachment.AttachmentType;
 import net.neoforged.neoforge.registries.DeferredHolder;
@@ -35,6 +36,11 @@ public final class ArcanumAttachments {
     public static final DeferredHolder<AttachmentType<?>, AttachmentType<EntityData>> ENTITY_DATA =
             ATTACHMENT_TYPES.register("entity_data", () -> AttachmentType.<EntityData>builder(EntityData::new)
                     .build());
+
+    public static final DeferredHolder<AttachmentType<?>, AttachmentType<PlayerData>> PLAYER_DATA =
+            ATTACHMENT_TYPES.register("entity_data", () -> AttachmentType.builder(PlayerData::new)
+                    .build());
+
 
     private ArcanumAttachments() {
     }
