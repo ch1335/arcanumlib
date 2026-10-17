@@ -90,8 +90,8 @@ with the world, while an adjustment writes no persistent state and applies only 
 
 ### How it works
 
-Before reading certain attributes this mod fires `LivingGetAttributeAdjustmentEvent`; a listener writes its
-into the carrier provided by the event, keyed by operation, and they take part in that attribute calculation. The
+Before reading certain attributes this mod fires `LivingGetAttributeAdjustmentEvent`; a listener decides which entity and
+attributes to adjust and writes their deltas into the carrier, and they take part in that attribute calculation. The
 first three operations mean the same as for attribute modifiers; the last two are stages this mod adds. Neutral values:
 
 | Operation | Meaning | Neutral value |
@@ -113,66 +113,55 @@ The event carries a context object that describes the situation the read happens
 
 | Context | Situation | Carries |
 |---|---|---|
-| `DamageContext` | Reading damage multipliers, armor, armor toughness or the ApothicAttributes pierce, shred, crit chance, crit damage and projectile damage attributes during damage resolution | The victim, the damage source and the current damage value |
-| `AttackingContext` | An attacker reading attack damage or crit damage | The attacker and the target |
+| `DamageContext` | Reading attributes during damage resolution | The victim, the damage source and the current damage value |
+| `AttackingContext` | An attacker reading attributes; currently **only player direct attacks** (`Player#attack`) - projectiles, mob melee and other paths do not fire it | The attacker and the target |
 | `LootInfoContext` | Reading attributes during loot resolution | The loot context of this roll |
+| `LivingHurtContext` | Reading attributes throughout a hurt (from the head of `hurt` to its return) | The victim, the damage source and the current damage value |
+| `LivingDamageContext` | Reading attributes during damage resolution (around the `actuallyHurt` call) | The victim, the damage source and the current damage value |
 
 ### Reading values
 
-To read an attribute value that includes temporary adjustments, use `AdjustmentHelper.getAttributeWithAdjusted`:
-it registers the adjustment, reads the attribute and removes the adjustment again. When the read has to be done by
-the caller (for example to keep another mod wrapper on that call), use the overload taking a `DoubleSupplier`.
+A single resolution usually reads several attributes: open an `AdjustmentScope`, so the event fires once and the scope removes everything on `close()`; for a single attribute use `AdjustmentHelper.getAttributeWithAdjusted` (a one-line wrapper around the scope).
 
 ```java
-double armor = AdjustmentHelper.getAttributeWithAdjusted(entity, Attributes.ARMOR, new DamageContext(entity, source, damage));
+try (AdjustmentScope scope = AdjustmentScope.open(new DamageContext(entity, source, damage))) {
+    double armor = scope.get(entity, Attributes.ARMOR);
+}
 ```
 
 ### Instrumented attributes
 
-| Attribute | Context | When |
-|---|---|---|
-| `arcanumlib:damage_multiplier` | `DamageContext` | When the damage correction bonus is calculated |
-| `arcanumlib:damage_taken_multiplier` | `DamageContext` | When the incoming damage reduction is calculated |
-| `minecraft:armor` | `DamageContext` | When armor reduction is calculated |
-| `minecraft:armor_toughness` | `DamageContext` | When armor toughness reduction is calculated |
-| `minecraft:attack_damage` | `AttackingContext` | Player attacks |
-| `arcanumlib:fortune` | `LootInfoContext` | When adding the effective Fortune level during loot resolution |
-| `arcanumlib:looting` | `LootInfoContext` | When adding the effective Looting level during loot resolution |
-| `arcanumlib:bonus_loot` | `LootInfoContext` | Rolling bonus loot |
-| `apothic_attributes:armor_pierce` | `DamageContext` | When armor pierce is calculated (requires ApothicAttributes to be loaded) |
-| `apothic_attributes:armor_shred` | `DamageContext` | When armor shred is calculated (requires ApothicAttributes to be loaded) |
-| `apothic_attributes:prot_pierce` | `DamageContext` | When protection pierce is calculated (requires ApothicAttributes to be loaded) |
-| `apothic_attributes:prot_shred` | `DamageContext` | When protection shred is calculated (requires ApothicAttributes to be loaded) |
-| `apothic_attributes:crit_chance` | `DamageContext` | When the critical hit decision is made (requires ApothicAttributes to be loaded) |
-| `apothic_attributes:crit_damage` | `DamageContext` / `AttackingContext` | When the crit strike is resolved (DamageContext) and when a vanilla critical hit is decided (AttackingContext) (requires ApothicAttributes to be loaded) |
-| `apothic_attributes:projectile_damage` | `DamageContext` | When projectile damage is calculated (requires ApothicAttributes to be loaded) |
+Four places are instrumented, listed in the order they happen during one attack:
 
-Reads of any other attribute do not go through this mechanism.
+1. **the attack flow** — `Player#attack(Entity)` opens the event (`AttackingContext`) and removes it on return;
+2. **the hurt flow** — `LivingEntity#hurt` opens the event (`LivingHurtContext`) and removes it on return;
+3. **damage resolution** — a scope around the `actuallyHurt` call (`LivingDamageContext`);
+4. **loot resolution** — `LootTable#getRandomItems(LootContext)` opens the event (`LootInfoContext`) and removes it on return.
+
+Inside the hurt flow both scopes coexist: `LivingHurtContext` for the whole flow and `LivingDamageContext` for the damage resolution; listeners tell them apart and should not add the same adjustment in both.
+
+No other read point is instrumented yet.
 
 ### Example
 
-A listener tells the situations apart through `IContext`. The example below means: when a wooden sword hits a zombie, the attack damage gets a correction equal to +20.
+A listener tells the situations apart through `IContext` and decides which entity and attribute to adjust. The example below means: when a wooden sword hits a zombie, the attack damage gets a correction equal to +20.
 
 ```java
 @SubscribeEvent
 public static void onAdjustAttribute(LivingGetAttributeAdjustmentEvent event) {
-    // only care about the attack damage attribute
-    if (event.getAttribute().value() != Attributes.ATTACK_DAMAGE.value()) {
-        return;
-    }
     // the context has to be "an attacker reading attack damage"
     if (!(event.getContext() instanceof AttackingContext context)) {
         return;
     }
     LivingEntity attacker = context.attacker();
     if (attacker.getMainHandItem().is(Items.WOODEN_SWORD) && context.target().getType() == EntityType.ZOMBIE) {
-        // ADD_VALUE matches the modifier operation of the same name: equal to +20 attack damage
-        event.getAdjustment().add(AttributeAdjustment.Operation.ADD_VALUE, 20.0D);
+        // the listener picks the entity and attribute; ADD_VALUE is equal to +20 attack damage
+        event.getAdjustment(attacker, Attributes.ATTACK_DAMAGE).add(AttributeAdjustment.Operation.ADD_VALUE, 20.0D);
     }
 }
 ```
 
-- An `ADD_VALUE` adjustment is part of the base value and therefore also feeds the two later stages;
+- One event can carry adjustments for **several entities and attributes** (`getAdjustment(...)` keeps them apart);
 - The example only applies in the **player attack** situation (`AttackingContext`), so it leaves the zombie own attributes untouched.
 
 ### Notes
@@ -260,18 +249,19 @@ public static void onAttributeChanged(LivingAttributeChangeEvent event) {
 
 ### `LivingGetAttributeAdjustmentEvent` (attribute adjustment)
 
-Fired right before the value of a certain attribute is read (Java side, on `NeoForge.EVENT_BUS`). A listener
-writes deltas by operation; they only apply to that single read. See [Attribute Adjustment](#attribute-adjustment).
+Fired when attribute values are read (Java side, on `NeoForge.EVENT_BUS`). A listener decides which entity and which attributes
+to adjust and writes the deltas; they only apply to that read. See [Attribute Adjustment](#attribute-adjustment).
 
 | Method | Description |
 |---|---|
-| `getAttribute()` | The attribute being read |
-| `getOwner()` | The entity the attribute belongs to |
 | `getContext()` | The context of this read |
-| `getAdjustment()` | The adjustment carrier; read or accumulate by operation (`get` / `set` / `add`) |
+| `getAdjustment(LivingEntity, Holder<Attribute>)` | The adjustment carrier for one entity and attribute (created on demand); read or accumulate by operation |
+| `getAdjustments(LivingEntity)` | What one entity has been given, keyed by attribute |
+| `getAdjustments()` | Everything, as entity -> attribute -> adjustment |
+| `getInstance(LivingEntity, Holder<Attribute>)` | The instance of that attribute on the given entity, or `null` if it has none |
 
 - It cannot be cancelled: deltas are accumulated by operation rather than vetoed as a whole;
-- It only fires for instrumented attribute reads; other reads never see this event.
+- It only fires for instrumented read points; one event can carry adjustments for several entities and attributes.
 
 ---
 
@@ -299,12 +289,15 @@ Server config `serverconfig/arcanumlib/attribute.toml` (in a singleplayer world 
 | Bonus loot logic | `modules/loot/bonusLoot/BonusLoot.java` |
 | The Java event that can change the ratio | `modules/loot/bonusLoot/event/ModifyBonusLootEvent.java` |
 | Event that decides whether a table gets the boost (outranks the config) | `modules/loot/bonusLoot/event/BonusLootCheckEvent.java` |
-| Injected into `LootTable` | `mixins/LootTableBonusLootMixin.java` |
+| Injected into `LootTable` (bonus loot / entity holders) | `mixins/LootTableMixin.java` |
+| The loot-resolution adjustment scope (opened at the head of `getRandomItems`, closed on return) | `mixins/LootTableMixin.java` |
+| The attack-flow adjustment scope (opened at the head of `attack`, closed on return) | `mixins/PlayerMixin.java` |
 | Attribute value change event (fires for any value change) | `modules/attribute/events/LivingAttributeChangeEvent.java` |
 | Where it fires: hooked on `AttributeInstance#setDirty` | `mixins/AttributeInstanceMixin.java` |
+| The attribute calculation stages (all five operations) | `mixins/AttributeInstanceMixin.java` |
+| The hurt-flow adjustment scope (opened at the head of `hurt`, closed on return) | `mixins/LivingEntityMixin.java` |
+| The damage-resolution adjustment scope (wraps `actuallyHurt`) | `mixins/LivingEntityMixin.java` |
 | The adjustment carrier (one field per operation) | `modules/attribute/AttributeAdjustment/AttributeAdjustment.java` |
+| The adjustment scope (applies and removes adjustments) | `modules/attribute/AttributeAdjustment/AdjustmentScope.java` |
 | The entry point for reading adjusted values | `modules/attribute/AttributeAdjustment/AdjustmentHelper.java` |
 | The adjustment event | `modules/attribute/events/LivingGetAttributeAdjustmentEvent.java` |
-| Where it is wired in: the three stages of an attribute calculation | `mixins/AttributeInstanceMixin.java` |
-| Where it is wired in: the armor / protection formulas of ApothicAttributes | `mixins/apothic_attributes/ALCombatRulesMixin.java` |
-| Where it is wired in: the critical strike resolution of ApothicAttributes | `mixins/apothic_attributes/AttributeEventsMixin.java` |

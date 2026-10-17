@@ -4,7 +4,7 @@
   "package": "com.chen1335.arcanumlib.mixins",
   "plugin": "com.chen1335.arcanumlib.mixins.ArcanumLibMixinPlugin",
   "compatibilityLevel": "JAVA_21",
-  "mixins": ["ApplyBonusCountMixin", "AttributeInstanceMixin", "AttributeMapMixin", "BonusLevelTableConditionMixin", "CompositeEntryBaseMixin", "EnchantedCountIncreaseFunctionMixin", "FishingHookMixin", "FishingHookPredicateMixin", "FishingRodItemMixin", "IntrusiveBaseWeightAccessor", "ItemStackAccessor", "ItemStackEmptyMixin", "LivingEntityMixin", "LootItemRandomChanceWithEnchantedBonusConditionMixin", "LootParams$BuilderMixin", "LootTableFillMixin", "LootTableMixin", "MixinMinecraftServer", "PlayerMixin", "IWeightAccessor", "apothic_attributes.ALCombatRulesMixin", "apothic_attributes.AttributeEventsMixin", "kubejs.MiscWrappersNumberProviderMixin"],
+  "mixins": ["ApplyBonusCountMixin", "AttributeInstanceMixin", "AttributeMapMixin", "BonusLevelTableConditionMixin", "CompositeEntryBaseMixin", "EnchantedCountIncreaseFunctionMixin", "FishingHookMixin", "FishingHookPredicateMixin", "FishingRodItemMixin", "IntrusiveBaseWeightAccessor", "ItemStackAccessor", "ItemStackEmptyMixin", "LivingEntityMixin", "LootItemRandomChanceWithEnchantedBonusConditionMixin", "LootParams$BuilderMixin", "LootTableMixin", "MixinMinecraftServer", "PlayerMixin", "IWeightAccessor", "kubejs.MiscWrappersNumberProviderMixin"],
   "client": [],
   "injectors": {
     "defaultRequire": 1

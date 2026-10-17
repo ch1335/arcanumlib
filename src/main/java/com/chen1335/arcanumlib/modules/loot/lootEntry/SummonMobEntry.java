@@ -26,7 +26,6 @@ import java.util.function.Consumer;
  *
  * <p>后续由两个钩子接管，生成过程对齐 {@code /summon}：
  * <ul>
- *   <li>{@code mixins/LootTableFillMixin}：灌进容器时把这个标记拦下，不让它占槽位；</li>
  *   <li>{@code modules/holder/EntityHolderEvents}：它以掉落物形态进入世界时拒绝该掉落物，</li>
  * </ul>
  * 并在对应位置生成实体（{@code EntityHolderHandler}，未给 nbt 时补 {@code finalizeMobSpawn}）。
@@ -75,7 +74,7 @@ public class SummonMobEntry extends LootPoolSingletonContainer {
     @Override
     public void createItemStack(Consumer<ItemStack> consumer, LootContext context) {
         // 不再当场刷怪：产出一个 0 数量的 EntityHolderItem 当标记（原版语义＝空物品，不会被玩家看到）。
-        // 之后的处理交给两个钩子：LootTableFillMixin 拦住"灌进容器"，EntityHolderEvents 拦住"掉进世界"并生成实体。
+    // 之后的处理交给钩子：EntityHolderEvents 拦住"掉进世界"并生成实体。
         consumer.accept(EntityHolderItem.marker(this.mob, this.nbt, this.count.getInt(context)));
     }
 

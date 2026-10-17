@@ -2,8 +2,6 @@ package com.chen1335.arcanumlib.modules.loot.bonusLoot;
 
 import com.chen1335.arcanumlib.mixinsAPI.IArcanumLibLivingEntityExtension;
 import com.chen1335.arcanumlib.modules.attribute.ArcanumAttributes;
-import com.chen1335.arcanumlib.modules.attribute.AttributeAdjustment.AdjustmentHelper;
-import com.chen1335.arcanumlib.modules.attribute.AttributeAdjustment.contexts.LootInfoContext;
 import com.chen1335.arcanumlib.modules.attribute.AttributeConfig;
 import com.chen1335.arcanumlib.modules.loot.bonusLoot.event.BonusLootCheckEvent;
 import com.chen1335.arcanumlib.modules.loot.bonusLoot.event.ModifyBonusLootEvent;
@@ -145,7 +143,7 @@ public final class BonusLoot {
 
         AttributeInstance attribute = source.getAttribute(ArcanumAttributes.BONUS_LOOT);
 
-        return attribute == null ? 0.0F : (float) AdjustmentHelper.getAttributeWithAdjusted(source, ArcanumAttributes.BONUS_LOOT, new LootInfoContext(context));
+        return attribute == null ? 0.0F : (float) attribute.getValue();
     }
 
     /**

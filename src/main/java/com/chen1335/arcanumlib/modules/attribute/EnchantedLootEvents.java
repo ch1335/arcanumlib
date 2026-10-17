@@ -2,8 +2,6 @@ package com.chen1335.arcanumlib.modules.attribute;
 
 import com.chen1335.arcanumlib.ArcanumLib;
 import com.chen1335.arcanumlib.events.EnchantedLootEvent;
-import com.chen1335.arcanumlib.modules.attribute.AttributeAdjustment.AdjustmentHelper;
-import com.chen1335.arcanumlib.modules.attribute.AttributeAdjustment.contexts.LootInfoContext;
 import net.minecraft.core.Holder;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.LivingEntity;
@@ -46,7 +44,7 @@ public class EnchantedLootEvents {
             return;
         }
 
-        int bonus = (int) Math.round(AdjustmentHelper.getAttributeWithAdjusted(living, attribute, new LootInfoContext(context)));
+        int bonus = (int) Math.round(instance.getValue());
         if (bonus > 0) {
             event.setLevel(event.getLevel() + bonus);
         }
