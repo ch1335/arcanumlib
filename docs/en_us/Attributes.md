@@ -26,7 +26,7 @@ words **they do nothing at all by default**; two more are damage ratios (100% by
 | `arcanumlib:bonus_loot` | Bonus Loot | percentage | 0 | 0 ~ 20 | **Rolls entity drops and chest loot extra times** by the ratio |
 | `arcanumlib:damage_multiplier` | Damage Multiplier | percentage | 1 (100%) | 0 ~ 100 | Multiplies the damage dealt |
 | `arcanumlib:damage_taken_multiplier` | Damage Taken Multiplier | percentage | 1 (100%) | 0 ~ 100 | Multiplies the damage taken |
-| `arcanumlib:all_attribute_multiplier` | All Attribute Multiplier | percentage | 1 (100%) | 0 ~ 100 | Improves most of your attributes |
+| `arcanumlib:all_attribute_multiplier` | All Attribute Multiplier | percentage | 1 (100%) | 0 ~ 100 | Modifies most of your attributes |
 
 - The first four are attached to `minecraft:player` and the next two to **every living entity**; all seven are **synced attributes**; `all_attribute_multiplier` is registered but not attached to any entity yet;
 - The lower end of the range is 0 for all of them; for the three ratios `0` means zeroed out and `1` (100%) means no change.

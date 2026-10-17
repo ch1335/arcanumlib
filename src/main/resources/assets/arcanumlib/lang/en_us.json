@@ -52,7 +52,7 @@
   "attribute.name.arcanumlib.damage_taken_multiplier": "Damage Taken Multiplier",
   "attribute.name.arcanumlib.damage_taken_multiplier.desc": "Multiplies the damage you take",
   "attribute.name.arcanumlib.all_attribute_multiplier": "All Attribute Multiplier",
-  "attribute.name.arcanumlib.all_attribute_multiplier.desc": "Improves most of your attributes",
+  "attribute.name.arcanumlib.all_attribute_multiplier.desc": "Modifies most of your attributes",
   "attribute.name.arcanumlib.fortune": "Fortune",
   "attribute.name.arcanumlib.fortune.desc": "Raises your Fortune enchantment level",
   "attribute.name.arcanumlib.looting": "Looting",
