@@ -1,7 +1,9 @@
 package com.chen1335.arcanumlib.modules.loot.bonusLoot.event;
 
+import com.chen1335.arcanumlib.mixinsAPI.ILootContextExtension;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.level.storage.loot.LootContext;
+import net.minecraft.world.level.storage.loot.parameters.LootContextParamSet;
 import net.neoforged.bus.api.Event;
 import net.neoforged.bus.api.ICancellableEvent;
 import net.neoforged.neoforge.common.NeoForge;
@@ -19,6 +21,7 @@ public class ModifyBonusLootEvent extends Event implements ICancellableEvent {
     private final LootContext lootContext;
     private final ResourceLocation lootTableId;
     private final float originalRatio;
+    private final LootContextParamSet paramSet;
     private float ratio;
 
     public ModifyBonusLootEvent(LootContext lootContext, ResourceLocation lootTableId, float ratio) {
@@ -26,6 +29,7 @@ public class ModifyBonusLootEvent extends Event implements ICancellableEvent {
         this.lootTableId = lootTableId;
         this.originalRatio = ratio;
         this.ratio = ratio;
+        paramSet = ((ILootContextExtension) lootContext).arcanumlib$getParamSet();
     }
 
     /** 本次摇取的上下文：里面有实体、方块状态、工具等全部参数。 */
@@ -61,5 +65,9 @@ public class ModifyBonusLootEvent extends Event implements ICancellableEvent {
         NeoForge.EVENT_BUS.post(event);
 
         return event;
+    }
+
+    public LootContextParamSet getParamSet() {
+        return paramSet;
     }
 }

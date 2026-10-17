@@ -1,7 +1,9 @@
 package com.chen1335.arcanumlib.modules.loot.bonusLoot.event;
 
+import com.chen1335.arcanumlib.mixinsAPI.ILootContextExtension;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.level.storage.loot.LootContext;
+import net.minecraft.world.level.storage.loot.parameters.LootContextParamSet;
 import net.neoforged.bus.api.Event;
 import net.neoforged.neoforge.common.NeoForge;
 
@@ -21,12 +23,13 @@ public class BonusLootCheckEvent extends Event {
     private final ResourceLocation lootTableId;
     private final boolean configAllowed;
     private boolean result;
-
+    private final LootContextParamSet paramSet;
     public BonusLootCheckEvent(LootContext lootContext, ResourceLocation lootTableId, boolean configAllowed) {
         this.lootContext = lootContext;
         this.lootTableId = lootTableId;
         this.configAllowed = configAllowed;
         this.result = configAllowed;
+        paramSet = ((ILootContextExtension) lootContext).arcanumlib$getParamSet();
     }
 
     /** 本次摇取的上下文：里面有实体、方块状态、工具等全部参数。 */
@@ -70,5 +73,9 @@ public class BonusLootCheckEvent extends Event {
         NeoForge.EVENT_BUS.post(event);
 
         return event;
+    }
+
+    public LootContextParamSet getParamSet() {
+        return paramSet;
     }
 }

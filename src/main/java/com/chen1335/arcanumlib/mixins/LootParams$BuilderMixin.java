@@ -41,6 +41,11 @@ public class LootParams$BuilderMixin {
                 }
             }
         }
+    }
+
+    @Inject(method = "create", at = @At(value = "RETURN"))
+    private void setParamSet(LootContextParamSet paramSet, CallbackInfoReturnable<LootParams> cir){
         ((ILootParamsExtension) cir.getReturnValue()).arcanumlib$setParamSet(paramSet);
     }
+
 }
