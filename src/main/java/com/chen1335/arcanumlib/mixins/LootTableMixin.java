@@ -31,7 +31,6 @@ import java.util.Iterator;
  * 给符合条件的战利品表追加额外掉落，逻辑见 {@link BonusLoot}。
  */
 @Mixin(LootTable.class)
-@Debug(export = true)
 public abstract class LootTableMixin {
 
     /**

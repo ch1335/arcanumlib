@@ -1,5 +1,7 @@
 package com.chen1335.arcanumlib.modules.attribute.AttributeAdjustment;
 
+import java.util.function.ToDoubleBiFunction;
+
 /**
  * 一次“临时调整”的载体：每种运算各存一个数值。
  *
@@ -13,8 +15,8 @@ package com.chen1335.arcanumlib.modules.attribute.AttributeAdjustment;
  * 两者都发生在属性自身取值范围夹取之前。
  */
 public final class AttributeAdjustment {
-    private double addValue;
-    private double addMultipliedBase;
+    private double addValue = 0;
+    private double addMultipliedBase = 0;
     private double addMultipliedTotal = 1.0D;
     private double addFinal = 0;
     private double setValue = Double.NaN;
@@ -49,15 +51,26 @@ public final class AttributeAdjustment {
      * 累加某一种运算的调整值（监听方最常用的写法）。
      */
     public void add(Operation operation, double value) {
-        this.set(operation, this.get(operation) + value);
+        this.set(operation, operation.get(this.get(operation), value));
     }
 
-    /** 属性修正支持的运算；前三个与原版 {@code AttributeModifier.Operation} 同名同义，后两个是本模组扩展的阶段。 */
+    /**
+     * 属性修正支持的运算；前三个与原版 {@code AttributeModifier.Operation} 同名同义，后两个是本模组扩展的阶段。
+     */
     public enum Operation {
-        ADD_VALUE,
-        ADD_MULTIPLIED_BASE,
-        ADD_MULTIPLIED_TOTAL,
-        ADD_FINAL,
-        SET_VALUE
+        ADD_VALUE(Double::sum),
+        ADD_MULTIPLIED_BASE(Double::sum),
+        ADD_MULTIPLIED_TOTAL((d1, d2) -> d1 * d2),
+        ADD_FINAL(Double::sum),
+        SET_VALUE((d1, d2) -> d2);
+        private final ToDoubleBiFunction<Double, Double> function;
+
+        Operation(ToDoubleBiFunction<Double, Double> function) {
+            this.function = function;
+        }
+
+        public double get(double a, double b) {
+            return function.applyAsDouble(a, b);
+        }
     }
 }
