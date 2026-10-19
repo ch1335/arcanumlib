@@ -60,7 +60,7 @@ public final class AttributeAdjustment {
     public enum Operation {
         ADD_VALUE(Double::sum),
         ADD_MULTIPLIED_BASE(Double::sum),
-        ADD_MULTIPLIED_TOTAL((d1, d2) -> d1 * d2),
+        ADD_MULTIPLIED_TOTAL((d1, d2) -> d1 * (1 + d2)),
         ADD_FINAL(Double::sum),
         SET_VALUE((d1, d2) -> d2);
         private final ToDoubleBiFunction<Double, Double> function;
