@@ -11,6 +11,12 @@ import net.minecraft.core.Holder;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.ai.attributes.Attribute;
 import net.minecraft.world.entity.ai.attributes.AttributeInstance;
+import com.chen1335.arcanumlib.ArcanumLib;
+import com.llamalad7.mixinextras.injector.wrapoperation.Operation;
+import com.llamalad7.mixinextras.injector.wrapoperation.WrapOperation;
+import net.minecraft.world.entity.ai.attributes.AttributeModifier;
+import java.util.ArrayList;
+import java.util.Collection;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.Unique;
@@ -88,52 +94,55 @@ public abstract class AttributeInstanceMixin implements IAttributeInstanceExtens
         this.arcanumlib$calculatedAdjustments = AdjustmentScope.isActive() ? arcanumlib$adjustments() : null;
     }
 
-    @ModifyExpressionValue(method = "calculateValue",
-            at = @At(value = "INVOKE",
-                    target = "Lnet/minecraft/world/entity/ai/attributes/AttributeInstance;getBaseValue()D"))
-    private double arcanumlib$afterAddValue(double base) {
-        List<AttributeAdjustment> adjustments = arcanumlib$calculatedAdjustments;
-        if (adjustments == null) {
-            return base;
-        }
-        for (AttributeAdjustment adjustment : adjustments) {
-            base += adjustment.get(AttributeAdjustment.Operation.ADD_VALUE);
-        }
-        return base;
-    }
-
-    @ModifyVariable(method = "calculateValue",
-            at = @At(value = "INVOKE", ordinal = 2,
-                    target = "Lnet/minecraft/world/entity/ai/attributes/AttributeInstance;getModifiersOrEmpty(Lnet/minecraft/world/entity/ai/attributes/AttributeModifier$Operation;)Ljava/util/Collection;"),
-            name = "d1")
-    private double arcanumlib$afterAddMultipliedBase(double total, @Local(name = "d0") double d0) {
-        List<AttributeAdjustment> adjustments = arcanumlib$calculatedAdjustments;
-        if (adjustments == null) {
-            return total;
-        }
-        for (AttributeAdjustment adjustment : adjustments) {
-            total += d0 * adjustment.get(AttributeAdjustment.Operation.ADD_MULTIPLIED_BASE);
-        }
-        return total;
-    }
-
     /**
-     * 总倍率、{@code ADD_FINAL} 与 {@code SET_VALUE} 三个阶段的临时调整：直接改 {@code sanitizeValue(d1)} 的入参。
+     * 三种与原版同名的运算：都在 {@code calculateValue} 里"修饰符被遍历"的那一刻注入一条合成修饰符。
      *
-     * <p>对每条调整依次执行：先乘总倍率，再加 {@code ADD_FINAL}，最后若给出了 {@code SET_VALUE}（非 {@code NaN}）则覆盖。
-     * 因此 {@code SET_VALUE} 与顺序有关：后出现的调整会继续作用在其结果上。时机在 {@code sanitizeValue} 之前，上下限照旧生效。
+     * <p>好处是基准值、遍历顺序、累加/相乘方式全部交给原版，不需要 {@code @Local} 抓局部变量，
+     * 也不会改动 {@code d0} 造成重复计入。
+     *
+     * <p>三种运算的中性值都是 0；
+     * {@code ADD_MULTIPLIED_TOTAL} 的数值按分数合并（{@code 0.5} 即 +50%，多条按 (1+a)(1+b)-1 连乘）；
      */
+    @WrapOperation(method = "calculateValue",
+            at = @At(value = "INVOKE",
+                    target = "Lnet/minecraft/world/entity/ai/attributes/AttributeInstance;getModifiersOrEmpty(Lnet/minecraft/world/entity/ai/attributes/AttributeModifier$Operation;)Ljava/util/Collection;"))
+    private Collection<AttributeModifier> arcanumlib$withAdjustments(AttributeInstance instance, AttributeModifier.Operation operation,
+                                                                     Operation<Collection<AttributeModifier>> original) {
+        Collection<AttributeModifier> modifiers = original.call(instance, operation);
+        List<AttributeAdjustment> adjustments = this.arcanumlib$calculatedAdjustments;
+        if (adjustments == null) {
+            return modifiers;
+        }
+
+        AttributeAdjustment.Operation adjusted = switch (operation) {
+            case ADD_VALUE -> AttributeAdjustment.Operation.ADD_VALUE;
+            case ADD_MULTIPLIED_BASE -> AttributeAdjustment.Operation.ADD_MULTIPLIED_BASE;
+            case ADD_MULTIPLIED_TOTAL -> AttributeAdjustment.Operation.ADD_MULTIPLIED_TOTAL;
+        };
+
+        // 三种运算的中性值都是 0；合并规则由 Operation 自己给：
+        // 加法的相加，ADD_MULTIPLIED_TOTAL 按分数连乘（(1+a)(1+b)-1），结果仍是分数，正好喂给原版 d1 *= 1 + amount
+        double amount = 0.0D;
+        for (AttributeAdjustment adjustment : adjustments) {
+            amount = adjusted.get(amount, adjustment.get(adjusted));
+        }
+        if (amount == 0.0D) {
+            return modifiers;                                  // 全是中性值，别动原集合
+        }
+
+        List<AttributeModifier> merged = new ArrayList<>(modifiers);
+        merged.add(new AttributeModifier(ArcanumLib.id("temporary_adjustment"), amount, operation));
+        return merged;
+    }
+
     @ModifyArg(method = "calculateValue",
             at = @At(value = "INVOKE",
                     target = "Lnet/minecraft/world/entity/ai/attributes/Attribute;sanitizeValue(D)D"),
             index = 0)
-    private double arcanumlib$afterAddMultipliedTotal(double total) {
+    private double arcanumlib$afterFinalStages(double total) {
         List<AttributeAdjustment> adjustments = arcanumlib$calculatedAdjustments;
         if (adjustments == null) {
             return total;
-        }
-        for (AttributeAdjustment adjustment : adjustments) {
-            total *= adjustment.get(AttributeAdjustment.Operation.ADD_MULTIPLIED_TOTAL);
         }
         for (AttributeAdjustment adjustment : adjustments) {
             total += adjustment.get(AttributeAdjustment.Operation.ADD_FINAL);
@@ -160,3 +169,4 @@ public abstract class AttributeInstanceMixin implements IAttributeInstanceExtens
         }
     }
 }
+

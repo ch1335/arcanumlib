@@ -100,7 +100,7 @@ first three operations mean the same as for attribute modifiers; the last two ar
 |---|---|---|
 | `ADD_VALUE` | Added directly to the attribute base value | `0` |
 | `ADD_MULTIPLIED_BASE` | Added on top of the adjusted base value | `0` |
-| `ADD_MULTIPLIED_TOTAL` | Multiplies the final value | `1` |
+| `ADD_MULTIPLIED_TOTAL` | Multiplies the final value (0.5 means +50%; several stack multiplicatively) | `0` |
 | `ADD_FINAL` | Added right after the total multipliers | `0` |
 | `SET_VALUE` | Replaces the value outright; `NaN` means "do not replace" | `NaN` |
 

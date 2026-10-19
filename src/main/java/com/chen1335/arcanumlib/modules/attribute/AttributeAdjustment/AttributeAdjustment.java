@@ -8,8 +8,9 @@ import java.util.function.ToDoubleBiFunction;
  * <p>用独立字段而不是 {@code Map<Operation, MutableDouble>}：这东西每次属性重算都会读，
  * 原来的写法每次都要多分配 1 个 Map + 若干 MutableDouble，而且每次取值都是一次 HashMap 查表。
  *
- * <p>中性值与事件里的约定一致：{@code ADD_VALUE}、{@code ADD_MULTIPLIED_BASE} 与 {@code ADD_FINAL} 是 0，
- * {@code ADD_MULTIPLIED_TOTAL} 是 1（直接相乘），{@code SET_VALUE} 用 {@code NaN} 表示“不覆盖”。
+ * <p>中性值与事件里的约定一致：{@code ADD_VALUE}、{@code ADD_MULTIPLIED_BASE}、{@code ADD_MULTIPLIED_TOTAL}
+ * 与 {@code ADD_FINAL} 都是 0；{@code ADD_MULTIPLIED_TOTAL} 的数值按分数合并（{@code 0.5} 即 +50%），
+ * {@code SET_VALUE} 用 {@code NaN} 表示“不覆盖”。
  *
  * <p>五个运算均已接入：{@code ADD_FINAL} 在总倍率之后叠加，{@code SET_VALUE} 直接覆盖当前值，
  * 两者都发生在属性自身取值范围夹取之前。
@@ -17,7 +18,7 @@ import java.util.function.ToDoubleBiFunction;
 public final class AttributeAdjustment {
     private double addValue = 0;
     private double addMultipliedBase = 0;
-    private double addMultipliedTotal = 1.0D;
+    private double addMultipliedTotal = 0D;
     private double addFinal = 0;
     private double setValue = Double.NaN;
 
@@ -60,7 +61,7 @@ public final class AttributeAdjustment {
     public enum Operation {
         ADD_VALUE(Double::sum),
         ADD_MULTIPLIED_BASE(Double::sum),
-        ADD_MULTIPLIED_TOTAL((d1, d2) -> d1 * (1 + d2)),
+        ADD_MULTIPLIED_TOTAL((d1, d2) -> (1 + d1) * (1 + d2) - 1),
         ADD_FINAL(Double::sum),
         SET_VALUE((d1, d2) -> d2);
         private final ToDoubleBiFunction<Double, Double> function;
